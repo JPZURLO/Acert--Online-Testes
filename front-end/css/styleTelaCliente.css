@@ -1,0 +1,258 @@
+@import url('../assets/fonts/all.min.css');
+
+body {
+    margin: 0px;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-color: #949494;
+    display: flex;
+    justify-content: center; /* Centraliza os itens do menu horizontalmente */
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    margin-top: 21px;
+    margin-left: 20px;
+
+}
+
+
+
+nav li {
+    margin-left: 60px; /* Espaçamento entre os itens do nav */
+}
+
+nav ul li a:hover {
+  background-color: rgb(0, 66, 128);/* Define a cor de fundo como verde no hover */
+  color: white; /* Opcional: muda a cor do texto para branco para melhor contraste */
+}
+
+a{
+    text-decoration: none;
+    color: black;
+}
+
+.filtros {
+    display: flex;
+    flex-direction: column; /* Alinha os elementos em coluna (linhas e botão) */
+    align-items: center;   /* Centraliza horizontalmente */
+  }
+  
+  .linha {
+    display: flex;
+    justify-content: center; /* Centraliza os filtros na linha */
+    width: 100%; 
+  }
+  
+  .filtro {
+    width: calc(33.33%- 15px);
+    margin: 20px 7.5px;  /* Adiciona margem superior/inferior também */
+  }
+
+  input[type="text"] {
+    width: 150px; /* Largura fixa de 100px */
+  }
+  
+  .linha button {  
+    width: auto; 
+    margin: 0 7.5px; /* Remove a margem superior e mantém as laterais */
+  }
+
+  .filtros{
+    background-color: rgba(230, 230, 230, 0.651);
+  }
+
+  .tabela-resultados {
+    width: 100%;
+    border-collapse: collapse;
+    margin-top: 20px;
+  }
+  
+  .tabela-resultados th,
+  .tabela-resultados td {
+    border: 1px solid #ddd;
+    padding: 8px;
+    text-align: left;
+  }
+  
+  .tabela-resultados th {
+    background-color: #f0f0f0;
+  }
+
+  .modal {
+    display: none; 
+    position: fixed; 
+    z-index: 1; 
+    left: 50%;
+    top: 50%;
+    transform: translate(-50%, -50%); /* Centraliza na tela */
+    width: 80%; 
+    max-width: 600px; /* Largura máxima */
+    background-color: white;
+    padding: 20px;
+    border: 1px solid #ccc;
+    box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5); /* Sombra */
+  }
+
+  
+
+.modal-conteudo {
+    background-color: #fefefe;
+    margin: 15% auto;
+    padding: 20px;
+    border: 1px solid #888;
+    width: 80%;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+
+.fechar-modal {
+    color: #aaa;
+    float: right;
+    font-size: 28px;
+    font-weight: bold;
+}
+
+.fechar-modal:hover,
+.fechar-modal:focus {
+    color: black;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.menu-minimizado {
+    margin-bottom: 10px;
+}
+
+.menu-minimizado button {
+    padding: 10px;
+    background-color: #eee;
+    border: none;
+    cursor: pointer;
+}
+
+.conteudo-menu {
+    display: none;
+    padding: 10px;
+    border: 1px solid #ccc;
+}
+
+.pergunta {
+    border: 1px solid #ccc;
+    padding: 10px;
+    margin-bottom: 10px;
+}
+
+.opcoes-resposta {
+    margin-top: 10px;
+}
+
+.opcao-multipla {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.opcao-multipla input[type="radio"] {
+    margin-right: 5px;
+}
+
+.opcao-caixa {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+}
+
+.opcao-caixa input[type="checkbox"] {
+    margin-right: 5px;
+}
+
+/* ... (restante do código CSS) */
+
+.abas {
+  display: flex;
+}
+
+.aba-link {
+  padding: 10px;
+  background-color: #eee;
+  border: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent; /* Adiciona borda inferior transparente */
+}
+
+.aba-link.active {
+  background-color: #ddd;
+  border-bottom: 2px solid #333; /* Adiciona borda inferior ao aba ativo */
+}
+
+.conteudo-aba {
+  display: none;
+  padding: 10px;
+}
+
+.conteudo-aba.active {
+  display: block;
+}
+
+#btn-criar-questao {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  font-size: 20px;
+  padding: 10px;
+  cursor: pointer;
+  border-radius: 5px; /* Opcional: arredondar os cantos do botão */
+  background-color: #888;
+}
+
+.menu-minimizado2 {
+  margin-bottom: 10px;
+}
+
+.menu-minimizado2 button {
+  padding: 10px;
+  background-color: #eee;
+  border: none;
+  cursor: pointer;
+}
+
+.modal {
+  display: none;
+  position: fixed;
+  z-index: 1;
+  left: 50%; /* Metade da largura da tela */
+  top: 50%; /* Metade da altura da tela */
+  transform: translate(-50%, -50%); /* Centraliza o modal */
+  width: 80%;
+  max-width: 600px;
+  background-color: white;
+  padding: 20px;
+  border: 1px solid #ccc;
+  box-shadow: 0px 0px 10px rgba(0, 0, 0, 0.5);
+}
+
+.modal-conteudo {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 80%;
+}
+
+.fechar-modal {
+  color: #aaa;
+  float: right;
+  font-size: 28px;
+  font-weight: bold;
+}
+
+.button-Gestao{
+  margin-bottom: 10px;;
+}
+

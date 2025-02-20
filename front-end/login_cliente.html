@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>login cliente</title>
+    <link rel="stylesheet" href="./css/styleTelaCliente.css">
+</head>
+<body>
+  <header>
+    <nav>
+        <ul>
+            <li><a href="./index.html" id="link-home">Testes</a></li>
+            <li><a href="./Participante.html" id="link-solucoes">Participantes</a></li>
+            <li><a href="./NossosPlanos.html" id="link-contato">Notas</a></li>
+            <li><a href="#" id="link-login/cadastro">Relatórios</a></li>
+            <li>
+                <div id="user-info">
+                    <span id="user-name"></span>
+                </div>
+            </li>
+        </ul>
+    </nav>
+  </header>
+
+    <div class="filtros">
+        <div class="linha"> 
+          <div class="filtro">
+            <label for="nome-exame">Nome do Exame:</label>
+            <input type="text" id="nome-exame">
+          </div>
+          <div class="filtro">
+            <label for="numero-curso">Número de Identificação:</label>
+            <input type="text" id="numero-curso">
+          </div>
+          <div class="filtro">
+            <label for="data-inicio">Data de Início:</label>
+            <input type="date" id="data-inicio">
+          </div>
+          
+        </div>
+      
+        <div class="linha">
+          <div class="filtro">
+            <label for="data-termino">Data de Término:</label>
+            <input type="date" id="data-termino">
+          </div>
+          <div class="filtro">
+            <label for="categoria-curso">Categoria do Teste:</label>
+            <select id="categoria-curso">
+              <option value="">Selecione</option>
+              <option value="certificacoes">Certificações</option>
+              <option value="provas">Provas</option>
+              <option value="testes">Testes</option>
+            </select>
+          </div>
+          
+        </div>
+      
+        <button onclick="aplicarFiltros()">Aplicar Filtros</button> 
+    </div>
+    <table class="tabela-resultados">
+        <thead>
+          <tr>
+            <th>Nome do Exame</th>
+            <th>Data de Início</th>
+            <th>Data de Término</th>
+            <th>Número de Identificação do Teste</th>
+            <th>Categoria do Teste</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td onclick="abrirModalEdicaoCurso(this)">Exame 1</td>
+            <td>2023-10-26</td>
+            <td>2023-10-27</td>
+            <td>123</td>
+            <td>Certificações</td>
+          </tr>
+          <tr>
+            <td onclick="abrirModalEdicaoCurso(this)">Exame 2</td>
+            <td>2023-11-15</td>
+            <td>2023-11-18</td>
+            <td>456</td>
+            <td>Provas</td>
+          </tr>
+          </tbody>
+      </table>
+      <button id="btn-criar-questao" onclick="abrirModalCriarQuestao()">+</button>
+
+      <div id="modal-edicao-curso" class="modal">
+        <div class="modal-conteudo">
+            <span class="fechar-modal" onclick="fecharModalEdicaoCurso()">&times;</span>
+    
+            <h2>Editar Teste</h2>
+    
+            <label for="nome-completo-curso">Nome Completo do Teste:</label>
+            <input type="text" id="nome-completo-curso"><br><br>
+    
+            <label for="nome-breve-curso">Nome Breve do Teste:</label>
+            <input type="text" id="nome-breve-curso"><br><br>
+    
+            <label for="categoria-curso">Categoria do Teste:</label>
+            <select id="categoria-curso">
+                <option value="certificacao">Certificação</option>
+                <option value="prova">Prova</option>
+                <option value="exame">Exame</option>
+            </select><br><br>
+    
+            <label for="visibilidade-curso">Visibilidade do Teste:</label>
+            <select id="visibilidade-curso">
+                <option value="publico">Público</option>
+                <option value="aluno">Aluno</option>
+            </select><br><br>
+    
+            <label for="data-inicio">Data de Início:</label>
+            <input type="date" id="data-inicio"><br><br>
+    
+            <label for="data-termino">Data de Término:</label>
+            <input type="date" id="data-termino"><br><br>
+    
+            <label for="numero-curso">Número de Identificação do Teste:</label>
+            <input type="text" id="numero-curso"><br><br>
+    
+            <div class="menu-minimizado">
+                <button onclick="alternarMenu('descricao')">Descrição ▼</button>
+                <div id="descricao" class="conteudo-menu">
+                    <label for="sumario-curso">Sumário:</label>
+                    <textarea id="sumario-curso"></textarea><br><br>
+    
+                    <label for="imagem-curso">Imagem:</label>
+                    <input type="file" id="imagem-curso"><br><br>
+                </div>
+            </div>
+    
+            <div class="menu-minimizado">
+                <button onclick="alternarMenu('questoes')">Questões ▼</button>
+                <div id="questoes" class="conteudo-menu">
+                    <div id="perguntas-container">
+                        <div class="pergunta">
+                            <label for="pergunta">Pergunta:</label>
+                            <input type="text" id="pergunta"><br><br>
+    
+                            <label for="tipo-pergunta">Tipo de Pergunta:</label>
+                            <select id="tipo-pergunta" onchange="mostrarOpcoesResposta(this)">
+                                <option value="multipla">Múltipla Escolha</option>
+                                <option value="caixa">Caixa de Seleção</option>
+                                <option value="dissertativa">Dissertativa</option>
+                            </select><br><br>
+    
+                            <label for="pontuacao">Pontuação (0-10):</label>
+                            <input type="number" id="pontuacao" min="0" max="10"><br><br>
+    
+                            <div id="opcoes-resposta">
+                            </div>
+                        
+                            <div id="resposta-dissertativa" style="display: none;">
+                              <label for="resposta">Resposta:</label><br>
+                              <textarea id="resposta-dissertativa-criar"></textarea>
+                            </div>
+                        </div>
+                    </div>
+    
+                    <button onclick="adicionarPergunta()">Adicionar Pergunta</button>
+                    <button onclick="excluirPergunta()">Excluir Pergunta</button>
+                </div>
+            </div>
+            <div class="menu-minimizado"> 
+              <div id="secao-gestao-empresa">
+                <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
+            
+                <div id="conteudo-gestao-empresa" style="display: none;">
+                    <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
+            
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Selecionar</th>
+                                <th>Aluno</th>
+                                <th>Email</th>
+                                <th>CPF</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tabelaAlunos">
+                        </tbody>
+                    </table>
+            
+                    <button id="btnSalvar">Salvar</button>
+                    <button id="btnCancelar">Cancelar</button>
+                </div>
+              </div>
+            </div>
+            
+            <button onclick="salvarCurso()">Salvar</button>
+            <button onclick="fecharModalEdicaoCurso()">Cancelar</button>
+        </div>
+      </div>
+    </div>
+    <div id="modal-criar-questao" class="modal">
+      <div class="modal-conteudo">
+          <span class="fechar-modal" onclick="fecharModalCriarQuestao()">&times;</span>
+  
+          <h3>Criar Teste</h3>
+  
+          <label for="nome-completo-curso">Nome Completo do Teste:</label>
+          <input type="text" id="nome-completo-curso-criar"><br><br>
+  
+          <label for="nome-breve-curso">Nome Breve do Teste:</label>
+          <input type="text" id="nome-breve-curso-criar"><br><br>
+          <label for="visibilidade-curso">Visibilidade do Teste:</label>
+          <select id="visibilidade-curso-criar">
+              <option value="publico">Público</option>
+              <option value="aluno">Aluno</option>
+          </select><br><br>
+  
+          <label for="data-inicio">Data de Início:</label>
+          <input type="date" id="data-inicio-criar"><br><br>
+  
+          <label for="data-termino">Data de Término:</label>
+          <input type="date" id="data-termino-criar"><br><br>
+  
+          <label for="numero-curso">Número de Identificação do Teste:</label>
+          <input type="text" id="numero-curso-criar"><br><br>
+  
+          <div class="menu-minimizado2">
+            <button onclick="alternarMenu('descricao-criar')">Descrição ▼</button>
+            <div id="descricao-criar" class="conteudo-menu">
+                <label for="sumario-curso">Sumário:</label>
+                <textarea id="sumario-curso-criar"></textarea><br><br>
+        
+                <label for="imagem-curso">Imagem:</label>
+                <input type="file" id="imagem-curso-criar"><br><br>
+            </div>
+          </div>
+        
+        <div class="menu-minimizado2">
+          <button onclick="alternarMenu('questoes-criar')">Questões ▼</button>
+          <div id="questoes-criar" class="conteudo-menu">
+              <div id="perguntas-container-criar">
+                  <div class="pergunta">
+                      <label for="pergunta">Pergunta:</label>
+                      <input type="text" id="pergunta-criar"><br><br>
+      
+                      <label for="tipo-pergunta">Tipo de Pergunta:</label>
+                      <select id="tipo-pergunta-criar" onchange="mostrarOpcoesResposta(this)">
+                          <option value="multipla">Múltipla Escolha</option>
+                          <option value="caixa">Caixa de Seleção</option>
+                          <option value="dissertativa">Dissertativa</option>
+                      </select><br><br>
+      
+                      <label for="pontuacao">Pontuação (0-10):</label>
+                      <input type="number" id="pontuacao-criar" min="0" max="10"><br><br>
+      
+                      <div id="opcoes-resposta-criar">
+                          </div>
+      
+                      <div id="resposta-dissertativa-criar" style="display: none;">
+                          <label for="resposta">Resposta:</label><br>
+                          <textarea id="resposta-dissertativa-texto-criar"></textarea>
+                      </div>
+                  </div>
+              </div>
+              <div class="menu-minimizado"> 
+                <div id="secao-gestao-empresa">
+                  <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
+              
+                  <div id="conteudo-gestao-empresa" style="display: none;">
+                      <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
+              
+                      <table>
+                          <thead>
+                              <tr>
+                                  <th>Selecionar</th>
+                                  <th>Aluno</th>
+                                  <th>Email</th>
+                                  <th>CPF</th>
+                              </tr>
+                          </thead>
+                          <tbody id="tabelaAlunos">
+                          </tbody>
+                      </table>
+              
+                      <button id="btnSalvar">Salvar</button>
+                      <button id="btnCancelar">Cancelar</button>
+                  </div>
+                </div>
+              </div>
+      
+              <button onclick="adicionarPergunta()">Adicionar Pergunta</button>
+              <button onclick="excluirPergunta()">Excluir Pergunta</button>
+          </div>
+      </div>
+      <div class="menu-minimizado"> 
+        <div id="secao-gestao-empresa">
+          <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
+      
+          <div id="conteudo-gestao-empresa" style="display: none;">
+              <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
+      
+              <table>
+                  <thead>
+                      <tr>
+                          <th>Selecionar</th>
+                          <th>Aluno</th>
+                          <th>Email</th>
+                          <th>CPF</th>
+                      </tr>
+                  </thead>
+                  <tbody id="tabelaAlunos">
+                  </tbody>
+              </table>
+      
+              <button id="btnSalvar">Salvar</button>
+              <button id="btnCancelar">Cancelar</button>
+          </div>
+        </div>
+      </div>
+      
+      
+      <button onclick="salvarCurso()">Salvar</button>
+      <button onclick="fecharModalEdicaoCurso()">Cancelar</button>
+      
+    </div>
+    
+    
+
+    
+  </div>
+  <script>
+    document.addEventListener('DOMContentLoaded', function() {
+      const userNameElement = document.getElementById('user-name');
+      const storedName = localStorage.getItem('NomeCompleto');
+
+      if (storedName) {
+        userNameElement.textContent = storedName;
+      } else {
+        // Se o nome não estiver no localStorage, você pode buscar usando o token, se necessário.
+        fetchUserName(); // Chama a função para buscar o nome usando o token, caso não esteja no localStorage.
+      }
+
+      function fetchUserName() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Token não encontrado');
+          return;
+        }
+
+        fetch('http://localhost:5500/api/obterNomeCompleto', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.NomeCompleto) {
+            userNameElement.textContent = data.NomeCompleto;
+            localStorage.setItem('NomeCompleto', data.NomeCompleto); // Atualiza o localStorage, se necessário.
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao buscar o nome completo do usuário:', error);
+        });
+      }
+    });
+  </script>
+    <script src="./js/scriptfiltro.js"></script>
+    <script src="./js/scriptModal.js"></script>
+    <script src="./js/scriptModalCriar.js"></script>
+    <script src="./js/scriptModalGestao.js"></script>
+</body>
+</html>

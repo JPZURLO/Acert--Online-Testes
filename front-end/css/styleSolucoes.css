@@ -1,0 +1,285 @@
+@import url('../assets/fonts/all.min.css');
+
+body {
+    margin: 0px;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-color: #f0f0f0;
+    padding: 20px;
+    display: flex;
+    align-items: center;
+    margin: 0%;
+    
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    margin-top: 21px;
+    margin-left: 20px;
+    
+}
+
+nav li {
+    margin-left: 60px; /* Espaçamento entre os itens do nav */
+}
+
+nav ul li a:hover {
+  background-color: rgb(0, 66, 128); /* Define a cor de fundo como verde no hover */
+  color: white; /* Opcional: muda a cor do texto para branco para melhor contraste */
+}
+
+.logo {
+    max-width: 200px;
+    height: 50px;
+    margin: 0;
+    padding: 0;
+    margin-left: 20px;
+}
+
+header{
+    background-color: white;
+    margin: 0%;
+    padding: 0;
+    border: 2px solid black;
+}
+
+a{
+    text-decoration: none;
+    color: black;
+}
+
+.banner-container img {
+  display: flex; 
+  width: 100%; /* Largura do container igual à largura do banner */
+}
+
+.fa-solid.fa-circle-check {  /* Seletor para o ícone */
+  width: 15px;           /* Largura do círculo */
+  height:15px;          /* Altura do círculo */
+  border-radius: 50%;    /* Faz o elemento circular */
+  background-color: rgb(0, 0, 0); /* Cor de fundo do círculo */
+  display: flex;         /* Usa flexbox para centralizar o ícone */
+  justify-content: center; /* Centraliza horizontalmente */
+  align-items: center;     /* Centraliza verticalmente */
+  position: relative;  
+}
+
+.fa-solid.fa-circle-check::before {
+  content: '\f00c'; /* Código do ícone de "certo" no Font Awesome */
+  font-family: 'Font Awesome 6 Free'; /* Substitua pela sua fonte de ícones */
+  font-weight: 900; /* Para usar o ícone sólido */
+  color: white;      /* Cor do ícone */
+  font-size: 20px;   /* Tamanho do ícone */
+    
+}
+
+footer {
+  background-image: linear-gradient(to bottom, white, #7a7a7a) !important; 
+  padding: 20px;
+}
+  
+.container {
+  max-width: 1200px; /* Largura máxima do container */
+  margin: 0 auto; /* Centraliza o container */
+}
+  
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.coluna {
+  width: 30%; /* Ajuste a largura conforme necessário */
+  padding: 10px;
+}
+
+.coluna.logo {
+  display: flex;
+  flex-direction: column; /* Alinha o logo e o copyright em coluna */
+  align-items: center;    /* Centraliza o logo e o copyright horizontalmente */
+  margin-top: 65px;
+}
+
+.coluna.links {
+  display: flex;
+  flex-direction: column; 
+}
+
+.coluna.links h3 {  /* Impede a quebra de linha nos links */
+  white-space: nowrap; 
+}
+
+.coluna.social {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start; /* Alinha os ícones à esquerda */
+  margin-top: 10px;
+  padding: 0%;
+}
+
+.fab.fa-instagram{
+  margin-top: 10px;
+  margin-bottom: 15px;
+}
+
+.logo img {
+  max-width: 150px; /* Largura máxima da logo */
+  margin-left: 0%;
+}
+  
+
+.icones-social a {
+  display: block;
+  margin-bottom: 10px;
+  font-size: 15px;
+  
+}
+  
+.icones-social a:hover {
+  color: #3f729b; /* Cor do Instagram no hover */
+}
+  
+.icones-social a:hover .fa-linkedin {
+  color: #0e76a8; /* Cor do LinkedIn no hover */
+}
+
+.fa-solid { 
+  font-size: 24px; 
+}/* Aumenta o tamanho dos ícones de redes sociais para 30px */
+
+.icones-social a i { 
+  font-size: 30px; 
+}
+  
+.telefone {
+  align-items: center;
+  margin: 0%;
+  margin: 0%;
+}
+  
+.copyright {
+  text-align: center; /* Centraliza o texto de copyright */
+  width: 100%; /* Ocupa toda a largura na segunda linha */
+  margin-bottom: 0px;
+  padding-bottom: 0px;
+  font-size: 10px;
+}
+
+.link-solucoes{
+  color: rgb(0, 0, 0);
+}
+
+h1{
+  font-size: 15px;
+  margin-top: 0%;
+  
+}
+
+h2 {
+  font-size: 15px;
+}
+
+#paragrafo {
+  margin-bottom: 0%;
+  margin-top: 40px;
+  text-align: center;
+  margin-left: 90px;
+  margin-right: 90px;
+}
+
+.coluna.logo{
+  margin-left: 0%;
+  margin-right: 50px;
+}
+
+
+.icone-titulo1 {
+  
+  margin-bottom: 0%;
+}
+
+.icone-titulo2 {
+  
+  margin-bottom: 0%;
+  
+}
+
+.coluna.links h3 {
+  white-space: nowrap;
+  display: flex; /* Usa Flexbox para alinhar o texto e o ícone */
+  align-items: center; /* Alinha o texto e o ícone verticalmente */
+}
+
+.coluna.links h3 i {
+  margin-left: 10px; /* Adiciona espaço entre o texto e o ícone */
+}
+
+h4 {
+  margin-bottom: 0%;
+  margin-top: 20px;
+}
+
+#solucoes .row1 {
+  display: flex; /* Alinha as colunas lado a lado */
+  justify-content: center; /* Centraliza as colunas horizontalmente */
+  margin-left: 200px;
+  margin-right: 180px;
+  margin-bottom: 60px;
+}
+
+#solucoes .coluna2 {
+  width: 50%; /* Define a largura de cada coluna */
+  display: flex; /* Usa flexbox para alinhar os itens verticalmente */
+  flex-direction: column; /* Alinha os itens em coluna */
+  align-items: center; /* Centraliza os itens horizontalmente dentro da coluna */
+  justify-content: center;
+  border: 1px solid #000000; /* Adiciona uma borda cinza ao redor da coluna */
+  padding: 20px;          /* Adiciona espaçamento interno */
+  border-radius: 5px;     /* Adiciona cantos arredondados */
+  margin-left: 5px;
+  margin-top: 30px;
+  background-color: #8d8a8aa8;
+}
+
+#solucoes .titulo-com-icone1 {
+  display: flex;
+  flex-direction: column; /* Alinha ícone e título em coluna */
+  align-items: center; /* Centraliza os itens horizontalmente */
+}
+
+#solucoes .icone-titulo1 {
+  width: 40px;
+  height: 40px;
+}
+
+#solucoes .icone-titulo2 {
+  width: 40px;
+  height: 40px;
+}
+
+#solucoes .opcoes .opcao-solucao {
+  position: relative;
+  display: flex; /* Usa o Flexbox para alinhar o ícone e o texto */
+}
+
+#solucoes .opcoes .opcao-solucao i {
+  margin-right: 10px; /* Adiciona um espaço entre o ícone e o texto */
+}
+
+.opcoes{
+  padding: 0%;
+  margin-left: 20px;
+}
+
+
+h5{
+  font-size: 15px;
+  margin-top: 0%;
+  margin-bottom: 10px;
+}

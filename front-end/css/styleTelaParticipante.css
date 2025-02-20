@@ -1,0 +1,131 @@
+@import url('../assets/fonts/all.min.css');
+
+body {
+    margin: 0px;
+    font-family: Arial, sans-serif;
+}
+
+header {
+    background-color: #949494;
+    display: flex;
+    justify-content: center; /* Centraliza os itens do menu horizontalmente */
+}
+
+nav ul {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    margin-top: 21px;
+    margin-left: 20px;
+
+}
+
+nav li {
+    margin-left: 60px; /* Espaçamento entre os itens do nav */
+}
+
+nav ul li a:hover {
+  background-color: rgb(0, 66, 128);/* Define a cor de fundo como verde no hover */
+  color: white; /* Opcional: muda a cor do texto para branco para melhor contraste */
+}
+
+a{
+    text-decoration: none;
+    color: black;
+}
+
+table {
+    width: auto;
+    border-collapse: collapse;
+    margin: 20px; /* Espaçamento de 20 pixels nas laterais */
+  }
+  
+  th, td {
+    padding: 8px;
+    border: 1px solid #ddd;
+    text-align: left;
+  }
+  
+  .filter {
+    margin-bottom: 10px;
+  }
+
+
+/* Estilos para o ícone de 3 pontos */
+.menu-icon {
+    cursor: pointer;
+    padding: 5px;
+    display: inline-block;
+  }
+  
+  .menu-icon span {
+    font-size: 18px;
+  }
+  
+  /* Estilos para o menu de opções */
+  .menu-options {
+    display: none;
+    position: absolute;
+    background-color: #f9f9f9;
+    border: 1px solid #ddd;
+    box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+    z-index: 1;
+    left: auto; /* Alinha à direita */
+    right: 0; /* Expande para a esquerda */
+  }
+  
+  .menu-options button {
+    padding: 8px 12px;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    width: 80%;
+    text-align: left;
+  }
+  
+  .menu-options button:hover {
+    background-color: #eee;
+  }
+
+/* Estilos para o modal */
+.modal3 {
+  display: none; /* Esconde o modal por padrão */
+  position: fixed; /* Mantém o modal fixo na tela */
+  z-index: 1; /* Garante que o modal fique em cima de outros elementos */
+  left: 0;
+  top: 0;
+  width: 100%; /* Largura total */
+  height: 100%; /* Altura total */
+  background-color: rgba(0, 0, 0, 0.4); /* Fundo escuro semi-transparente */
+}
+
+.modal-conteudo3 {
+  background-color: #fefefe;
+  margin: 15% auto;
+  padding: 20px;
+  border: 1px solid #888;
+  width: 50%;
+  display: flex; /* Ativa o Flexbox */
+  flex-direction: column; /* Define a direção dos itens como vertical */
+  align-items: center; /* Centraliza os itens horizontalmente */
+}
+
+.modal-conteudo form {
+  display: grid;
+  grid-template-columns: 1fr 1fr; /* Duas colunas */
+  gap: 10px; /* Espaçamento entre os campos */
+}
+
+.modal-conteudo3 label,
+.modal-conteudo3 input,
+.modal-conteudo3 select {
+  margin-bottom: 5px; /* Espaçamento entre os campos */
+  width: 100%; /* Ocupa toda a largura do formulário */
+}
+
+.modal-conteudo3 button {
+  margin-top: 0px; /* Espaçamento acima do botão */
+  align-self: center; /* Centraliza o botão horizontalmente */
+}
+

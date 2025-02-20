@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Tela de Login</title>
+    <link rel="stylesheet" href="./css/login.css">
+</head>
+<body>
+    <div class="container">
+        <div class="login-box">
+            <img src="./assets/images/iconeUser.png" alt="Ícone do Usuário" class="user-icon">
+            <form id="login-form" method="post" action="/login">
+                <input type="email" id="email" name="email" placeholder="Email" class="input-field">
+                <input type="password" id="senha" name="senha" placeholder="Senha" class="input-field">
+                <div class="checkbox-container">
+                    <input type="checkbox" id="mostrar-senha">
+                    <label for="mostrar-senha">Mostrar Senha</label>
+                </div>
+                <div id="error-message"></div>  <button type="submit" class="login-button">Entrar</button>
+            </form>
+            <a href="EsqueciSenha.html" class="esqueci-senha">Esqueci a Senha</a>
+        </div>
+    </div>
+    <script src="./js/script2.js"></script>
+    <script src="./js/script-bd.js"></script>
+</body>
+</html>

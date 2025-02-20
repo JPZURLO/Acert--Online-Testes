@@ -1,0 +1,119 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Document</title>
+    <link rel="stylesheet" href="./css/styleTelaParticipante.css">
+</head>
+<body>
+    <header>
+        <nav>
+            <ul>
+                <li><a href="./index.html" id="link-home">Testes</a></li>
+                <li><a href="./Participante.html" id="link-solucoes">Participantes</a></li>
+                <li><a href="./NossosPlanos.html" id="link-contato">Notas</a></li>
+                <li><a href="#" id="link-login/cadastro">Relatórios</a></li>
+            </ul>
+        </nav>
+    </header>
+
+    <div class="filter">
+        <label for="nome">Nome:</label>
+        <select id="nome">
+            <option value="todos">Todos</option>
+            <option value="a">A</option>
+            <option value="b">B</option>
+            <option value="c">C</option>
+            <option value="d">D</option>
+            <option value="e">E</option>
+            <option value="f">F</option>
+            <option value="g">G</option>
+            <option value="h">H</option>
+            <option value="i">I</option>
+            <option value="j">J</option>
+            <option value="k">K</option>
+            <option value="l">L</option>
+            <option value="m">M</option>
+            <option value="n">N</option>
+            <option value="o">O</option>
+            <option value="p">P</option>
+            <option value="q">Q</option>
+            <option value="r">R</option>
+            <option value="s">S</option>
+            <option value="t">T</option>
+            <option value="u">U</option>
+            <option value="v">V</option>
+            <option value="w">W</option>
+            <option value="x">X</option>
+            <option value="y">Y</option>
+            <option value="z">Z</option>
+        </select>
+    </div>
+    
+    <table>
+        <h1>Tabela de Usuários</h1>
+        <thead>
+            <tr>
+                <th><input type="checkbox"></th>
+                <th>Nome</th>
+                <th>Endereço de Email</th>
+                <th>Telefone Celular</th>
+                <th>Cidade/Município</th>
+                <th>Tipo de Usuário</th>
+                <th>
+                    Último Acesso ao Curso
+                    <div class="menu-icon" onclick="toggleMenu()">
+                        <span>&#8942;</span> 
+                    </div>
+                    <div class="menu-options" id="menu">
+                        <button onclick="excluirLinhas()">Excluir</button>
+                        <button onclick="abrirModalCriar()">Criar</button>                    </div>
+                </th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td><input type="checkbox"></td>
+                <td>João da Silva</td>
+                <td>joao.silva@email.com</td>
+                <td>(11) 99999-9999</td>
+                <td>São Paulo</td>
+                <td>Aluno</td>
+                <td>15/05/2024</td>
+            </tr>
+        </tbody>
+    </table>
+    <div id="ModalCriar" class="modal3">
+        <div class="modal-conteudo3">
+          <span class="fechar-modal" onclick="fecharModalCriar()">&times;</span>
+          <h2>Criar Novo Usuário</h2>
+          <form>
+            <label for="nome">Nome:</label><br>
+            <input type="text" id="nome" name="nome"><br><br>
+      
+            <label for="email">Endereço de Email:</label><br>
+            <input type="email" id="email" name="email"><br><br>
+      
+            <label for="telefone">Telefone Celular:</label><br>
+            <input type="tel" id="telefone" name="telefone"><br><br>
+      
+            <label for="cidade">Cidade/Município:</label><br>
+            <input type="text" id="cidade" name="cidade"><br><br>
+      
+            <label for="tipo">Tipo de Usuário:</label><br>
+            <select id="tipo" name="tipo">
+              <option value="aluno">Aluno</option>
+              <option value="gerente">Gerente</option>
+            </select><br><br>
+      
+            <button type="submit">Salvar</button>
+          </form>
+        </div>
+      </div>
+
+  <script src="./js/scriptParticipantes.js"></script>
+  <script src="./js/scriptMenu.js"></script>
+  <script src="./js/modalCriarParticipante"></script>
+</body>
+</html>

@@ -1,0 +1,88 @@
+body {
+    background-image: url("../assets/images/bannerLogin.jpg"); /* Substitua pela sua imagem */
+    background-size: cover;
+    font-family: sans-serif;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+  }
+
+  .login-button a { /* Seletor para o link dentro do botão */
+    text-decoration: none;  /* Remove o sublinhado */
+    color: inherit;        /* Herda a cor do elemento pai (botão) */
+    cursor: pointer;       /* Mantém o cursor como ponteiro */
+  }
+  
+  .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+  }
+  
+  .login-box {
+    background-color: rgba(128, 128, 128, 0.7); /* Cinza claro com transparência */
+    padding: 30px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  
+  .user-icon {
+    width: 100px; /* Ajuste o tamanho conforme necessário */
+    height: 100px;
+    margin-bottom: 20px;
+  }
+  
+  .input-field {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+  }
+  
+  .checkbox-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 20px;
+  }
+  
+  .esqueci-senha {
+    display: block;
+    margin-bottom: 20px;
+    color: blue;
+  }
+  
+  .login-button {
+    background-color: #097C48 ;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .senha-container {
+    position: relative; /* Permite posicionar o ícone dentro do input */
+  }
+  
+  .senha-container input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border: 1px solid #000000;
+    border-radius: 5px;
+  }
+  
+  .senha-container i {
+    position: absolute;
+    right: 10px; /* Posição do ícone à direita */
+    top: 50%;
+    transform: translateY(-50%); /* Centraliza verticalmente */
+    cursor: pointer;
+    color: #999; /* Cor do ícone */
+  }
+
+  

@@ -1,0 +1,11 @@
+Recomendação:
+
+Para um projeto como o seu, com funcionalidades como criação de empresas, exames e provas, recomendo utilizar um framework como Django (Python) ou Ruby on Rails. Esses frameworks oferecem uma estrutura completa para desenvolvimento web, com ferramentas para gerenciar bancos de dados, usuários, formulários e muito mais.
+
+Outras tecnologias importantes:
+
+Além da linguagem de programação, você precisará de outras tecnologias para construir o seu site:
+
+Banco de dados: MySQL, PostgreSQL ou MongoDB são algumas das opções mais populares.
+Front-end: HTML, CSS e JavaScript para criar a interface do usuário.
+Servidor: Você pode utilizar um servidor cloud como AWS, Google Cloud ou Azure, ou um servidor local.
