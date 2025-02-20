@@ -329,13 +329,20 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const userNameElement = document.getElementById('user-name');
+      const razaoSocialElement = document.getElementById('user-name'); // Novo elemento para RazaoSocial
       const storedName = localStorage.getItem('NomeCompleto');
+      const storedRazaoSocial = localStorage.getItem('RazaoSocial'); // Recupera a RazaoSocial do localStorage
 
       if (storedName) {
         userNameElement.textContent = storedName;
       } else {
-        // Se o nome não estiver no localStorage, você pode buscar usando o token, se necessário.
-        fetchUserName(); // Chama a função para buscar o nome usando o token, caso não esteja no localStorage.
+        fetchUserName(); // Chama a função para buscar o nome, caso não esteja no localStorage.
+      }
+
+      if (storedRazaoSocial) {
+        razaoSocialElement.textContent = storedRazaoSocial; // Exibe a RazaoSocial se já estiver armazenada
+      } else {
+        fetchRazaoSocial(); // Chama a função para buscar a RazaoSocial
       }
 
       function fetchUserName() {
@@ -360,15 +367,46 @@
         .then(data => {
           if (data.NomeCompleto) {
             userNameElement.textContent = data.NomeCompleto;
-            localStorage.setItem('NomeCompleto', data.NomeCompleto); // Atualiza o localStorage, se necessário.
+            localStorage.setItem('NomeCompleto', data.NomeCompleto); // Atualiza o localStorage
           }
         })
         .catch(error => {
           console.error('Erro ao buscar o nome completo do usuário:', error);
         });
       }
+
+      function fetchRazaoSocial() {
+        const token = localStorage.getItem('token');
+        if (!token) {
+          console.error('Token não encontrado');
+          return;
+        }
+
+        fetch('http://localhost:5500/api/obterRazaoSocial', {
+          method: 'GET',
+          headers: {
+            'Authorization': 'Bearer ' + token
+          }
+        })
+        .then(response => {
+          if (!response.ok) {
+            throw new Error('Network response was not ok');
+          }
+          return response.json();
+        })
+        .then(data => {
+          if (data.RazaoSocial) {
+            razaoSocialElement.textContent = data.RazaoSocial;
+            localStorage.setItem('RazaoSocial', data.RazaoSocial); // Atualiza o localStorage
+          }
+        })
+        .catch(error => {
+          console.error('Erro ao buscar a RazaoSocial do usuário:', error);
+        });
+      }
     });
-  </script>
+</script>
+
     <script src="./js/scriptfiltro.js"></script>
     <script src="./js/scriptModal.js"></script>
     <script src="./js/scriptModalCriar.js"></script>

@@ -28,6 +28,7 @@ document.addEventListener('DOMContentLoaded', () => {
           localStorage.removeItem('logado');
           localStorage.removeItem('nomeUsuario');
           localStorage.removeItem('imagemUsuario');
+          localStorage.removeItem('RazaoSocial');  // Limpa RazaoSocial no logout
           window.location.href = 'index.html';
         });
       }
@@ -40,8 +41,14 @@ document.addEventListener('DOMContentLoaded', () => {
   if (localStorage.getItem('logado') === 'true') {
     const nomeUsuario = localStorage.getItem('nomeUsuario');
     const imagemUsuario = localStorage.getItem('imagemUsuario');
+    const razaoSocial = localStorage.getItem('RazaoSocial');  // Obtém RazaoSocial caso seja empresa
 
-    atualizarBotaoLogin(nomeUsuario, imagemUsuario);
+    // Se for uma empresa, mostra RazaoSocial
+    if (razaoSocial) {
+      atualizarBotaoLogin(razaoSocial, imagemUsuario);  // Se for empresa, usa RazaoSocial
+    } else {
+      atualizarBotaoLogin(nomeUsuario, imagemUsuario);  // Caso contrário, usa o nome comum
+    }
   }
 
   // Evento de clique no botão de login (se precisar redirecionar para a página de login)

@@ -64,7 +64,25 @@ def obter_nome_completo():
         return jsonify({'success': False, 'message': 'Token inválido.'}), 401
 
 
-# Servir arquivos estáticos
+
+@app.route('/login_empresa', methods=['POST'])
+def login_empresa():
+    data = request.get_json()
+    print("📥 Dados recebidos:", data)  # Depuração
+
+    CNPJ = data.get('CNPJ')
+    senha = data.get('senha')
+
+    cursor = db.cursor(dictionary=True)
+    cursor.execute('SELECT * FROM empresas WHERE CNPJ = %s AND senha = %s', (CNPJ, senha))
+    user = cursor.fetchone()
+
+    if user:
+        token = jwt.encode({'id': user['id'], 'exp': datetime.utcnow() + timedelta(hours=1)}, secretKey, algorithm='HS256')
+        return jsonify({'success': True, 'message': 'Login realizado com sucesso!', 'token': token, 'RazaoSocial': user['RazaoSocial']})
+    else:
+        return jsonify({'success': False, 'message': 'Credenciais inválidas.'}), 401
+
 @app.route('/', defaults={'path': ''})
 @app.route('/<path:path>')
 def serve_file(path):
@@ -73,5 +91,6 @@ def serve_file(path):
     else:
         return send_from_directory(app.static_folder, 'index.html')
 
+# Rodando o servidor Flask na porta 5500
 if __name__ == '__main__':
-    app.run(port=5500, debug=True)  # debug=True para facilitar o desenvolvimento
+    app.run(port=5500, debug=True)

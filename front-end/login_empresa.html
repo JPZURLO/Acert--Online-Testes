@@ -8,9 +8,9 @@
     <div class="container">
         <div class="login-box">
             <img src="./assets/images/iconeUser.png" alt="Ícone do Usuário" class="user-icon">
-            <p>LOGIN PARTICIPANTE</p>
-            <form id="login-form" method="post" action="/login">
-                <input type="email" id="email" name="email" placeholder="Email" class="input-field">
+            <p>LOGIN INSTITUIÇÃO</p>
+            <form id="login-form" method="post" action="/login_empresa">
+                <input type="text" id="CNPJ" name="cnpj" placeholder="CNPJ" class="input-field">
                 <input type="password" id="senha" name="senha" placeholder="Senha" class="input-field">
                 <div class="checkbox-container">
                     <input type="checkbox" id="mostrar-senha">
@@ -22,7 +22,9 @@
         </div>
     </div>
     <script src="./js/scriptMostrarSenha"></script>
-    <script src="./js/script2.js"></script>
+    <script src="./js/scriptcnpj.js"></script>
     <script src="./js/script-bd.js"></script>
+    <script src="./js/scriptLoginEmpresa.js"></script>
+
 </body>
 </html>
