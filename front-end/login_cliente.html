@@ -17,6 +17,7 @@
             <li>
                 <div id="user-info">
                     <span id="user-name"></span>
+                    <button type="button" id="botao-logout">Sair</button>
                 </div>
             </li>
         </ul>
@@ -329,86 +330,58 @@
   <script>
     document.addEventListener('DOMContentLoaded', function() {
       const userNameElement = document.getElementById('user-name');
-      const razaoSocialElement = document.getElementById('user-name'); // Novo elemento para RazaoSocial
       const storedName = localStorage.getItem('NomeCompleto');
-      const storedRazaoSocial = localStorage.getItem('RazaoSocial'); // Recupera a RazaoSocial do localStorage
+      const storedRazaoSocial = localStorage.getItem('RazaoSocial');
 
-      if (storedName) {
-        userNameElement.textContent = storedName;
-      } else {
-        fetchUserName(); // Chama a função para buscar o nome, caso não esteja no localStorage.
-      }
+      if (storedName) userNameElement.textContent = storedName;
+      if (storedRazaoSocial) userNameElement.textContent = storedRazaoSocial;
 
-      if (storedRazaoSocial) {
-        razaoSocialElement.textContent = storedRazaoSocial; // Exibe a RazaoSocial se já estiver armazenada
-      } else {
-        fetchRazaoSocial(); // Chama a função para buscar a RazaoSocial
-      }
+      Promise.all([fetchUserName(), fetchRazaoSocial()]).then(results => {
+        if (!results.some(Boolean)) window.location.replace('login.html');
+      });
 
       function fetchUserName() {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('Token não encontrado');
-          return;
-        }
-
-        fetch('http://localhost:5500/api/obterNomeCompleto', {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.NomeCompleto) {
+        return fetch('/api/obterNomeCompleto')
+          .then(response => {
+            if (!response.ok) throw new Error('Sessão de usuário indisponível');
+            return response.json();
+          })
+          .then(data => {
             userNameElement.textContent = data.NomeCompleto;
-            localStorage.setItem('NomeCompleto', data.NomeCompleto); // Atualiza o localStorage
-          }
-        })
-        .catch(error => {
-          console.error('Erro ao buscar o nome completo do usuário:', error);
-        });
+            localStorage.setItem('NomeCompleto', data.NomeCompleto);
+            localStorage.removeItem('RazaoSocial');
+            return true;
+          })
+          .catch(() => false);
       }
 
       function fetchRazaoSocial() {
-        const token = localStorage.getItem('token');
-        if (!token) {
-          console.error('Token não encontrado');
-          return;
-        }
-
-        fetch('http://localhost:5500/api/obterRazaoSocial', {
-          method: 'GET',
-          headers: {
-            'Authorization': 'Bearer ' + token
-          }
-        })
-        .then(response => {
-          if (!response.ok) {
-            throw new Error('Network response was not ok');
-          }
-          return response.json();
-        })
-        .then(data => {
-          if (data.RazaoSocial) {
-            razaoSocialElement.textContent = data.RazaoSocial;
-            localStorage.setItem('RazaoSocial', data.RazaoSocial); // Atualiza o localStorage
-          }
-        })
-        .catch(error => {
-          console.error('Erro ao buscar a RazaoSocial do usuário:', error);
-        });
+        return fetch('/api/obterRazaoSocial')
+          .then(response => {
+            if (!response.ok) throw new Error('Sessão de empresa indisponível');
+            return response.json();
+          })
+          .then(data => {
+            userNameElement.textContent = data.RazaoSocial;
+            localStorage.setItem('RazaoSocial', data.RazaoSocial);
+            localStorage.removeItem('NomeCompleto');
+            return true;
+          })
+          .catch(() => false);
       }
+
+      document.getElementById('botao-logout').addEventListener('click', () => {
+        fetch('/logout', { method: 'POST' }).finally(() => {
+          localStorage.removeItem('NomeCompleto');
+          localStorage.removeItem('RazaoSocial');
+          window.location.replace('index.html');
+        });
+      });
     });
 </script>
   
     <script src="./js/scriptfiltro.js"></script>
-    <script src="./js/scriptLogin.js"></script>
+
     <script src="./js/scriptModal.js"></script>
     <script src="./js/scriptModalCriar.js"></script>
     <script src="./js/scriptModalGestao.js"></script>

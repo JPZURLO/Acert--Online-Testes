@@ -1,36 +1,30 @@
 # Sistema de Criação e Gestão de Provas
 
-Este projeto é uma **plataforma digital** desenvolvida para a **criação e gerenciamento de provas e testes**. A plataforma é voltada para diversos tipos de avaliação, como **avaliações institucionais**, **exames de certificação** e **testes de recrutamento**. O sistema permite a **personalização** de provas, o **monitoramento em tempo real** dos participantes e a **correção automática** das questões objetivas, otimizando o processo de avaliação e tomada de decisões rápidas.
+Plataforma para criação e gerenciamento de provas, certificações e testes de recrutamento.
 
-## Tipos de Testes
+## Tecnologias
 
-- **Avaliações Institucionais**: Ferramenta para universidades, escolas e instituições criarem provas e gerenciarem o desempenho dos alunos.
-- **Exames de Certificação**: Para testes que qualificam ou certificam indivíduos em diversas áreas de conhecimento.
-- **Testes de Recrutamento**: Para empresas que utilizam provas como parte do processo de recrutamento de novos colaboradores.
+- Frontend: HTML, CSS e JavaScript
+- Backend: Python, Flask e JWT
+- Banco de dados: MySQL
 
-## Funcionalidades
+## Configuração local
 
-- **Reconhecimento Facial**: A plataforma oferece autenticação por reconhecimento facial para garantir que a pessoa que está realizando a prova seja de fato o participante.
-- **Monitoramento em Tempo Real**: Através de um dashboard, os responsáveis podem acompanhar o andamento dos testes e a atividade dos participantes.
-- **Correção Automática de Questões Objetivas**: As questões objetivas são corrigidas automaticamente, oferecendo resultados rápidos e precisos.
-- **Resultados Imediatos**: A plataforma gera os resultados de maneira instantânea, possibilitando tomadas de decisão rápidas.
-- **Gravação Disponível para Download e Arquivamento**: Todos os testes podem ser gravados, e as gravações ficam disponíveis para download e arquivamento.
-- **Personalização Completa com a Marca do Cliente**: O sistema permite que a interface seja totalmente personalizada com a identidade visual e a marca do cliente.
-- **Inclusão e Gerenciamento de Testes pelo Cliente**: O cliente pode criar, editar e gerenciar os testes diretamente na plataforma, sem necessidade de intermediários.
-- **Controle Total de Participantes**: O cliente tem total controle sobre os participantes do teste, com a capacidade de adicionar, remover ou gerenciar os usuários.
+1. Crie e ative um ambiente virtual Python.
+2. Instale as dependências com `pip install -r requirements.txt`.
+3. Copie `.env.example` para `.env` e preencha as credenciais locais.
+4. Gere `JWT_SECRET` com uma chave aleatória longa e exclusiva.
+5. Execute `migrations/001_password_hash_columns.sql` no banco.
+6. Inicie a aplicação com `python server.py`.
+7. Acesse `http://127.0.0.1:5500`.
 
-## Tecnologias Utilizadas
+Em produção, use um usuário MySQL com privilégios mínimos, configure `COOKIE_SECURE=true`, mantenha `FLASK_DEBUG=false` e sirva a aplicação exclusivamente por HTTPS.
 
-- **Frontend**:
-  - HTML
-  - CSS
-  - JavaScript
-- **Backend**:
-  - Node.js
-  - Express
-  - JWT (para autenticação)
-  - PostgreSQL (banco de dados)
+## Segurança da autenticação
 
+- O JWT é armazenado em cookie `HttpOnly` com `SameSite=Strict`.
+- Tokens distinguem contas de participantes e empresas.
+- Senhas legadas em texto puro são convertidas para hash no primeiro login válido.
+- Segredos e credenciais são carregados exclusivamente pelo ambiente.
 
-
-
+As credenciais que já apareceram no histórico do Git devem ser rotacionadas. Removê-las apenas da versão atual não invalida os valores antigos.

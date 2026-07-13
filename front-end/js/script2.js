@@ -1,4 +1,6 @@
-document.getElementById('login-form').addEventListener('submit', function(event) {
+const loginForm = document.getElementById('login-form');
+
+loginForm?.addEventListener('submit', function(event) {
     event.preventDefault();
 
     const email = document.getElementById('email').value;
@@ -17,7 +19,7 @@ document.getElementById('login-form').addEventListener('submit', function(event)
         body: JSON.stringify(requestBody)
     };
 
-    fetch('http://localhost:5500/login', requestConfig)
+    fetch('/login', requestConfig)
         .then(response => {
             if (!response.ok) {
                 return response.json().then(err => {
@@ -31,8 +33,6 @@ document.getElementById('login-form').addEventListener('submit', function(event)
                 console.log('✅ Login realizado:', data.message);
                 alert('Login realizado com sucesso!');
 
-                // Armazena os dados no localStorage
-                localStorage.setItem('token', data.token);
                 localStorage.setItem('NomeCompleto', data.NomeCompleto);
 
                 console.log('🔄 Redirecionando para login_cliente.html...');
