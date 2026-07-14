@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Resultados e desempenho das avaliações ACERT.">
+  <title>ACERT | Resultados</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/styleResultados.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar">
+      <a class="brand" href="./index.html"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <button class="nav-item" type="button" data-placeholder="Visão geral"><span class="nav-icon">⌂</span><span>Visão geral</span></button>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Exames</span></a>
+        <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <a class="nav-item active" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
+        <a class="nav-item" href="./login_cliente.html#branding-panel"><span class="nav-icon">◉</span><span>Marca e aparência</span></a>
+      </nav>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
+        <div class="breadcrumb"><span>Resultados</span><b>/</b><strong>Visão geral</strong></div>
+        <div class="account-area"><button class="help-button" type="button">?</button><div class="account-badge" id="company-initials">AC</div><span id="company-name">Empresa</span><button class="logout-button" id="logout-button" type="button">Sair</button></div>
+      </header>
+
+      <section class="page-content">
+        <div class="page-heading">
+          <div><p class="eyebrow">ANÁLISE DE DESEMPENHO</p><h1>Resultados e desempenho</h1><p>Acompanhe notas, aprovações e evolução dos participantes.</p></div>
+          <div class="heading-actions"><button class="button secondary" id="export-excel" type="button">▦ Exportar Excel</button><button class="button primary" id="print-report" type="button">▣ Gerar relatório PDF</button></div>
+        </div>
+
+        <div class="filters-bar">
+          <select id="exam-filter"><option value="">Todos os exames</option></select>
+          <select id="period-filter"><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option><option value="365">Último ano</option><option value="3650">Todo o período</option></select>
+          <select id="status-filter"><option value="">Todos os status</option><option value="approved">Aprovados</option><option value="review">Em revisão</option><option value="failed">Reprovados</option></select>
+          <button class="compare-button" id="compare-periods" type="button">▥ Comparar períodos</button>
+        </div>
+
+        <section class="stats-grid">
+          <article class="stat-card"><div><small>Avaliações concluídas</small><strong id="stat-completed">0</strong><em id="completed-trend">No período selecionado</em></div><span class="stat-icon blue">▣</span></article>
+          <article class="stat-card"><div><small>Nota média</small><strong id="stat-average">0</strong><em>De 100 pontos</em></div><span class="stat-icon blue">⌁</span></article>
+          <article class="stat-card"><div><small>Taxa de aprovação</small><strong id="stat-approval">0%</strong><em id="approval-caption">0 participantes aprovados</em></div><span class="stat-icon green">✓</span></article>
+          <article class="stat-card"><div><small>Tempo médio</small><strong id="stat-time">0 min</strong><em>Por avaliação concluída</em></div><span class="stat-icon cyan">◷</span></article>
+        </section>
+
+        <section class="analytics-grid">
+          <article class="chart-card trend-card"><header><div><h2>Evolução do desempenho</h2><p>Nota média ao longo do período</p></div><span class="chart-legend"><i></i> Período atual</span></header><div class="canvas-wrap"><canvas id="trend-chart" aria-label="Gráfico de evolução do desempenho"></canvas><div class="chart-empty" id="trend-empty">Os dados aparecerão após as primeiras avaliações.</div></div></article>
+          <article class="chart-card distribution-card"><header><div><h2>Distribuição dos resultados</h2><p>Situação das avaliações</p></div></header><div class="distribution-content"><div class="donut-wrap"><canvas id="distribution-chart" aria-label="Distribuição dos resultados"></canvas><div class="donut-label"><strong id="donut-rate">0%</strong><span>aprovados</span></div></div><div class="distribution-legend"><span><i class="approved"></i>Aprovados <b id="dist-approved">0</b></span><span><i class="review"></i>Em revisão <b id="dist-review">0</b></span><span><i class="failed"></i>Reprovados <b id="dist-failed">0</b></span></div></div></article>
+          <article class="chart-card competency-card"><header><div><h2>Desempenho por competência</h2><p>Média por categoria</p></div></header><div class="competency-list" id="competency-list"></div><div class="chart-empty" id="competency-empty">Categorize as questões para visualizar competências.</div></article>
+        </section>
+
+        <section class="results-card">
+          <header class="results-toolbar"><label class="search-field"><span>⌕</span><input id="search-result" type="search" placeholder="Buscar participante"></label><span id="result-count">0 resultados</span></header>
+          <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Exame</th><th>Nota</th><th>Resultado</th><th>Tempo</th><th>Conclusão</th><th>Ações</th></tr></thead><tbody id="results-body"></tbody></table></div>
+          <div class="empty-state" id="empty-state" hidden><span>▥</span><h2>Nenhum resultado encontrado</h2><p>Os resultados aparecerão assim que os participantes concluírem suas avaliações.</p></div>
+          <footer class="table-footer"><span id="pagination-label">0 resultados</span><div><button id="previous-page" type="button">‹</button><b id="page-indicator">1</b><button id="next-page" type="button">›</button></div><select id="page-size"><option value="10">10 por página</option><option value="25">25 por página</option><option value="50">50 por página</option></select></footer>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="result-drawer" id="result-drawer" aria-hidden="true">
+    <header><div><p class="eyebrow">DETALHAMENTO</p><h2>Relatório individual</h2></div><button id="close-drawer" type="button">×</button></header>
+    <div class="drawer-scroll">
+      <section class="person-summary"><span class="drawer-avatar" id="drawer-avatar">JS</span><div><h3 id="drawer-name">Participante</h3><p id="drawer-exam">Exame</p></div></section>
+      <section class="score-summary"><strong><span id="drawer-score">0</span><small>/100</small></strong><span class="result-chip" id="drawer-status">Resultado</span></section>
+      <section class="mini-stats"><article><span>◎</span><small>Acertos</small><b id="drawer-correct">0/0</b></article><article><span>◷</span><small>Tempo</small><b id="drawer-time">0 min</b></article><article><span>▥</span><small>Aproveitamento</small><b id="drawer-rate">0%</b></article></section>
+      <section class="drawer-section"><h3>Desempenho por competência</h3><div id="drawer-competencies" class="drawer-competencies"></div></section>
+      <section class="drawer-section"><h3>Questões para revisar</h3><div id="review-questions" class="review-list"></div><div class="drawer-empty" id="review-empty">Nenhuma questão sinalizada para revisão.</div></section>
+    </div>
+    <footer><button class="button secondary" id="print-individual" type="button">▣ Baixar PDF</button><button class="button primary" id="share-result" type="button">◇ Enviar ao participante</button></footer>
+  </aside>
+
+  <template id="result-row-template"><tr><td><div class="participant-cell"><span class="avatar"></span><div><strong class="participant-name"></strong><small class="participant-email"></small></div></div></td><td class="exam-title"></td><td><span class="score-pill"></span></td><td><span class="result-chip"></span></td><td class="duration"></td><td class="completed-at"></td><td><button class="view-result" type="button">◉</button></td></tr></template>
+  <div class="toast-region" id="toast-region"></div>
+  <script src="./js/results-dashboard.js"></script>
+</body>
+</html>

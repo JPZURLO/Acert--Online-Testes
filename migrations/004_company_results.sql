@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS company_results (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    company_id BIGINT NOT NULL,
+    participant_id BIGINT NOT NULL,
+    exam_id BIGINT NOT NULL,
+    score DECIMAL(6,2) NOT NULL DEFAULT 0,
+    max_score INT NOT NULL DEFAULT 100,
+    duration_seconds INT UNSIGNED NOT NULL DEFAULT 0,
+    correct_answers INT UNSIGNED NOT NULL DEFAULT 0,
+    total_questions INT UNSIGNED NOT NULL DEFAULT 0,
+    answers_json LONGTEXT NULL,
+    competency_scores_json LONGTEXT NULL,
+    started_at DATETIME NULL,
+    completed_at DATETIME NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    INDEX idx_results_company_completed (company_id, completed_at),
+    INDEX idx_results_company_exam (company_id, exam_id),
+    INDEX idx_results_company_participant (company_id, participant_id)
+);

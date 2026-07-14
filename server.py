@@ -11,6 +11,7 @@ from werkzeug.utils import safe_join
 
 from company_api import create_company_blueprint
 from participants_api import create_participants_blueprint
+from results_api import create_results_blueprint
 
 load_dotenv()
 app = Flask(__name__, static_folder="front-end")
@@ -101,6 +102,7 @@ def request_json():
 
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_participants_blueprint(open_database, token_payload))
+app.register_blueprint(create_results_blueprint(open_database, token_payload))
 
 
 @app.post("/login")
