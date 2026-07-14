@@ -72,7 +72,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); line-height: 1.15; letter-spa
 .stepper { position: sticky; top: 68px; z-index: 24; margin: 24px 0 25px; padding: 13px 10px; display: grid; grid-template-columns: repeat(4, minmax(120px, 1fr)); list-style: none; background: color-mix(in srgb, var(--canvas) 94%, #fff); border: 1px solid transparent; border-radius: 13px; backdrop-filter: blur(16px); transition: border-color .18s, box-shadow .18s, border-radius .18s; }
 .stepper.is-stuck { border-color: var(--line); border-radius: 0 0 13px 13px; box-shadow: 0 12px 24px rgba(20,33,61,.09); }
 .stepper li { position: relative; }
-.stepper li:not(:last-child)::after { content: ""; position: absolute; z-index: 0; top: 16px; left: calc(50% + 23px); right: calc(-50% + 23px); height: 1px; background: #cfd7e3; transition: background .18s; }
+.stepper li:not(:last-child)::after { content: ""; position: absolute; z-index: 0; top: 16px; left: calc(50% + 75px); right: calc(-50% + 23px); height: 1px; background: #cfd7e3; transition: background .18s; }
 .stepper li.active:not(:last-child)::after, .stepper li.completed:not(:last-child)::after { background: color-mix(in srgb, var(--primary) 55%, #cfd7e3); }
 .stepper button { position: relative; z-index: 1; width: 100%; padding: 0; display: flex; align-items: center; justify-content: center; gap: 9px; color: #8490a2; background: transparent; border: 0; font-size: 12px; font-weight: 650; cursor: pointer; }
 .stepper span { width: 33px; height: 33px; display: grid; place-items: center; color: #718096; background: var(--canvas); border: 1px solid #cbd4df; border-radius: 50%; transition: color .18s, background .18s, border-color .18s, box-shadow .18s; }
