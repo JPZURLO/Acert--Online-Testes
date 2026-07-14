@@ -1,389 +1,199 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>login cliente</title>
-    <link rel="stylesheet" href="./css/styleTelaCliente.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Área da empresa para criação e personalização de exames ACERT.">
+  <title>ACERT | Estúdio de Exames</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/styleTelaCliente.css">
 </head>
 <body>
-  <header>
-    <nav>
-        <ul>
-            <li><a href="./index.html" id="link-home">Testes</a></li>
-            <li><a href="./Participante.html" id="link-solucoes">Participantes</a></li>
-            <li><a href="./NossosPlanos.html" id="link-contato">Notas</a></li>
-            <li><a href="#" id="link-login/cadastro">Relatórios</a></li>
-            <li>
-                <div id="user-info">
-                    <span id="user-name"></span>
-                    <button type="button" id="botao-logout">Sair</button>
-                </div>
-            </li>
-        </ul>
-    </nav>
-  </header>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="./index.html" aria-label="ACERT - Página inicial">
+        <img src="./assets/images/Logo.png" alt="ACERT">
+        <span>ACERT</span>
+      </a>
 
-    <div class="filtros">
-        <div class="linha"> 
-          <div class="filtro">
-            <label for="nome-exame">Nome do Exame:</label>
-            <input type="text" id="nome-exame">
-          </div>
-          <div class="filtro">
-            <label for="numero-curso">Número de Identificação:</label>
-            <input type="text" id="numero-curso">
-          </div>
-          <div class="filtro">
-            <label for="data-inicio">Data de Início:</label>
-            <input type="date" id="data-inicio">
-          </div>
-          
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <button class="nav-item" type="button" data-view="overview"><span class="nav-icon">⌂</span><span>Visão geral</span></button>
+        <button class="nav-item active" type="button" data-view="exams"><span class="nav-icon">▤</span><span>Exames</span></button>
+        <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <button class="nav-item" type="button" data-view="results"><span class="nav-icon">▥</span><span>Resultados</span></button>
+        <button class="nav-item" type="button" data-focus="branding-panel"><span class="nav-icon">◉</span><span>Marca e aparência</span></button>
+      </nav>
+
+      <div class="sidebar-footer">
+        <button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button>
+      </div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
+        <div class="breadcrumb"><span>Exames</span><b>/</b><strong id="breadcrumb-mode">Criar exame</strong></div>
+        <div class="account-area">
+          <button class="help-button" type="button" aria-label="Ajuda">?</button>
+          <div class="account-badge" id="company-initials">EM</div>
+          <span id="company-name">Empresa</span>
+          <button class="logout-button" id="botao-logout" type="button">Sair</button>
         </div>
-      
-        <div class="linha">
-          <div class="filtro">
-            <label for="data-termino">Data de Término:</label>
-            <input type="date" id="data-termino">
+      </header>
+
+      <section class="page-content">
+        <div class="page-heading">
+          <div>
+            <p class="eyebrow">ESTÚDIO DE AVALIAÇÕES</p>
+            <div class="title-row">
+              <h1 id="page-title">Criar novo exame</h1>
+              <span class="save-status" id="save-status"><i></i><span>Rascunho local</span></span>
+            </div>
+            <p class="page-subtitle">Crie a avaliação e personalize a experiência com a identidade da sua empresa.</p>
           </div>
-          <div class="filtro">
-            <label for="categoria-curso">Categoria do Teste:</label>
-            <select id="categoria-curso">
-              <option value="">Selecione</option>
-              <option value="certificacoes">Certificações</option>
-              <option value="provas">Provas</option>
-              <option value="testes">Testes</option>
+          <div class="heading-actions">
+            <label class="exam-picker-label" for="exam-picker">Exames salvos</label>
+            <select id="exam-picker" class="exam-picker" aria-label="Selecionar exame salvo">
+              <option value="">Novo exame</option>
             </select>
+            <button class="button secondary" id="new-exam" type="button">Novo</button>
+            <button class="button secondary" id="save-draft" type="button">Salvar rascunho</button>
+            <button class="button primary" id="publish-exam" type="button"><span>◉</span> Visualizar e publicar</button>
           </div>
-          
         </div>
-      
-        <button onclick="aplicarFiltros()">Aplicar Filtros</button> 
-    </div>
-    <table class="tabela-resultados">
-        <thead>
-          <tr>
-            <th>Nome do Exame</th>
-            <th>Data de Início</th>
-            <th>Data de Término</th>
-            <th>Número de Identificação do Teste</th>
-            <th>Categoria do Teste</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr>
-            <td onclick="abrirModalEdicaoCurso(this)">Exame 1</td>
-            <td>2023-10-26</td>
-            <td>2023-10-27</td>
-            <td>123</td>
-            <td>Certificações</td>
-          </tr>
-          <tr>
-            <td onclick="abrirModalEdicaoCurso(this)">Exame 2</td>
-            <td>2023-11-15</td>
-            <td>2023-11-18</td>
-            <td>456</td>
-            <td>Provas</td>
-          </tr>
-          </tbody>
-      </table>
-      <button id="btn-criar-questao" onclick="abrirModalCriarQuestao()">+</button>
 
-      <div id="modal-edicao-curso" class="modal">
-        <div class="modal-conteudo">
-            <span class="fechar-modal" onclick="fecharModalEdicaoCurso()">&times;</span>
-    
-            <h2>Editar Teste</h2>
-    
-            <label for="nome-completo-curso">Nome Completo do Teste:</label>
-            <input type="text" id="nome-completo-curso"><br><br>
-    
-            <label for="nome-breve-curso">Nome Breve do Teste:</label>
-            <input type="text" id="nome-breve-curso"><br><br>
-    
-            <label for="categoria-curso">Categoria do Teste:</label>
-            <select id="categoria-curso">
-                <option value="certificacao">Certificação</option>
-                <option value="prova">Prova</option>
-                <option value="exame">Exame</option>
-            </select><br><br>
-    
-            <label for="visibilidade-curso">Visibilidade do Teste:</label>
-            <select id="visibilidade-curso">
-                <option value="publico">Público</option>
-                <option value="aluno">Aluno</option>
-            </select><br><br>
-    
-            <label for="data-inicio">Data de Início:</label>
-            <input type="date" id="data-inicio"><br><br>
-    
-            <label for="data-termino">Data de Término:</label>
-            <input type="date" id="data-termino"><br><br>
-    
-            <label for="numero-curso">Número de Identificação do Teste:</label>
-            <input type="text" id="numero-curso"><br><br>
-    
-            <div class="menu-minimizado">
-                <button onclick="alternarMenu('descricao')">Descrição ▼</button>
-                <div id="descricao" class="conteudo-menu">
-                    <label for="sumario-curso">Sumário:</label>
-                    <textarea id="sumario-curso"></textarea><br><br>
-    
-                    <label for="imagem-curso">Imagem:</label>
-                    <input type="file" id="imagem-curso"><br><br>
-                </div>
-            </div>
-    
-            <div class="menu-minimizado">
-                <button onclick="alternarMenu('questoes')">Questões ▼</button>
-                <div id="questoes" class="conteudo-menu">
-                    <div id="perguntas-container">
-                        <div class="pergunta">
-                            <label for="pergunta">Pergunta:</label>
-                            <input type="text" id="pergunta"><br><br>
-    
-                            <label for="tipo-pergunta">Tipo de Pergunta:</label>
-                            <select id="tipo-pergunta" onchange="mostrarOpcoesResposta(this)">
-                                <option value="multipla">Múltipla Escolha</option>
-                                <option value="caixa">Caixa de Seleção</option>
-                                <option value="dissertativa">Dissertativa</option>
-                            </select><br><br>
-    
-                            <label for="pontuacao">Pontuação (0-10):</label>
-                            <input type="number" id="pontuacao" min="0" max="10"><br><br>
-    
-                            <div id="opcoes-resposta">
-                            </div>
-                        
-                            <div id="resposta-dissertativa" style="display: none;">
-                              <label for="resposta">Resposta:</label><br>
-                              <textarea id="resposta-dissertativa-criar"></textarea>
-                            </div>
-                        </div>
-                    </div>
-    
-                    <button onclick="adicionarPergunta()">Adicionar Pergunta</button>
-                    <button onclick="excluirPergunta()">Excluir Pergunta</button>
-                </div>
-            </div>
-            <div class="menu-minimizado"> 
-              <div id="secao-gestao-empresa">
-                <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
-            
-                <div id="conteudo-gestao-empresa" style="display: none;">
-                    <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
-            
-                    <table>
-                        <thead>
-                            <tr>
-                                <th>Selecionar</th>
-                                <th>Aluno</th>
-                                <th>Email</th>
-                                <th>CPF</th>
-                            </tr>
-                        </thead>
-                        <tbody id="tabelaAlunos">
-                        </tbody>
-                    </table>
-            
-                    <button id="btnSalvar">Salvar</button>
-                    <button id="btnCancelar">Cancelar</button>
-                </div>
-              </div>
-            </div>
-            
-            <button onclick="salvarCurso()">Salvar</button>
-            <button onclick="fecharModalEdicaoCurso()">Cancelar</button>
-        </div>
-      </div>
-    </div>
-    <div id="modal-criar-questao" class="modal">
-      <div class="modal-conteudo">
-          <span class="fechar-modal" onclick="fecharModalCriarQuestao()">&times;</span>
-  
-          <h3>Criar Teste</h3>
-  
-          <label for="nome-completo-curso">Nome Completo do Teste:</label>
-          <input type="text" id="nome-completo-curso-criar"><br><br>
-  
-          <label for="nome-breve-curso">Nome Breve do Teste:</label>
-          <input type="text" id="nome-breve-curso-criar"><br><br>
-          <label for="visibilidade-curso">Visibilidade do Teste:</label>
-          <select id="visibilidade-curso-criar">
-              <option value="publico">Público</option>
-              <option value="aluno">Aluno</option>
-          </select><br><br>
-  
-          <label for="data-inicio">Data de Início:</label>
-          <input type="date" id="data-inicio-criar"><br><br>
-  
-          <label for="data-termino">Data de Término:</label>
-          <input type="date" id="data-termino-criar"><br><br>
-  
-          <label for="numero-curso">Número de Identificação do Teste:</label>
-          <input type="text" id="numero-curso-criar"><br><br>
-  
-          <div class="menu-minimizado2">
-            <button onclick="alternarMenu('descricao-criar')">Descrição ▼</button>
-            <div id="descricao-criar" class="conteudo-menu">
-                <label for="sumario-curso">Sumário:</label>
-                <textarea id="sumario-curso-criar"></textarea><br><br>
-        
-                <label for="imagem-curso">Imagem:</label>
-                <input type="file" id="imagem-curso-criar"><br><br>
-            </div>
-          </div>
-        
-        <div class="menu-minimizado2">
-          <button onclick="alternarMenu('questoes-criar')">Questões ▼</button>
-          <div id="questoes-criar" class="conteudo-menu">
-              <div id="perguntas-container-criar">
-                  <div class="pergunta">
-                      <label for="pergunta">Pergunta:</label>
-                      <input type="text" id="pergunta-criar"><br><br>
-      
-                      <label for="tipo-pergunta">Tipo de Pergunta:</label>
-                      <select id="tipo-pergunta-criar" onchange="mostrarOpcoesResposta(this)">
-                          <option value="multipla">Múltipla Escolha</option>
-                          <option value="caixa">Caixa de Seleção</option>
-                          <option value="dissertativa">Dissertativa</option>
-                      </select><br><br>
-      
-                      <label for="pontuacao">Pontuação (0-10):</label>
-                      <input type="number" id="pontuacao-criar" min="0" max="10"><br><br>
-      
-                      <div id="opcoes-resposta-criar">
-                          </div>
-      
-                      <div id="resposta-dissertativa-criar" style="display: none;">
-                          <label for="resposta">Resposta:</label><br>
-                          <textarea id="resposta-dissertativa-texto-criar"></textarea>
-                      </div>
-                  </div>
-              </div>
-              <div class="menu-minimizado"> 
-                <div id="secao-gestao-empresa">
-                  <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
-              
-                  <div id="conteudo-gestao-empresa" style="display: none;">
-                      <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
-              
-                      <table>
-                          <thead>
-                              <tr>
-                                  <th>Selecionar</th>
-                                  <th>Aluno</th>
-                                  <th>Email</th>
-                                  <th>CPF</th>
-                              </tr>
-                          </thead>
-                          <tbody id="tabelaAlunos">
-                          </tbody>
-                      </table>
-              
-                      <button id="btnSalvar">Salvar</button>
-                      <button id="btnCancelar">Cancelar</button>
-                  </div>
-                </div>
-              </div>
-      
-              <button onclick="adicionarPergunta()">Adicionar Pergunta</button>
-              <button onclick="excluirPergunta()">Excluir Pergunta</button>
-          </div>
-      </div>
-      <div class="menu-minimizado"> 
-        <div id="secao-gestao-empresa">
-          <button id="btn-expandir-gestao">Gestão da Empresa ▼</button>
-      
-          <div id="conteudo-gestao-empresa" style="display: none;">
-              <h2>Empresa: <span id="nomeEmpresa">Nome da Empresa</span></h2>
-      
-              <table>
-                  <thead>
-                      <tr>
-                          <th>Selecionar</th>
-                          <th>Aluno</th>
-                          <th>Email</th>
-                          <th>CPF</th>
-                      </tr>
-                  </thead>
-                  <tbody id="tabelaAlunos">
-                  </tbody>
-              </table>
-      
-              <button id="btnSalvar">Salvar</button>
-              <button id="btnCancelar">Cancelar</button>
-          </div>
-        </div>
-      </div>
-      
-      
-      <button onclick="salvarCurso()">Salvar</button>
-      <button onclick="fecharModalEdicaoCurso()">Cancelar</button>
-      
-    </div>
-    
-    
+        <ol class="stepper" aria-label="Etapas de criação">
+          <li class="active"><button type="button" data-scroll="exam-information"><span>1</span>Informações</button></li>
+          <li><button type="button" data-scroll="questions-section"><span>2</span>Questões</button></li>
+          <li><button type="button" data-scroll="branding-panel"><span>3</span>Aparência</button></li>
+          <li><button type="button" data-action="publish"><span>4</span>Publicar</button></li>
+        </ol>
 
-    
+        <div class="editor-layout">
+          <div class="editor-column">
+            <section class="panel exam-information" id="exam-information">
+              <div class="panel-heading">
+                <div><span class="section-kicker">CONTEÚDO</span><h2>Informações do exame</h2></div>
+                <span class="required-note">* campos obrigatórios</span>
+              </div>
+              <div class="field full-field">
+                <label for="exam-title">Título do exame <b>*</b></label>
+                <div class="input-with-count">
+                  <input id="exam-title" type="text" maxlength="180" value="Avaliação de Competências" autocomplete="off">
+                  <span id="title-count">24/180</span>
+                </div>
+              </div>
+              <div class="field full-field">
+                <label for="exam-description">Descrição</label>
+                <textarea id="exam-description" maxlength="3000" rows="3">Avaliação para identificar competências técnicas e comportamentais alinhadas à vaga.</textarea>
+              </div>
+            </section>
+
+            <section class="panel settings-panel" aria-labelledby="general-settings-title">
+              <div class="panel-heading compact"><div><span class="section-kicker">REGRAS</span><h2 id="general-settings-title">Configurações gerais</h2></div></div>
+              <div class="settings-grid">
+                <div class="metric-field"><span class="metric-icon">◷</span><label for="exam-duration">Duração</label><div><input id="exam-duration" type="number" min="1" max="1440" value="60"><small>min</small></div></div>
+                <div class="metric-field"><span class="metric-icon">♜</span><label>Pontuação total</label><div><output id="total-points">100</output><small>pontos</small></div></div>
+                <div class="metric-field"><span class="metric-icon">◎</span><label for="passing-score">Nota mínima</label><div><input id="passing-score" type="number" min="0" max="100" value="60"><small>%</small></div></div>
+                <label class="toggle-field" for="shuffle-questions"><span class="metric-icon">⌘</span><span><b>Embaralhar questões</b><small>Ordem diferente por candidato</small></span><input id="shuffle-questions" type="checkbox"><i></i></label>
+              </div>
+            </section>
+
+            <section class="questions-section" id="questions-section">
+              <div class="questions-heading">
+                <div><span class="section-kicker">CONSTRUTOR</span><h2>Questões do exame <span id="question-count">(3)</span></h2></div>
+                <div class="question-summary"><span id="question-total">Pontuação total: 100 pontos</span><span class="drag-hint">Arraste para ordenar</span></div>
+              </div>
+              <div id="questions-list" class="questions-list" aria-live="polite"></div>
+              <button class="add-question" id="add-question" type="button"><span>＋</span> Adicionar questão</button>
+            </section>
+          </div>
+
+          <aside class="customization-panel" id="branding-panel">
+            <div class="sticky-panel">
+              <div class="customization-heading">
+                <div><span class="section-kicker">IDENTIDADE VISUAL</span><h2>Personalização</h2></div>
+                <span class="live-pill">Prévia ao vivo</span>
+              </div>
+              <p class="panel-description">Personalize a aparência do portal que o candidato verá.</p>
+
+              <div class="field">
+                <label>Logotipo da empresa</label>
+                <label class="logo-uploader" for="logo-upload">
+                  <input id="logo-upload" type="file" accept="image/png,image/jpeg,image/webp">
+                  <span class="upload-icon">↥</span>
+                  <strong>Enviar logotipo</strong>
+                  <small>PNG, JPG ou WEBP até 2 MB</small>
+                </label>
+                <button class="remove-logo" id="remove-logo" type="button" hidden>Remover logotipo</button>
+              </div>
+
+              <div class="color-fields">
+                <label class="color-field" for="primary-color"><span>Cor principal</span><span class="color-control"><input id="primary-color" type="color" value="#2563EB"><code id="primary-value">#2563EB</code></span></label>
+                <label class="color-field" for="accent-color"><span>Cor de destaque</span><span class="color-control"><input id="accent-color" type="color" value="#18A6C9"><code id="accent-value">#18A6C9</code></span></label>
+                <label class="color-field" for="background-color"><span>Cor de fundo</span><span class="color-control"><input id="background-color" type="color" value="#F4F7FB"><code id="background-value">#F4F7FB</code></span></label>
+              </div>
+
+              <div class="two-columns">
+                <div class="field"><label for="font-family">Tipografia</label><select id="font-family"><option>Inter</option><option>Manrope</option><option>Montserrat</option><option>Poppins</option><option>Roboto</option></select></div>
+                <div class="field"><label for="border-radius">Arredondamento</label><select id="border-radius"><option value="small">Pequeno</option><option value="medium" selected>Médio</option><option value="large">Grande</option></select></div>
+              </div>
+
+              <div class="candidate-preview" id="candidate-preview">
+                <div class="preview-header">
+                  <div class="preview-logo" id="preview-logo"><img src="./assets/images/Logo.png" alt=""><span id="preview-company">SUA EMPRESA</span></div>
+                  <span>☰</span>
+                </div>
+                <div class="preview-content">
+                  <span class="preview-label">AVALIAÇÃO</span>
+                  <h3 id="preview-title">Avaliação de Competências</h3>
+                  <p id="preview-instructions">Leia as instruções com atenção antes de iniciar a avaliação.</p>
+                  <div class="preview-meta"><span>◷ <b id="preview-duration">60 min</b></span><span>▤ <b id="preview-questions">3 questões</b></span></div>
+                  <button id="preview-button" type="button">Iniciar avaliação</button>
+                </div>
+              </div>
+
+              <div class="field instructions-field"><label for="candidate-instructions">Instruções do candidato</label><textarea id="candidate-instructions" rows="3" maxlength="2000">Leia as instruções com atenção antes de iniciar a avaliação.</textarea></div>
+              <button class="button branding-save" id="save-branding" type="button">Salvar aparência</button>
+            </div>
+          </aside>
+        </div>
+      </section>
+    </main>
   </div>
-  <script>
-    document.addEventListener('DOMContentLoaded', function() {
-      const userNameElement = document.getElementById('user-name');
-      const storedName = localStorage.getItem('NomeCompleto');
-      const storedRazaoSocial = localStorage.getItem('RazaoSocial');
 
-      if (storedName) userNameElement.textContent = storedName;
-      if (storedRazaoSocial) userNameElement.textContent = storedRazaoSocial;
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
 
-      Promise.all([fetchUserName(), fetchRazaoSocial()]).then(results => {
-        if (!results.some(Boolean)) window.location.replace('login.html');
-      });
+  <div class="modal-backdrop" id="publish-modal" hidden>
+    <section class="publish-modal" role="dialog" aria-modal="true" aria-labelledby="publish-title">
+      <button class="modal-close" id="close-publish" type="button" aria-label="Fechar">×</button>
+      <span class="modal-icon">✓</span>
+      <p class="eyebrow">REVISÃO FINAL</p>
+      <h2 id="publish-title">Seu exame está pronto para publicar?</h2>
+      <p>Depois de publicado, ele ficará disponível para vincular aos participantes. Você ainda poderá criar uma nova versão.</p>
+      <div class="publish-summary"><span><b id="modal-question-count">3</b> questões</span><span><b id="modal-total-points">100</b> pontos</span><span><b id="modal-duration">60</b> minutos</span></div>
+      <div class="modal-actions"><button class="button secondary" id="cancel-publish" type="button">Continuar editando</button><button class="button primary" id="confirm-publish" type="button">Publicar exame</button></div>
+    </section>
+  </div>
 
-      function fetchUserName() {
-        return fetch('/api/obterNomeCompleto')
-          .then(response => {
-            if (!response.ok) throw new Error('Sessão de usuário indisponível');
-            return response.json();
-          })
-          .then(data => {
-            userNameElement.textContent = data.NomeCompleto;
-            localStorage.setItem('NomeCompleto', data.NomeCompleto);
-            localStorage.removeItem('RazaoSocial');
-            return true;
-          })
-          .catch(() => false);
-      }
+  <template id="question-template">
+    <article class="question-card" draggable="true">
+      <button class="drag-handle" type="button" aria-label="Arrastar questão">⠿</button>
+      <span class="question-number"></span>
+      <div class="question-body">
+        <div class="question-toolbar">
+          <select class="question-type" aria-label="Tipo da questão"><option value="multiple_choice">Múltipla escolha</option><option value="true_false">Verdadeiro ou falso</option><option value="essay">Dissertativa</option></select>
+          <label class="points-field">Pontos <input class="question-points" type="number" min="0" max="1000" value="10"></label>
+          <label class="mini-toggle">Obrigatória <input class="question-required" type="checkbox" checked><i></i></label>
+          <button class="icon-button duplicate-question" type="button" title="Duplicar questão" aria-label="Duplicar questão">▣</button>
+          <button class="icon-button danger delete-question" type="button" title="Excluir questão" aria-label="Excluir questão">⌫</button>
+        </div>
+        <textarea class="question-prompt" rows="2" maxlength="3000" placeholder="Digite o enunciado da questão"></textarea>
+        <div class="question-options"></div>
+      </div>
+    </article>
+  </template>
 
-      function fetchRazaoSocial() {
-        return fetch('/api/obterRazaoSocial')
-          .then(response => {
-            if (!response.ok) throw new Error('Sessão de empresa indisponível');
-            return response.json();
-          })
-          .then(data => {
-            userNameElement.textContent = data.RazaoSocial;
-            localStorage.setItem('RazaoSocial', data.RazaoSocial);
-            localStorage.removeItem('NomeCompleto');
-            return true;
-          })
-          .catch(() => false);
-      }
-
-      document.getElementById('botao-logout').addEventListener('click', () => {
-        fetch('/logout', { method: 'POST' }).finally(() => {
-          localStorage.removeItem('NomeCompleto');
-          localStorage.removeItem('RazaoSocial');
-          window.location.replace('index.html');
-        });
-      });
-    });
-</script>
-  
-    <script src="./js/scriptfiltro.js"></script>
-
-    <script src="./js/scriptModal.js"></script>
-    <script src="./js/scriptModalCriar.js"></script>
-    <script src="./js/scriptModalGestao.js"></script>
+  <script src="./js/company-dashboard.js"></script>
 </body>
 </html>

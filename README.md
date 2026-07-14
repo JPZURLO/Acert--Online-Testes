@@ -14,7 +14,7 @@ Plataforma para criação e gerenciamento de provas, certificações e testes de
 2. Instale as dependências com `pip install -r requirements.txt`.
 3. Copie `.env.example` para `.env` e preencha as credenciais locais.
 4. Gere `JWT_SECRET` com uma chave aleatória longa e exclusiva.
-5. Execute `migrations/001_password_hash_columns.sql` no banco.
+5. Execute, em ordem, os arquivos SQL da pasta `migrations` no banco.
 6. Inicie a aplicação com `python server.py`.
 7. Acesse `http://127.0.0.1:5500`.
 

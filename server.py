@@ -9,6 +9,8 @@ from flask import Flask, jsonify, make_response, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import safe_join
 
+from company_api import create_company_blueprint
+
 load_dotenv()
 app = Flask(__name__, static_folder="front-end")
 JWT_COOKIE_NAME = "acert_access_token"
@@ -94,6 +96,9 @@ def token_payload(expected_account_type):
 def request_json():
     data = request.get_json(silent=True)
     return data if isinstance(data, dict) else {}
+
+
+app.register_blueprint(create_company_blueprint(open_database, token_payload))
 
 
 @app.post("/login")
