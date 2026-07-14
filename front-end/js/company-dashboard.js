@@ -484,14 +484,68 @@ function handleLogo(event) {
   reader.readAsDataURL(file);
 }
 
+let appearanceStepPinned = false;
+let stepScrollFrame = null;
+
+function setActiveStep(step) {
+  const items = [...document.querySelectorAll('.stepper li')];
+  const activeIndex = items.findIndex(item => {
+    const button = item.querySelector('button');
+    return button?.dataset.scroll === step || button?.dataset.action === step;
+  });
+  items.forEach((item, index) => {
+    const active = index === activeIndex;
+    item.classList.toggle('active', active);
+    item.classList.toggle('completed', activeIndex > -1 && index < activeIndex);
+    const button = item.querySelector('button');
+    if (active) button?.setAttribute('aria-current', 'step');
+    else button?.removeAttribute('aria-current');
+  });
+}
+
+function updateActiveStep() {
+  const stepper = document.querySelector('.stepper');
+  if (!stepper) return;
+  stepper.classList.toggle('is-stuck', stepper.getBoundingClientRect().top <= 69 && window.scrollY > 40);
+  if (!elements['publish-modal'].hidden) {
+    setActiveStep('publish');
+    return;
+  }
+  const threshold = 68 + stepper.offsetHeight + 32;
+  const questions = document.getElementById('questions-section');
+  if (questions.getBoundingClientRect().top <= threshold) {
+    appearanceStepPinned = false;
+    setActiveStep('questions-section');
+  } else {
+    setActiveStep(appearanceStepPinned ? 'branding-panel' : 'exam-information');
+  }
+}
+
+function scheduleStepUpdate() {
+  if (stepScrollFrame) return;
+  stepScrollFrame = requestAnimationFrame(() => {
+    stepScrollFrame = null;
+    updateActiveStep();
+  });
+}
+
+function navigateToStep(button) {
+  const targetId = button.dataset.scroll;
+  appearanceStepPinned = targetId === 'branding-panel';
+  setActiveStep(targetId);
+  document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
 function openPublishModal() {
   updatePreview();
   elements['publish-modal'].hidden = false;
+  setActiveStep('publish');
   document.getElementById('confirm-publish').focus();
 }
 
 function closePublishModal() {
   elements['publish-modal'].hidden = true;
+  updateActiveStep();
 }
 
 function bindEvents() {
@@ -521,8 +575,15 @@ function bindEvents() {
   elements['logo-upload'].addEventListener('change', handleLogo);
   elements['remove-logo'].addEventListener('click', () => { state.branding.logoData = ''; elements['logo-upload'].value = ''; applyBranding(); });
   document.getElementById('save-branding').addEventListener('click', saveBranding);
-  document.querySelectorAll('[data-scroll]').forEach(button => button.addEventListener('click', () => document.getElementById(button.dataset.scroll)?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
-  document.querySelectorAll('[data-focus]').forEach(button => button.addEventListener('click', () => document.getElementById(button.dataset.focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' })));
+  document.querySelectorAll('[data-scroll]').forEach(button => button.addEventListener('click', () => navigateToStep(button)));
+  document.querySelectorAll('[data-focus]').forEach(button => button.addEventListener('click', () => {
+    appearanceStepPinned = button.dataset.focus === 'branding-panel';
+    setActiveStep(button.dataset.focus);
+    document.getElementById(button.dataset.focus)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }));
+  window.addEventListener('scroll', scheduleStepUpdate, { passive: true });
+  window.addEventListener('resize', scheduleStepUpdate);
+  updateActiveStep();
   document.querySelectorAll('[data-view="overview"], [data-view="results"]').forEach(button => button.addEventListener('click', () => toast('Este módulo será conectado na próxima etapa.')));
   document.getElementById('collapse-sidebar').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
   document.getElementById('mobile-menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
