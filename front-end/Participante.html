@@ -1,119 +1,125 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="pt-BR">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Document</title>
-    <link rel="stylesheet" href="./css/styleTelaParticipante.css">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Gestão de participantes e convites ACERT.">
+  <title>ACERT | Participantes</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/styleTelaParticipante.css">
 </head>
 <body>
-    <header>
-        <nav>
-            <ul>
-                <li><a href="./index.html" id="link-home">Testes</a></li>
-                <li><a href="./Participante.html" id="link-solucoes">Participantes</a></li>
-                <li><a href="./NossosPlanos.html" id="link-contato">Notas</a></li>
-                <li><a href="#" id="link-login/cadastro">Relatórios</a></li>
-            </ul>
-        </nav>
-    </header>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="./index.html" aria-label="ACERT - Página inicial"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <button class="nav-item" type="button" data-placeholder="Visão geral"><span class="nav-icon">⌂</span><span>Visão geral</span></button>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Exames</span></a>
+        <a class="nav-item active" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <button class="nav-item" type="button" data-placeholder="Resultados"><span class="nav-icon">▥</span><span>Resultados</span></button>
+        <a class="nav-item" href="./login_cliente.html#branding-panel"><span class="nav-icon">◉</span><span>Marca e aparência</span></a>
+      </nav>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+    </aside>
 
-    <div class="filter">
-        <label for="nome">Nome:</label>
-        <select id="nome">
-            <option value="todos">Todos</option>
-            <option value="a">A</option>
-            <option value="b">B</option>
-            <option value="c">C</option>
-            <option value="d">D</option>
-            <option value="e">E</option>
-            <option value="f">F</option>
-            <option value="g">G</option>
-            <option value="h">H</option>
-            <option value="i">I</option>
-            <option value="j">J</option>
-            <option value="k">K</option>
-            <option value="l">L</option>
-            <option value="m">M</option>
-            <option value="n">N</option>
-            <option value="o">O</option>
-            <option value="p">P</option>
-            <option value="q">Q</option>
-            <option value="r">R</option>
-            <option value="s">S</option>
-            <option value="t">T</option>
-            <option value="u">U</option>
-            <option value="v">V</option>
-            <option value="w">W</option>
-            <option value="x">X</option>
-            <option value="y">Y</option>
-            <option value="z">Z</option>
-        </select>
-    </div>
-    
-    <table>
-        <h1>Tabela de Usuários</h1>
-        <thead>
-            <tr>
-                <th><input type="checkbox"></th>
-                <th>Nome</th>
-                <th>Endereço de Email</th>
-                <th>Telefone Celular</th>
-                <th>Cidade/Município</th>
-                <th>Tipo de Usuário</th>
-                <th>
-                    Último Acesso ao Curso
-                    <div class="menu-icon" onclick="toggleMenu()">
-                        <span>&#8942;</span> 
-                    </div>
-                    <div class="menu-options" id="menu">
-                        <button onclick="excluirLinhas()">Excluir</button>
-                        <button onclick="abrirModalCriar()">Criar</button>                    </div>
-                </th>
-            </tr>
-        </thead>
-        <tbody>
-            <tr>
-                <td><input type="checkbox"></td>
-                <td>João da Silva</td>
-                <td>joao.silva@email.com</td>
-                <td>(11) 99999-9999</td>
-                <td>São Paulo</td>
-                <td>Aluno</td>
-                <td>15/05/2024</td>
-            </tr>
-        </tbody>
-    </table>
-    <div id="ModalCriar" class="modal3">
-        <div class="modal-conteudo3">
-          <span class="fechar-modal" onclick="fecharModalCriar()">&times;</span>
-          <h2>Criar Novo Usuário</h2>
-          <form>
-            <label for="nome">Nome:</label><br>
-            <input type="text" id="nome" name="nome"><br><br>
-      
-            <label for="email">Endereço de Email:</label><br>
-            <input type="email" id="email" name="email"><br><br>
-      
-            <label for="telefone">Telefone Celular:</label><br>
-            <input type="tel" id="telefone" name="telefone"><br><br>
-      
-            <label for="cidade">Cidade/Município:</label><br>
-            <input type="text" id="cidade" name="cidade"><br><br>
-      
-            <label for="tipo">Tipo de Usuário:</label><br>
-            <select id="tipo" name="tipo">
-              <option value="aluno">Aluno</option>
-              <option value="gerente">Gerente</option>
-            </select><br><br>
-      
-            <button type="submit">Salvar</button>
-          </form>
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
+        <div class="breadcrumb"><span>Participantes</span><b>/</b><strong>Gestão</strong></div>
+        <div class="account-area">
+          <button class="help-button" type="button" aria-label="Ajuda">?</button>
+          <div class="account-badge" id="company-initials">AC</div>
+          <span id="company-name">Empresa</span>
+          <button class="logout-button" id="logout-button" type="button">Sair</button>
         </div>
-      </div>
+      </header>
 
-  <script src="./js/scriptParticipantes.js"></script>
-  <script src="./js/scriptMenu.js"></script>
-  <script src="./js/modalCriarParticipante"></script>
+      <section class="page-content">
+        <div class="page-heading">
+          <div><p class="eyebrow">GESTÃO DE ACESSOS</p><h1>Participantes</h1><p>Gerencie convites, acessos e progresso em um só lugar.</p></div>
+          <div class="heading-actions">
+            <input id="csv-input" type="file" accept=".csv,text/csv" hidden>
+            <button class="button secondary" id="import-csv" type="button"><span>↥</span> Importar CSV</button>
+            <button class="button primary" id="open-drawer" type="button"><span>＋</span> Novo participante</button>
+          </div>
+        </div>
+
+        <section class="stats-grid" aria-label="Resumo dos participantes">
+          <article class="stat-card"><span class="stat-icon blue">♙</span><div><small>Total de participantes</small><strong id="stat-total">0</strong><em>Base cadastrada</em></div></article>
+          <article class="stat-card"><span class="stat-icon green">♧</span><div><small>Ativos</small><strong id="stat-active">0</strong><em id="active-percentage">0% da base</em></div></article>
+          <article class="stat-card"><span class="stat-icon amber">♢</span><div><small>Convites pendentes</small><strong id="stat-pending">0</strong><em>Aguardando primeiro acesso</em></div></article>
+          <article class="stat-card"><span class="stat-icon cyan">◷</span><div><small>Conclusão média</small><strong id="stat-completion">0%</strong><em>Em todos os exames</em></div></article>
+        </section>
+
+        <section class="management-card">
+          <div class="filters-row">
+            <label class="search-field" for="search-participant"><span>⌕</span><input id="search-participant" type="search" placeholder="Buscar por nome, e-mail ou CPF" autocomplete="off"></label>
+            <select id="status-filter" aria-label="Filtrar por status">
+              <option value="">Todos os status</option><option value="active">Ativo</option><option value="in_progress">Em andamento</option><option value="pending">Convite pendente</option><option value="not_started">Não iniciado</option><option value="inactive">Inativo</option>
+            </select>
+            <select id="exam-filter" aria-label="Filtrar por exame"><option value="">Todos os exames</option></select>
+            <button class="clear-filters" id="clear-filters" type="button">Limpar filtros</button>
+          </div>
+
+          <div class="bulk-bar" id="bulk-bar" hidden>
+            <strong><span id="selected-count">0</span> selecionados</strong>
+            <select id="bulk-exam" aria-label="Exame para atribuição"><option value="">Selecionar exame</option></select>
+            <button type="button" data-bulk="assign_exam">▣ Atribuir exame</button>
+            <button type="button" data-bulk="resend_invite">◇ Reenviar convite</button>
+            <button class="danger" type="button" data-bulk="deactivate">♙ Desativar</button>
+            <button class="close-bulk" id="clear-selection" type="button" aria-label="Limpar seleção">×</button>
+          </div>
+
+          <div class="table-scroll">
+            <table>
+              <thead><tr><th class="checkbox-cell"><input id="select-all" type="checkbox" aria-label="Selecionar todos"></th><th>Participante</th><th>Status</th><th>Exame atribuído</th><th>Progresso</th><th>Último acesso</th><th class="actions-cell">Ações</th></tr></thead>
+              <tbody id="participants-body"></tbody>
+            </table>
+          </div>
+
+          <div class="empty-state" id="empty-state" hidden><span>♙</span><h2>Nenhum participante encontrado</h2><p>Cadastre o primeiro participante ou ajuste os filtros aplicados.</p><button class="button primary" type="button" data-open-drawer>Adicionar participante</button></div>
+
+          <footer class="table-footer">
+            <span id="pagination-label">0 participantes</span>
+            <div class="pagination"><button id="previous-page" type="button" aria-label="Página anterior">‹</button><span id="page-indicator">1</span><button id="next-page" type="button" aria-label="Próxima página">›</button></div>
+            <select id="page-size" aria-label="Itens por página"><option value="10">10 por página</option><option value="25">25 por página</option><option value="50">50 por página</option></select>
+          </footer>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+  <aside class="participant-drawer" id="participant-drawer" aria-labelledby="drawer-title" aria-hidden="true">
+    <header><div><p class="eyebrow">NOVO ACESSO</p><h2 id="drawer-title">Novo participante</h2><span>Preencha os dados para criar o acesso.</span></div><button id="close-drawer" type="button" aria-label="Fechar">×</button></header>
+    <form id="participant-form">
+      <div class="drawer-fields">
+        <label>Nome completo <b>*</b><input id="participant-name" name="fullName" type="text" maxlength="180" required placeholder="Digite o nome completo"></label>
+        <label>E-mail <b>*</b><input id="participant-email" name="email" type="email" maxlength="180" required placeholder="exemplo@email.com"></label>
+        <div class="field-pair"><label>CPF<input id="participant-cpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label><label>Telefone<input id="participant-phone" name="phone" type="tel" maxlength="16" placeholder="(00) 00000-0000"></label></div>
+        <label>Cidade/Município<input id="participant-city" name="city" type="text" maxlength="120" placeholder="Digite a cidade"></label>
+        <label>Exame inicial<select id="participant-exam" name="examId"><option value="">Selecione um exame</option></select></label>
+        <label class="invite-toggle"><input id="send-invite" name="sendInvite" type="checkbox" checked><i></i><span><b>Enviar convite por e-mail</b><small>O participante ficará com status de convite pendente.</small></span></label>
+      </div>
+      <footer><button class="button secondary" id="cancel-drawer" type="button">Cancelar</button><button class="button primary" id="submit-participant" type="submit">Criar participante</button></footer>
+    </form>
+  </aside>
+
+  <div class="action-menu" id="action-menu" hidden><button type="button" data-row-action="resend_invite">Reenviar convite</button><button type="button" data-row-action="activate">Ativar participante</button><button class="danger" type="button" data-row-action="deactivate">Desativar participante</button></div>
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+
+  <template id="participant-row-template">
+    <tr>
+      <td class="checkbox-cell"><input class="row-select" type="checkbox" aria-label="Selecionar participante"></td>
+      <td><div class="participant-cell"><span class="participant-avatar"></span><div><strong class="participant-name"></strong><small class="participant-email"></small></div></div></td>
+      <td><span class="status-chip"></span></td>
+      <td><span class="exam-title"></span></td>
+      <td><div class="progress-cell"><span class="progress-value"></span><i><b></b></i></div></td>
+      <td><span class="last-access"></span></td>
+      <td class="actions-cell"><button class="row-actions" type="button" aria-label="Ações do participante">⋮</button></td>
+    </tr>
+  </template>
+
+  <script src="./js/participants-dashboard.js"></script>
 </body>
 </html>

@@ -1,0 +1,20 @@
+CREATE TABLE IF NOT EXISTS company_participants (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    company_id BIGINT NOT NULL,
+    full_name VARCHAR(180) NOT NULL,
+    email VARCHAR(180) NOT NULL,
+    cpf VARCHAR(11) NULL,
+    phone VARCHAR(15) NULL,
+    city VARCHAR(120) NULL,
+    status VARCHAR(24) NOT NULL DEFAULT 'pending',
+    exam_id BIGINT NULL,
+    progress TINYINT UNSIGNED NOT NULL DEFAULT 0,
+    last_access DATETIME NULL,
+    invited_at DATETIME NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_participant_company_email (company_id, email),
+    INDEX idx_participant_company_status (company_id, status),
+    INDEX idx_participant_company_exam (company_id, exam_id),
+    INDEX idx_participant_company_name (company_id, full_name)
+);
