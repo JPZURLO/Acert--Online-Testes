@@ -35,8 +35,8 @@ loginForm?.addEventListener('submit', function(event) {
 
                 localStorage.setItem('RazaoSocial', data.RazaoSocial);
 
-                console.log('🔄 Redirecionando para login_cliente.html...');
-                window.location.replace('login_cliente.html');
+                console.log('🔄 Redirecionando para VisaoGeral.html...');
+                window.location.replace('VisaoGeral.html');
             } else {
                 errorMessage.textContent = data.message || 'Erro no login';
             }

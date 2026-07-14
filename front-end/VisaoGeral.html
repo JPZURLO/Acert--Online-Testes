@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Visão geral da operação de avaliações ACERT.">
+  <title>ACERT | Visão geral</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/styleVisaoGeral.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="./index.html"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <a class="nav-item active" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Exames</span></a>
+        <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
+        <a class="nav-item" href="./login_cliente.html#branding-panel"><span class="nav-icon">◉</span><span>Marca e aparência</span></a>
+      </nav>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+    </aside>
+
+    <main class="workspace">
+      <header class="topbar">
+        <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
+        <div class="breadcrumb"><span>Visão geral</span><b>/</b><strong>Dashboard</strong></div>
+        <div class="account-area"><button class="help-button" type="button" aria-label="Ajuda">?</button><div class="account-badge" id="company-initials">AC</div><span id="company-name">Empresa</span><button class="logout-button" id="logout-button" type="button">Sair</button></div>
+      </header>
+
+      <section class="page-content">
+        <div class="page-heading">
+          <div><p class="eyebrow">PAINEL EXECUTIVO</p><h1>Visão geral</h1><p>Acompanhe o desempenho da sua operação em um só lugar.</p></div>
+          <div class="heading-actions"><a class="button primary" href="./login_cliente.html"><span>＋</span> Criar novo exame</a><a class="button secondary" href="./Participante.html"><span>♙</span> Adicionar participante</a></div>
+        </div>
+
+        <section class="stats-grid" aria-label="Indicadores principais">
+          <article class="stat-card"><span class="stat-icon blue">▣</span><div><small>Exames ativos</small><strong id="stat-exams">0</strong><em id="exam-caption">0 exames cadastrados</em></div></article>
+          <article class="stat-card"><span class="stat-icon blue">♙</span><div><small>Participantes</small><strong id="stat-participants">0</strong><em id="participant-trend">Sem alteração no período</em></div></article>
+          <article class="stat-card"><span class="stat-icon green">✓</span><div><small>Avaliações concluídas</small><strong id="stat-completed">0</strong><em id="completed-trend">Sem alteração no período</em></div></article>
+          <article class="stat-card"><span class="stat-icon purple">%</span><div><small>Taxa de aprovação</small><strong id="stat-approval">0%</strong><em id="approval-trend">Sem alteração no período</em></div></article>
+        </section>
+
+        <section class="analytics-grid">
+          <article class="card performance-card">
+            <header><div><h2>Desempenho nos últimos 30 dias</h2><p>Avaliações concluídas por dia</p></div><span class="legend"><i></i> Concluídas</span></header>
+            <div class="chart-wrap"><canvas id="performance-chart" aria-label="Avaliações concluídas nos últimos 30 dias"></canvas><div class="chart-empty" id="performance-empty">Os dados aparecerão após as primeiras avaliações.</div></div>
+          </article>
+          <article class="card status-card">
+            <header><div><h2>Status das avaliações</h2><p>Situação atual dos participantes</p></div></header>
+            <div class="status-content"><div class="donut-wrap"><canvas id="status-chart" aria-label="Status das avaliações"></canvas><div class="donut-label"><strong id="status-total">0</strong><span>Total</span></div></div><div class="status-legend"><span><i class="completed"></i>Concluídas <b id="status-completed">0</b></span><span><i class="progress"></i>Em andamento <b id="status-progress">0</b></span><span><i class="not-started"></i>Não iniciadas <b id="status-not-started">0</b></span></div></div>
+          </article>
+        </section>
+
+        <section class="operations-grid">
+          <article class="card activities-card">
+            <header><div><h2>Atividades recentes</h2><p>Últimas avaliações concluídas</p></div><a href="./Resultados.html">Ver todas</a></header>
+            <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Exame</th><th>Resultado</th><th>Data/Hora</th></tr></thead><tbody id="activities-body"></tbody></table></div>
+            <div class="empty-state" id="activities-empty" hidden><span>⌁</span><strong>Nenhuma atividade recente</strong><p>As avaliações concluídas aparecerão aqui.</p></div>
+          </article>
+          <article class="card quick-card">
+            <header><div><h2>Ações rápidas</h2><p>Acesse as tarefas mais usadas</p></div></header>
+            <nav><a href="./login_cliente.html"><span class="quick-icon blue">▣</span><b>Criar exame</b><i>›</i></a><a href="./Participante.html"><span class="quick-icon cyan">♙</span><b>Convidar participantes</b><i>›</i></a><a href="./Resultados.html"><span class="quick-icon green">▥</span><b>Ver resultados</b><i>›</i></a><a href="./login_cliente.html#branding-panel"><span class="quick-icon purple">◉</span><b>Personalizar marca</b><i>›</i></a></nav>
+          </article>
+          <article class="card exams-card">
+            <header><div><h2>Exames em andamento</h2><p>Progresso dos participantes</p></div><a href="./login_cliente.html">Ver todos</a></header>
+            <div class="exam-progress-list" id="exam-progress-list"></div>
+            <div class="empty-state compact" id="exams-empty" hidden><span>▣</span><strong>Nenhum exame publicado</strong><p>Publique um exame para acompanhar o progresso.</p></div>
+          </article>
+        </section>
+      </section>
+    </main>
+  </div>
+
+  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <script src="./js/overview-dashboard.js"></script>
+</body>
+</html>
