@@ -16,31 +16,32 @@
   </script>
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
   <link rel="stylesheet" href="./css/styleHome.css">
-  <link rel="stylesheet" href="./css/home-navigation.css">
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
   <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
+  <link rel="stylesheet" href="./css/public-navigation.css?v=1">
 </head>
 <body>
-    <header class="site-header">
-        <img src="./assets/images/Logo.png" alt="Logo da sua empresa" class="logo">
-        <nav class="site-navigation" aria-label="Navegação principal">
-            <ul class="navigation-list">
-                <li><a href="./index.html" id="link-home">Home</a></li>
-                <li><a href="./QuemSomos.html" id="link-QuemSomos">Sobre Nós</a></li>
-                <li><a href="./solucoes.html" id="link-solucoes">Soluções</a></li>
-                <li><a href="./NossosPlanos.html" id="link-contato">Planos</a></li>
-                <li class="dropdown">
-                  <button id="link-login" class="login-trigger" type="button" aria-haspopup="true" aria-expanded="false"><i class="fa-solid fa-user"></i> Login <i class="fa-solid fa-chevron-down"></i></button>
-                  <ul class="dropdown-menu">
-                    <li class="login-option"><a href="./login.html">Login Participantes</a></li>
-                    <li class="login-option"><a href="./login_empresa.html">Login Empresa</a></li>
-                  </ul>
-                </li>
-              
-              </ul>
-        </nav>
-    </header>
+    <header class="public-header">
+  <a class="public-logo-link" href="./index.html" aria-label="Online Teste - Página inicial">
+    <img src="./assets/images/Logo.png" alt="Online Teste" class="public-logo">
+  </a>
+  <nav class="public-navigation" aria-label="Navegação principal">
+    <ul class="public-nav-list">
+      <li><a class="public-nav-link" href="./index.html">Home</a></li>
+      <li><a class="public-nav-link" href="./QuemSomos.html">Sobre Nós</a></li>
+      <li><a class="public-nav-link" href="./solucoes.html">Soluções</a></li>
+      <li><a class="public-nav-link" href="./NossosPlanos.html">Planos</a></li>
+      <li class="public-login-dropdown">
+        <button class="public-login-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="public-login-menu"><i class="fa-solid fa-user" aria-hidden="true"></i> Login <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
+        <ul class="public-login-menu" id="public-login-menu">
+          <li><a class="public-login-option" href="./login.html">Login Participantes</a></li>
+          <li><a class="public-login-option" href="./login_empresa.html">Login Empresa</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</header>
 
     <section id="banner">
         <div class="banner-container">
@@ -94,7 +95,6 @@
         <div class="rwb-tooltip">Fale conosco</div>
         <img src="https://cdn.positus.global/production/resources/robbu/whatsapp-button/whatsapp-icon.svg">
     </a>
-
-    <script src="./js/home-navigation.js"></script>
+  <script src="./js/public-navigation.js?v=1"></script>
 </body>
 </html>
