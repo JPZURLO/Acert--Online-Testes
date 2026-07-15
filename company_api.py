@@ -3,6 +3,8 @@ import re
 
 from flask import Blueprint, jsonify, request
 
+from question_import import QuestionImportError, parse_question_workbook
+
 
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 ALLOWED_FONTS = {"Inter", "Manrope", "Montserrat", "Poppins", "Roboto"}
@@ -250,6 +252,29 @@ def create_company_blueprint(open_database, token_payload):
         finally:
             cursor.close()
             connection.close()
+
+    @blueprint.post("/api/company/question-imports")
+    def import_questions():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        uploaded_file = request.files.get("file")
+        if not uploaded_file or not uploaded_file.filename:
+            return jsonify({"success": False, "message": "Selecione um arquivo Excel .xlsx."}), 400
+        if not uploaded_file.filename.lower().endswith(".xlsx"):
+            return jsonify({"success": False, "message": "Use o modelo no formato Excel .xlsx."}), 400
+        try:
+            questions = parse_question_workbook(uploaded_file.stream)
+        except QuestionImportError as exc:
+            return jsonify({"success": False, "message": str(exc), "errors": exc.errors}), 400
+        return jsonify(
+            {
+                "success": True,
+                "questions": questions,
+                "count": len(questions),
+                "totalPoints": sum(question["points"] for question in questions),
+            }
+        )
 
     @blueprint.get("/api/company/exams/<int:exam_id>")
     def get_exam(exam_id):

@@ -58,9 +58,12 @@ function defaultQuestions() {
 }
 
 async function api(url, options = {}) {
+  const isFormData = options.body instanceof FormData;
   const response = await fetch(url, {
     ...options,
-    headers: options.body ? { 'Content-Type': 'application/json', ...(options.headers || {}) } : options.headers
+    headers: options.body && !isFormData
+      ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
+      : options.headers
   });
   let data = {};
   try {
@@ -71,6 +74,7 @@ async function api(url, options = {}) {
   if (!response.ok) {
     const error = new Error(data.message || 'Não foi possível concluir a operação.');
     error.status = response.status;
+    error.details = Array.isArray(data.errors) ? data.errors : [];
     throw error;
   }
   return data;
@@ -85,7 +89,8 @@ function cacheElements() {
     'background-color', 'primary-value', 'accent-value', 'background-value', 'font-family',
     'border-radius', 'candidate-instructions', 'logo-upload', 'remove-logo', 'save-status',
     'exam-picker', 'page-title', 'breadcrumb-mode', 'publish-modal', 'modal-question-count',
-    'modal-total-points', 'modal-duration', 'toast-region'
+    'modal-total-points', 'modal-duration', 'toast-region', 'question-import-file',
+    'question-import-mode', 'question-import-errors'
   ];
   ids.forEach(id => { elements[id] = document.getElementById(id); });
 }
@@ -437,6 +442,77 @@ async function saveExam(status = 'draft', silent = false) {
   }
 }
 
+function showQuestionImportErrors(message, details = []) {
+  const container = elements['question-import-errors'];
+  container.replaceChildren();
+  const title = document.createElement('strong');
+  title.textContent = message;
+  container.appendChild(title);
+  if (details.length) {
+    const list = document.createElement('ul');
+    details.forEach(detail => {
+      const item = document.createElement('li');
+      item.textContent = detail;
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+  }
+  container.hidden = false;
+}
+
+async function importQuestionsFromExcel() {
+  const [file] = elements['question-import-file'].files;
+  if (!file) return;
+  const button = document.getElementById('import-questions');
+  elements['question-import-errors'].hidden = true;
+  elements['question-import-errors'].replaceChildren();
+
+  if (!file.name.toLowerCase().endsWith('.xlsx')) {
+    showQuestionImportErrors('Selecione o modelo preenchido no formato Excel .xlsx.');
+    elements['question-import-file'].value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showQuestionImportErrors('O arquivo deve ter no máximo 5 MB.');
+    elements['question-import-file'].value = '';
+    return;
+  }
+
+  button.disabled = true;
+  button.textContent = 'Importando...';
+  setSaveStatus('Validando Excel...', 'saving');
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const data = await api('/api/company/question-imports', { method: 'POST', body });
+    const importedQuestions = Array.isArray(data.questions) ? data.questions : [];
+    const append = elements['question-import-mode'].value === 'append';
+    const nextQuestions = append ? [...state.questions, ...importedQuestions] : importedQuestions;
+    if (nextQuestions.length > 200) {
+      throw new Error('O teste pode ter no máximo 200 questões. Escolha substituir ou reduza o arquivo.');
+    }
+
+    state.questions = nextQuestions;
+    state.dirty = true;
+    renderQuestions();
+    updatePreview();
+    saveTemporaryDraft();
+    const saved = await saveExam('draft', true);
+    if (!saved) {
+      throw new Error('As questões foram carregadas na tela, mas o rascunho não pôde ser salvo. Informe o título e tente salvar novamente.');
+    }
+    toast(`${data.count} ${data.count === 1 ? 'questão importada' : 'questões importadas'} e salvas no rascunho.`);
+  } catch (error) {
+    setSaveStatus('Falha na importação');
+    showQuestionImportErrors(error.message, error.details || []);
+    toast('Revise o arquivo Excel e tente novamente.', 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Importar Excel';
+    elements['question-import-file'].value = '';
+  }
+}
+
 function collectBranding() {
   return {
     ...state.branding,
@@ -561,6 +637,8 @@ function bindEvents() {
   elements['questions-list'].addEventListener('drop', handleDrop);
   elements['questions-list'].addEventListener('dragend', handleDragEnd);
   document.getElementById('add-question').addEventListener('click', addQuestion);
+  document.getElementById('import-questions').addEventListener('click', () => elements['question-import-file'].click());
+  elements['question-import-file'].addEventListener('change', importQuestionsFromExcel);
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   document.getElementById('publish-exam').addEventListener('click', openPublishModal);
   document.querySelector('[data-action="publish"]').addEventListener('click', openPublishModal);

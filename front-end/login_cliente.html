@@ -104,6 +104,26 @@
                 <div><span class="section-kicker">CONSTRUTOR</span><h2>Questões do teste <span id="question-count">(3)</span></h2></div>
                 <div class="question-summary"><span id="question-total">Pontuação total: 100 pontos</span><span class="drag-hint">Arraste para ordenar</span></div>
               </div>
+              <div class="question-import-card">
+                <span class="question-import-icon" aria-hidden="true">⇩</span>
+                <div class="question-import-copy">
+                  <strong>Importar questões por Excel</strong>
+                  <span>Baixe o modelo, preencha as questões e envie o arquivo. O rascunho será salvo automaticamente.</span>
+                </div>
+                <label class="question-import-mode" for="question-import-mode">
+                  <span>Ao importar</span>
+                  <select id="question-import-mode">
+                    <option value="replace">Substituir questões atuais</option>
+                    <option value="append">Adicionar às questões atuais</option>
+                  </select>
+                </label>
+                <div class="question-import-actions">
+                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.xlsx" download>Baixar modelo</a>
+                  <button class="button primary" id="import-questions" type="button">Importar Excel</button>
+                  <input id="question-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                </div>
+              </div>
+              <div class="question-import-errors" id="question-import-errors" role="alert" hidden></div>
               <div id="questions-list" class="questions-list" aria-live="polite"></div>
               <button class="add-question" id="add-question" type="button"><span>＋</span> Adicionar questão</button>
             </section>
@@ -194,6 +214,6 @@
     </article>
   </template>
 
-  <script src="./js/company-dashboard.js"></script>
+  <script src="./js/company-dashboard.js?v=6"></script>
 </body>
 </html>
