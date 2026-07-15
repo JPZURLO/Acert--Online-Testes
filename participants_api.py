@@ -52,7 +52,7 @@ def participant_from_row(row):
         "city": row.get("city") or "",
         "status": row.get("status") or "not_started",
         "examId": row.get("exam_id"),
-        "examTitle": row.get("exam_title") or "Sem exame atribuído",
+        "examTitle": row.get("exam_title") or "Sem teste atribuído",
         "progress": int(row.get("progress") or 0),
         "lastAccess": row.get("last_access").isoformat() if row.get("last_access") else None,
         "createdAt": row.get("created_at").isoformat() if row.get("created_at") else None,
@@ -151,7 +151,7 @@ def create_participants_blueprint(open_database, token_payload):
         cursor = connection.cursor(dictionary=True)
         try:
             if not company_owns_exam(cursor, company_id, participant["examId"]):
-                return jsonify({"success": False, "message": "O exame selecionado não pertence à empresa."}), 403
+                return jsonify({"success": False, "message": "O teste selecionado não pertence à empresa."}), 403
             status = "pending" if participant["sendInvite"] else "not_started"
             try:
                 cursor.execute(
@@ -211,9 +211,9 @@ def create_participants_blueprint(open_database, token_payload):
                 try:
                     exam_id = int(data.get("examId"))
                 except (TypeError, ValueError):
-                    return jsonify({"success": False, "message": "Selecione um exame."}), 400
+                    return jsonify({"success": False, "message": "Selecione um teste."}), 400
                 if not company_owns_exam(cursor, company_id, exam_id):
-                    return jsonify({"success": False, "message": "O exame selecionado não pertence à empresa."}), 403
+                    return jsonify({"success": False, "message": "O teste selecionado não pertence à empresa."}), 403
                 sql = f"UPDATE company_participants SET exam_id = %s, status = 'not_started', progress = 0 WHERE company_id = %s AND id IN ({placeholders})"
                 params = [exam_id, company_id, *ids]
             elif action == "resend_invite":

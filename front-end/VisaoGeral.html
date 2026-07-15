@@ -15,7 +15,7 @@
       <a class="brand" href="./index.html"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
       <nav class="sidebar-nav" aria-label="Navegação principal">
         <a class="nav-item active" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
-        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Exames</span></a>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Testes</span></a>
         <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
         <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
       </nav>
@@ -32,11 +32,11 @@
       <section class="page-content">
         <div class="page-heading">
           <div><p class="eyebrow">PAINEL EXECUTIVO</p><h1>Visão geral</h1><p>Acompanhe o desempenho da sua operação em um só lugar.</p></div>
-          <div class="heading-actions"><a class="button primary" href="./login_cliente.html"><span>＋</span> Criar novo exame</a><a class="button secondary" href="./Participante.html"><span>♙</span> Adicionar participante</a></div>
+          <div class="heading-actions"><a class="button primary" href="./login_cliente.html"><span>＋</span> Criar novo teste</a><a class="button secondary" href="./Participante.html"><span>♙</span> Adicionar participante</a></div>
         </div>
 
         <section class="stats-grid" aria-label="Indicadores principais">
-          <article class="stat-card"><span class="stat-icon blue">▣</span><div><small>Exames ativos</small><strong id="stat-exams">0</strong><em id="exam-caption">0 exames cadastrados</em></div></article>
+          <article class="stat-card"><span class="stat-icon blue">▣</span><div><small>Testes ativos</small><strong id="stat-exams">0</strong><em id="exam-caption">0 testes cadastrados</em></div></article>
           <article class="stat-card"><span class="stat-icon blue">♙</span><div><small>Participantes</small><strong id="stat-participants">0</strong><em id="participant-trend">Sem alteração no período</em></div></article>
           <article class="stat-card"><span class="stat-icon green">✓</span><div><small>Avaliações concluídas</small><strong id="stat-completed">0</strong><em id="completed-trend">Sem alteração no período</em></div></article>
           <article class="stat-card"><span class="stat-icon purple">%</span><div><small>Taxa de aprovação</small><strong id="stat-approval">0%</strong><em id="approval-trend">Sem alteração no período</em></div></article>
@@ -56,17 +56,17 @@
         <section class="operations-grid">
           <article class="card activities-card">
             <header><div><h2>Atividades recentes</h2><p>Últimas avaliações concluídas</p></div><a href="./Resultados.html">Ver todas</a></header>
-            <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Exame</th><th>Resultado</th><th>Data/Hora</th></tr></thead><tbody id="activities-body"></tbody></table></div>
+            <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Teste</th><th>Resultado</th><th>Data/Hora</th></tr></thead><tbody id="activities-body"></tbody></table></div>
             <div class="empty-state" id="activities-empty" hidden><span>⌁</span><strong>Nenhuma atividade recente</strong><p>As avaliações concluídas aparecerão aqui.</p></div>
           </article>
           <article class="card quick-card">
             <header><div><h2>Ações rápidas</h2><p>Acesse as tarefas mais usadas</p></div></header>
-            <nav><a href="./login_cliente.html"><span class="quick-icon blue">▣</span><b>Criar exame</b><i>›</i></a><a href="./Participante.html"><span class="quick-icon cyan">♙</span><b>Convidar participantes</b><i>›</i></a><a href="./Resultados.html"><span class="quick-icon green">▥</span><b>Ver resultados</b><i>›</i></a></nav>
+            <nav><a href="./login_cliente.html"><span class="quick-icon blue">▣</span><b>Criar teste</b><i>›</i></a><a href="./Participante.html"><span class="quick-icon cyan">♙</span><b>Convidar participantes</b><i>›</i></a><a href="./Resultados.html"><span class="quick-icon green">▥</span><b>Ver resultados</b><i>›</i></a></nav>
           </article>
           <article class="card exams-card">
-            <header><div><h2>Exames em andamento</h2><p>Progresso dos participantes</p></div><a href="./login_cliente.html">Ver todos</a></header>
+            <header><div><h2>Testes em andamento</h2><p>Progresso dos participantes</p></div><a href="./login_cliente.html">Ver todos</a></header>
             <div class="exam-progress-list" id="exam-progress-list"></div>
-            <div class="empty-state compact" id="exams-empty" hidden><span>▣</span><strong>Nenhum exame publicado</strong><p>Publique um exame para acompanhar o progresso.</p></div>
+            <div class="empty-state compact" id="exams-empty" hidden><span>▣</span><strong>Nenhum teste publicado</strong><p>Publique um teste para acompanhar o progresso.</p></div>
           </article>
         </section>
       </section>

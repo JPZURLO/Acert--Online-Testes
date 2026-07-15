@@ -225,7 +225,7 @@ function collectExam() {
 }
 
 function updatePreview() {
-  const title = elements['exam-title'].value.trim() || 'Seu novo exame';
+  const title = elements['exam-title'].value.trim() || 'Seu novo teste';
   const duration = Number(elements['exam-duration'].value) || 0;
   elements['preview-title'].textContent = title;
   elements['preview-duration'].textContent = `${duration} min`;
@@ -356,8 +356,8 @@ function fillExam(exam) {
   elements['exam-duration'].value = exam.durationMinutes || 60;
   elements['passing-score'].value = exam.passingScore ?? 60;
   elements['shuffle-questions'].checked = Boolean(exam.shuffleQuestions);
-  elements['page-title'].textContent = state.examId ? 'Editar exame' : 'Criar novo exame';
-  elements['breadcrumb-mode'].textContent = state.examId ? 'Editar exame' : 'Criar exame';
+  elements['page-title'].textContent = state.examId ? 'Editar teste' : 'Criar novo teste';
+  elements['breadcrumb-mode'].textContent = state.examId ? 'Editar teste' : 'Criar teste';
   elements['exam-picker'].value = state.examId ? String(state.examId) : '';
   state.dirty = false;
   renderQuestions();
@@ -380,7 +380,7 @@ function resetExam() {
 }
 
 function populateExamPicker() {
-  elements['exam-picker'].replaceChildren(new Option('Novo exame', ''));
+  elements['exam-picker'].replaceChildren(new Option('Novo teste', ''));
   state.exams.forEach(exam => {
     const suffix = exam.status === 'published' ? 'Publicado' : 'Rascunho';
     elements['exam-picker'].appendChild(new Option(`${exam.title} · ${suffix}`, String(exam.id)));
@@ -407,7 +407,7 @@ async function saveExam(status = 'draft', silent = false) {
   const exam = collectExam();
   exam.status = status;
   if (!exam.title) {
-    if (!silent) toast('Informe o título do exame.', 'error');
+    if (!silent) toast('Informe o título do teste.', 'error');
     elements['exam-title'].focus();
     return false;
   }
@@ -425,10 +425,10 @@ async function saveExam(status = 'draft', silent = false) {
     if (existingIndex >= 0) state.exams[existingIndex] = summary;
     else state.exams.unshift(summary);
     populateExamPicker();
-    elements['page-title'].textContent = 'Editar exame';
-    elements['breadcrumb-mode'].textContent = 'Editar exame';
-    setSaveStatus(status === 'published' ? 'Exame publicado' : 'Alterações salvas', 'saved');
-    if (!silent) toast(status === 'published' ? 'Exame publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+    elements['page-title'].textContent = 'Editar teste';
+    elements['breadcrumb-mode'].textContent = 'Editar teste';
+    setSaveStatus(status === 'published' ? 'Teste publicado' : 'Alterações salvas', 'saved');
+    if (!silent) toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
     return true;
   } catch (error) {
     setSaveStatus('Falha ao salvar');

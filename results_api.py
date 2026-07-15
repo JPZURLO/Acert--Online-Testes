@@ -36,7 +36,7 @@ def result_from_row(row, include_details=False):
         "participantName": row.get("participant_name") or "Participante",
         "participantEmail": row.get("participant_email") or "",
         "examId": row["exam_id"],
-        "examTitle": row.get("exam_title") or "Exame",
+        "examTitle": row.get("exam_title") or "Teste",
         "score": round(score, 2),
         "maxScore": int(row.get("max_score") or 100),
         "passingScore": round(passing_score, 2),

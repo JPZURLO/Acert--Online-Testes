@@ -97,7 +97,7 @@ def clean_exam(data):
     ]
     title = clean_text(data.get("title"), 180)
     if not title:
-        raise ValueError("Informe o título do exame.")
+        raise ValueError("Informe o título do teste.")
     status = clean_text(data.get("status"), 16, "draft")
     return {
         "title": title,
@@ -262,7 +262,7 @@ def create_company_blueprint(open_database, token_payload):
             cursor.execute("SELECT * FROM company_exams WHERE id = %s AND company_id = %s", (exam_id, company_id))
             row = cursor.fetchone()
             if not row:
-                return jsonify({"success": False, "message": "Exame não encontrado."}), 404
+                return jsonify({"success": False, "message": "Teste não encontrado."}), 404
             return jsonify({"exam": exam_from_row(row, include_questions=True)})
         finally:
             cursor.close()
@@ -298,7 +298,7 @@ def create_company_blueprint(open_database, token_payload):
                 ),
             )
             if cursor.rowcount == 0:
-                return jsonify({"success": False, "message": "Exame não encontrado."}), 404
+                return jsonify({"success": False, "message": "Teste não encontrado."}), 404
             connection.commit()
             return jsonify({"success": True, "exam": {**exam, "id": exam_id}})
         finally:

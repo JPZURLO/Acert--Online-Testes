@@ -1,5 +1,5 @@
 function aplicarFiltros() {
-    const nomeExame = document.getElementById("nome-exame").value;
+    const nomeExame = document.getElementById("nome-teste").value;
     const dataInicio = document.getElementById("data-inicio").value;
     const dataTermino = document.getElementById("data-termino").value;
     const numeroCurso = document.getElementById("numero-curso").value;

@@ -15,7 +15,7 @@
       <a class="brand" href="./index.html"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
       <nav class="sidebar-nav" aria-label="Navegação principal">
         <a class="nav-item" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
-        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Exames</span></a>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Testes</span></a>
         <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
         <a class="nav-item active" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
       </nav>
@@ -36,7 +36,7 @@
         </div>
 
         <div class="filters-bar">
-          <select id="exam-filter"><option value="">Todos os exames</option></select>
+          <select id="exam-filter"><option value="">Todos os testes</option></select>
           <select id="period-filter"><option value="30">Últimos 30 dias</option><option value="7">Últimos 7 dias</option><option value="90">Últimos 90 dias</option><option value="365">Último ano</option><option value="3650">Todo o período</option></select>
           <select id="status-filter"><option value="">Todos os status</option><option value="approved">Aprovados</option><option value="review">Em revisão</option><option value="failed">Reprovados</option></select>
           <button class="compare-button" id="compare-periods" type="button">▥ Comparar períodos</button>
@@ -57,7 +57,7 @@
 
         <section class="results-card">
           <header class="results-toolbar"><label class="search-field"><span>⌕</span><input id="search-result" type="search" placeholder="Buscar participante"></label><span id="result-count">0 resultados</span></header>
-          <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Exame</th><th>Nota</th><th>Resultado</th><th>Tempo</th><th>Conclusão</th><th>Ações</th></tr></thead><tbody id="results-body"></tbody></table></div>
+          <div class="table-scroll"><table><thead><tr><th>Participante</th><th>Teste</th><th>Nota</th><th>Resultado</th><th>Tempo</th><th>Conclusão</th><th>Ações</th></tr></thead><tbody id="results-body"></tbody></table></div>
           <div class="empty-state" id="empty-state" hidden><span>▥</span><h2>Nenhum resultado encontrado</h2><p>Os resultados aparecerão assim que os participantes concluírem suas avaliações.</p></div>
           <footer class="table-footer"><span id="pagination-label">0 resultados</span><div><button id="previous-page" type="button">‹</button><b id="page-indicator">1</b><button id="next-page" type="button">›</button></div><select id="page-size"><option value="10">10 por página</option><option value="25">25 por página</option><option value="50">50 por página</option></select></footer>
         </section>
@@ -69,7 +69,7 @@
   <aside class="result-drawer" id="result-drawer" aria-hidden="true">
     <header><div><p class="eyebrow">DETALHAMENTO</p><h2>Relatório individual</h2></div><button id="close-drawer" type="button">×</button></header>
     <div class="drawer-scroll">
-      <section class="person-summary"><span class="drawer-avatar" id="drawer-avatar">JS</span><div><h3 id="drawer-name">Participante</h3><p id="drawer-exam">Exame</p></div></section>
+      <section class="person-summary"><span class="drawer-avatar" id="drawer-avatar">JS</span><div><h3 id="drawer-name">Participante</h3><p id="drawer-exam">Teste</p></div></section>
       <section class="score-summary"><strong><span id="drawer-score">0</span><small>/100</small></strong><span class="result-chip" id="drawer-status">Resultado</span></section>
       <section class="mini-stats"><article><span>◎</span><small>Acertos</small><b id="drawer-correct">0/0</b></article><article><span>◷</span><small>Tempo</small><b id="drawer-time">0 min</b></article><article><span>▥</span><small>Aproveitamento</small><b id="drawer-rate">0%</b></article></section>
       <section class="drawer-section"><h3>Desempenho por competência</h3><div id="drawer-competencies" class="drawer-competencies"></div></section>

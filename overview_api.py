@@ -121,7 +121,7 @@ def create_overview_blueprint(open_database, token_payload):
                         "id": row["id"],
                         "participantName": row.get("participant_name") or "Participante",
                         "participantEmail": row.get("participant_email") or "",
-                        "examTitle": row.get("exam_title") or "Exame",
+                        "examTitle": row.get("exam_title") or "Teste",
                         "score": round(score, 1),
                         "status": status,
                         "completedAt": row["completed_at"].isoformat() if row.get("completed_at") else None,
