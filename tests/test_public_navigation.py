@@ -29,8 +29,8 @@ class PublicNavigationTests(unittest.TestCase):
             parser.feed(html)
             self.assertEqual(parser.public_headers, 1, page)
             self.assertEqual(parser.login_menus, 1, page)
-            self.assertIn("./css/public-navigation.css?v=1", html)
-            self.assertIn("./js/public-navigation.js?v=1", html)
+            self.assertIn("./css/public-navigation.css?v=2", html)
+            self.assertIn("./js/public-navigation.js?v=2", html)
             self.assertIn('name="viewport"', html)
             start = html.index('<header class="public-header">')
             end = html.index("</header>", start) + len("</header>")
@@ -46,12 +46,14 @@ class PublicNavigationTests(unittest.TestCase):
         self.assertIn("right: 0", css)
         self.assertIn("pointer-events: none", css)
 
-    def test_login_menu_closes_outside_and_with_escape(self):
+    def test_login_menu_and_active_page_behaviour(self):
         javascript = Path("front-end/js/public-navigation.js").read_text(encoding="utf-8")
         self.assertIn("setPublicLoginMenu", javascript)
         self.assertIn("aria-expanded", javascript)
         self.assertIn("event.key === 'Escape'", javascript)
         self.assertIn("event.target.closest('.public-login-dropdown')", javascript)
+        self.assertIn("aria-current", javascript)
+        self.assertIn("currentPage", javascript)
 
 
 if __name__ == "__main__":

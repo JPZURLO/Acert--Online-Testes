@@ -1,100 +1,30 @@
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>ACERT - Online Testes</title>
-  <script src="https://cdn.tiny.cloud/1/4jbdj7z7zk5etlmo6n90cizrx8ovbh1jaqiijkef9jrbvjek/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-  <script>
-    tinymce.init({
-      selector: 'textarea',
-      plugins: 'advlist autolink lists link image charmap print preview hr anchor pagebreak',
-      toolbar_mode: 'floating',
-      cloud_channel: '6',
-      key: '4jbdj7z7zk5etlmo6n90cizrx8ovbh1jaqiijkef9jrbvjek'
-    });
-  </script>
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-  <link rel="stylesheet" href="./css/styleHome.css">
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Plataforma completa para criar, aplicar e acompanhar avaliações online.">
+  <title>Online Teste | Avaliações online simples e seguras</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-  <script src="https://cdn.tiny.cloud/1/no-api-key/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>
-  <link rel="stylesheet" href="./css/public-navigation.css?v=1">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="./css/public-navigation.css?v=2"><link rel="stylesheet" href="./css/public-site.css?v=1">
 </head>
-<body>
-    <header class="public-header">
-  <a class="public-logo-link" href="./index.html" aria-label="Online Teste - Página inicial">
-    <img src="./assets/images/Logo.png" alt="Online Teste" class="public-logo">
-  </a>
-  <nav class="public-navigation" aria-label="Navegação principal">
-    <ul class="public-nav-list">
-      <li><a class="public-nav-link" href="./index.html">Home</a></li>
-      <li><a class="public-nav-link" href="./QuemSomos.html">Sobre Nós</a></li>
-      <li><a class="public-nav-link" href="./solucoes.html">Soluções</a></li>
-      <li><a class="public-nav-link" href="./NossosPlanos.html">Planos</a></li>
-      <li class="public-login-dropdown">
-        <button class="public-login-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="public-login-menu"><i class="fa-solid fa-user" aria-hidden="true"></i> Login <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button>
-        <ul class="public-login-menu" id="public-login-menu">
-          <li><a class="public-login-option" href="./login.html">Login Participantes</a></li>
-          <li><a class="public-login-option" href="./login_empresa.html">Login Empresa</a></li>
-        </ul>
-      </li>
-    </ul>
-  </nav>
+<body class="public-page">
+<header class="public-header">
+  <a class="public-logo-link" href="./index.html" aria-label="Online Teste - Página inicial"><img src="./assets/images/Logo.png" alt="Online Teste" class="public-logo"></a>
+  <nav class="public-navigation" aria-label="Navegação principal"><ul class="public-nav-list">
+    <li><a class="public-nav-link" href="./index.html">Home</a></li><li><a class="public-nav-link" href="./QuemSomos.html">Sobre Nós</a></li><li><a class="public-nav-link" href="./solucoes.html">Soluções</a></li><li><a class="public-nav-link" href="./NossosPlanos.html">Planos</a></li>
+    <li class="public-login-dropdown"><button class="public-login-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="public-login-menu"><i class="fa-solid fa-user" aria-hidden="true"></i> Login <i class="fa-solid fa-chevron-down" aria-hidden="true"></i></button><ul class="public-login-menu" id="public-login-menu"><li><a class="public-login-option" href="./login.html">Login Participantes</a></li><li><a class="public-login-option" href="./login_empresa.html">Login Empresa</a></li></ul></li>
+  </ul></nav>
 </header>
-
-    <section id="banner">
-        <div class="banner-container">
-            <img src="./assets/images/banner.png" alt="Imagem 1" style="display: block;">
-        </div>
-    </section>
-
-    
-    <div id="solucoes">
-      <div class="titulo-com-icone"> 
-        <img src="./assets/images/iconeHome.jpg" alt="Ícone" class="icone-titulo"> 
-        <h1>CEOT</h1>
-      </div>
-      <ul class="opcoes">
-        <li class="opcao-solucao"><i class="fa-solid fa-circle-check"></i> O centro de Exames Online Teste (CEOT) permite a criação de testes com total autogerenciamento</li>            
-        <li class="opcao-solucao"><i class="fa-solid fa-circle-check" ></i>Personalize o software com sua marca, estilo e necessidades</li>
-        <li class="opcao-solucao"><i class="fa-solid fa-circle-check" ></i> Ofereça aos seus participantes uma experiência confiável, moderna e alinhada à identidade de sua organização</li>
-      </ul>
-    </div>
-    <footer>
-        <div class="container">
-          <div class="row">
-            <div class="coluna logo">
-              <img src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Logo da empresa">
-              <div class="coluna copyright">
-                <p>&copy; Copyright © 2025 – Online Teste - Todos os direitos reservado</p>
-              </div> 
-            </div>
-            <div class="coluna links">
-              <h3><a class="link-solucoes" href="./QuemSomos.html"><i class="fas fa-chevron-right"></i> Sobre Nós </a></h3> 
-              <h3><a class="link-solucoes" href="./FAQ.html"><i class="fas fa-chevron-right"></i> FAQ </a></h3>
-              <h3><a class="link-solucoes" href="./PoliticaDePrivacidade.html"><i class="fas fa-chevron-right"></i> Política de Privacidade </a></h3>
-              <h3><a class="link-solucoes" href="./contato.html"> <i class="fas fa-chevron-right"></i> Contato </a></h3>
-            </div>
-            <div class="coluna social">
-              <div class="icones-social">
-                <a href="https://www.instagram.com/seu_usuario" target="_blank" rel="noopener">
-                    <i class="fab fa-instagram"></i> Instagram 
-                </a>
-                  <a href="https://www.linkedin.com/in/seu_perfil" target="_blank" rel="noopener">
-                    <i class="fab fa-linkedin"></i> LinkedIn
-                </a>
-              </div>
-            </div>
-          </div>
-      
-        </div>
-    </footer>
-    <link rel="stylesheet" href="https://cdn.positus.global/production/resources/robbu/whatsapp-button/whatsapp-button.css">
-    <a id="robbu-whatsapp-button" target="_blank" href="https://api.whatsapp.com/send?phone=5511970822573&text=Online%20Teste%20no%20Whatsapp">
-        <div class="rwb-tooltip">Fale conosco</div>
-        <img src="https://cdn.positus.global/production/resources/robbu/whatsapp-button/whatsapp-icon.svg">
-    </a>
-  <script src="./js/public-navigation.js?v=1"></script>
-</body>
-</html>
+<main>
+  <section class="home-hero"><div class="site-container hero-grid">
+    <div class="hero-copy"><p class="site-kicker">Centro de Exames Online Teste</p><h1 class="site-title">Avaliações online simples, seguras e <span>com a sua marca</span></h1><p>Crie, aplique e acompanhe exames em uma plataforma completa para sua organização.</p><div class="hero-actions"><a class="site-button" href="./solucoes.html">Conhecer soluções <i class="fa-solid fa-arrow-right"></i></a><a class="site-button secondary" href="./login_empresa.html">Acessar plataforma</a></div></div>
+    <div class="product-preview" aria-label="Prévia do painel da plataforma"><div class="preview-bar"><span></span><span></span><span></span></div><div class="preview-body"><div class="preview-sidebar"><i></i><i></i><i></i><i></i></div><div class="preview-content"><div class="preview-heading"></div><div class="preview-stats"><div class="preview-stat"></div><div class="preview-stat"></div><div class="preview-stat"></div></div><div class="preview-chart"><span></span><span></span><span></span><span></span><span></span></div></div></div><div class="preview-badge"><i class="fa-solid fa-circle-check"></i> Avaliação publicada</div></div>
+  </div></section>
+  <section class="trust-strip"><div class="site-container trust-grid"><div class="trust-item"><strong>+10 mil</strong><span>avaliações realizadas</span></div><div class="trust-item"><strong>99,9%</strong><span>de disponibilidade</span></div><div class="trust-item"><strong>Suporte</strong><span>especializado para sua equipe</span></div></div></section>
+  <section class="content-section"><div class="site-container"><p class="site-kicker" style="text-align:center">Tudo em um só lugar</p><h2 class="section-title">Uma experiência completa de avaliação</h2><p class="section-lead">Do primeiro cadastro à análise final, sua equipe trabalha com clareza e agilidade.</p><div class="card-grid"><article class="site-card"><div class="card-icon"><i class="fa-solid fa-file-circle-plus"></i></div><h3>Crie avaliações</h3><p>Monte exames personalizados, organize questões e publique quando estiver pronto.</p></article><article class="site-card"><div class="card-icon"><i class="fa-solid fa-users"></i></div><h3>Gerencie participantes</h3><p>Cadastre pessoas, acompanhe acessos e mantenha todas as informações organizadas.</p></article><article class="site-card"><div class="card-icon"><i class="fa-solid fa-chart-line"></i></div><h3>Analise resultados</h3><p>Visualize indicadores e transforme os resultados em decisões mais inteligentes.</p></article></div></div></section>
+  <section class="cta-band"><div class="site-container cta-inner"><div><h2>Pronto para transformar suas avaliações?</h2><p>Conheça uma plataforma criada para simplificar todo o processo.</p></div><a class="site-button" href="./contato.html">Falar com especialista</a></div></section>
+</main>
+<footer class="public-footer"><div class="site-container"><div class="footer-grid"><div class="footer-brand"><img class="footer-logo" src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Online Teste"><p>Avaliações online simples, práticas e seguras para empresas e participantes.</p></div><div class="footer-column"><h3>Institucional</h3><ul class="footer-links"><li><a href="./QuemSomos.html">Sobre nós</a></li><li><a href="./solucoes.html">Soluções</a></li><li><a href="./NossosPlanos.html">Planos</a></li><li><a href="./contato.html">Contato</a></li></ul></div><div class="footer-column"><h3>Acompanhe</h3><div class="footer-social"><a href="https://www.instagram.com/" target="_blank" rel="noopener" aria-label="Instagram"><i class="fa-brands fa-instagram"></i></a><a href="https://www.linkedin.com/" target="_blank" rel="noopener" aria-label="LinkedIn"><i class="fa-brands fa-linkedin-in"></i></a></div><ul class="footer-links" style="margin-top:16px"><li><a href="./PoliticaDePrivacidade.html">Política de Privacidade</a></li><li><a href="./FAQ.html">Perguntas frequentes</a></li></ul></div></div><div class="footer-bottom">© 2026 Online Teste. Todos os direitos reservados.</div></div></footer>
+<a class="whatsapp-fab" href="https://api.whatsapp.com/send?phone=5511970822573&amp;text=Online%20Teste%20no%20Whatsapp" target="_blank" rel="noopener" aria-label="Fale conosco pelo WhatsApp"><i class="fa-brands fa-whatsapp"></i></a><script src="./js/public-navigation.js?v=2"></script>
+</body></html>

@@ -23,3 +23,12 @@ document.addEventListener('keydown', event => {
     publicLoginTrigger?.focus();
   }
 });
+
+const currentPage = window.location.pathname.split('/').pop().toLowerCase() || 'index.html';
+document.querySelectorAll('.public-nav-link').forEach(link => {
+  const targetPage = new URL(link.href, window.location.href).pathname.split('/').pop().toLowerCase() || 'index.html';
+  if (targetPage === currentPage) {
+    link.classList.add('active');
+    link.setAttribute('aria-current', 'page');
+  }
+});
