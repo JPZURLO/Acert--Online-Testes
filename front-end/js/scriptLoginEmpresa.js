@@ -20,13 +20,16 @@ loginForm?.addEventListener('submit', function(event) {
     };
 
     fetch('/login_empresa', requestConfig)
-        .then(response => {
-            if (!response.ok) {
-                return response.json().then(err => {
-                    throw new Error(err.message || 'Erro na requisição');
-                });
+        .then(async response => {
+            const contentType = response.headers.get('content-type') || '';
+            if (!contentType.includes('application/json')) {
+                throw new Error('O servidor de login não respondeu corretamente. Reinicie o sistema e tente novamente.');
             }
-            return response.json();
+            const data = await response.json();
+            if (!response.ok) {
+                throw new Error(data.message || 'Não foi possível entrar. Confira os dados informados.');
+            }
+            return data;
         })
         .then(data => {
             if (data.success) {
