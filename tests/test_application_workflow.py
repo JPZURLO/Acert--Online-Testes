@@ -47,5 +47,13 @@ class ApplicationWorkflowTests(unittest.TestCase):
         self.assertIn("CREATE TABLE IF NOT EXISTS admin_audit_log", migration)
 
 
+    def test_candidate_event_elements_are_registered(self):
+        import re
+        script = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")
+        registry = re.search(r"const candidateIds=\[(.*?)\];", script).group(1)
+        registered = set(registry.replace("'", "").split(","))
+        referenced = set(re.findall(r"candidateElements\['([^']+)'\]", script))
+        self.assertEqual(referenced - registered, set())
+
 if __name__ == "__main__":
     unittest.main()
