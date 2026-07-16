@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Acesso administrativo da plataforma Online Teste.">
+  <title>Admin | Online Teste</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="./css/admin-login.css?v=1">
+</head>
+<body>
+  <main class="admin-login-shell">
+    <section class="admin-login-brand">
+      <a href="./index.html" class="admin-brand-link"><img src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Online Teste"></a>
+      <div><span class="admin-kicker">CONSOLE ADMINISTRATIVO</span><h1>Controle a operação com segurança.</h1><p>Gerencie solicitações, clientes, planos e licenças em uma área exclusiva.</p></div>
+      <ul><li><i class="fa-solid fa-shield-halved"></i> Autenticação separada dos clientes</li><li><i class="fa-solid fa-key"></i> Controle de bloqueios e validade</li><li><i class="fa-solid fa-layer-group"></i> Recursos definidos por plano</li></ul>
+    </section>
+    <section class="admin-login-panel">
+      <a class="back-home" href="./index.html"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a>
+      <form id="admin-login-form" class="admin-login-card">
+        <span class="admin-lock"><i class="fa-solid fa-user-shield"></i></span>
+        <p class="admin-kicker">ACESSO RESTRITO</p>
+        <h2>Entrar como administrador</h2>
+        <p class="admin-login-subtitle">Use a conta administrativa criada no servidor.</p>
+        <label for="admin-email">E-mail</label>
+        <div class="admin-input"><i class="fa-regular fa-envelope"></i><input id="admin-email" type="email" autocomplete="username" required placeholder="admin@empresa.com.br"></div>
+        <label for="admin-password">Senha</label>
+        <div class="admin-input"><i class="fa-solid fa-lock"></i><input id="admin-password" type="password" autocomplete="current-password" required placeholder="Sua senha"><button id="toggle-admin-password" type="button" aria-label="Mostrar senha"><i class="fa-regular fa-eye"></i></button></div>
+        <div id="admin-login-error" class="admin-login-error" role="alert"></div>
+        <button class="admin-login-button" type="submit">Entrar no painel</button>
+      </form>
+    </section>
+  </main>
+  <script src="./js/admin-login.js?v=1"></script>
+</body>
+</html>

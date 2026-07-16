@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Solicite acesso empresarial à plataforma Online Teste.">
+  <title>Solicitar acesso | Online Teste</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="./css/access-request.css?v=1">
+</head>
+<body>
+  <header class="request-header"><a href="./index.html"><img src="./assets/images/Logo.png" alt="Online Teste"></a><a href="./index.html"><i class="fa-solid fa-arrow-left"></i> Voltar ao site</a></header>
+  <main class="request-layout">
+    <aside class="request-intro"><span class="request-kicker">ACESSO EMPRESARIAL</span><h1>Comece com o plano certo para sua operação.</h1><p>Envie os dados da sua empresa. Nossa equipe analisará a solicitação e entrará em contato para liberar o acesso.</p><ol><li><span>1</span><div><strong>Envie sua solicitação</strong><small>Informe os dados de contato e a necessidade.</small></div></li><li><span>2</span><div><strong>Análise administrativa</strong><small>O pedido será avaliado com segurança.</small></div></li><li><span>3</span><div><strong>Liberação do acesso</strong><small>Você receberá as orientações por e-mail ou WhatsApp.</small></div></li></ol></aside>
+    <section class="request-form-panel">
+      <form id="access-request-form" class="request-form">
+        <div class="request-form-heading"><span class="request-form-icon"><i class="fa-regular fa-building"></i></span><div><p class="request-kicker">SOLICITAÇÃO DE CADASTRO</p><h2>Dados da empresa</h2><span>Campos marcados com * são obrigatórios.</span></div></div>
+        <div class="request-fields">
+          <label>Nome do responsável *<input id="request-contact-name" required maxlength="160" autocomplete="name" placeholder="Seu nome completo"></label>
+          <label>Empresa *<input id="request-company-name" required maxlength="180" autocomplete="organization" placeholder="Nome da empresa"></label>
+          <label>E-mail profissional *<input id="request-email" required maxlength="254" type="email" autocomplete="email" placeholder="nome@empresa.com.br"></label>
+          <label>Telefone/WhatsApp *<input id="request-phone" required maxlength="32" autocomplete="tel" placeholder="(00) 00000-0000"></label>
+          <label>CNPJ<input id="request-cnpj" maxlength="24" placeholder="00.000.000/0000-00"></label>
+          <label>Plano de interesse<select id="request-plan"><option value="">Quero uma recomendação</option><option>Essencial</option><option>Profissional</option><option>Empresarial</option></select></label>
+          <label class="wide">Como pretende utilizar a plataforma?<textarea id="request-needs" maxlength="3000" rows="4" placeholder="Quantidade de participantes, frequência dos testes e objetivo"></textarea></label>
+          <label class="request-consent wide"><input id="request-consent" required type="checkbox"><span>Autorizo o contato e o tratamento destes dados para análise da solicitação.</span></label>
+        </div>
+        <div id="request-message" class="request-message" role="alert"></div>
+        <button class="request-submit" type="submit">Enviar solicitação <i class="fa-solid fa-arrow-right"></i></button>
+      </form>
+      <div id="request-success" class="request-success" hidden><span><i class="fa-solid fa-check"></i></span><h2>Solicitação enviada!</h2><p>Seu pedido entrou na fila de análise. Nossa equipe entrará em contato pelos dados informados.</p><a href="./index.html">Voltar para a página inicial</a></div>
+    </section>
+  </main>
+  <script src="./js/access-request.js?v=1"></script>
+</body>
+</html>

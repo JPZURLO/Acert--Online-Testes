@@ -14,7 +14,9 @@ from flask import Flask, jsonify, make_response, request, send_from_directory
 from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.utils import safe_join
 
+from admin_api import create_admin_blueprint
 from company_api import create_company_blueprint
+from license_service import company_license_snapshot, license_block_message
 from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
 from results_api import create_results_blueprint
@@ -186,9 +188,66 @@ def request_json():
     return data if isinstance(data, dict) else {}
 
 
+COMPANY_FEATURE_ROUTES = (
+    ("/api/company/question-imports", "excel_import"),
+    ("/api/company/branding", "branding"),
+    ("/api/company/participants", "participants"),
+    ("/api/company/results", "results"),
+    ("/api/company/exams", "exams"),
+)
+
+
+@app.before_request
+def enforce_company_license():
+    if not request.path.startswith("/api/company/"):
+        return None
+    payload, error = token_payload("company")
+    if error:
+        return None
+    connection = open_database()
+    try:
+        snapshot = company_license_snapshot(connection, int(payload["sub"]))
+        blocked_message = license_block_message(snapshot)
+        if blocked_message:
+            return jsonify({"success": False, "message": blocked_message, "license": snapshot}), 423
+        required_feature = next(
+            (feature for prefix, feature in COMPANY_FEATURE_ROUTES if request.path.startswith(prefix)),
+            None,
+        )
+        if required_feature and required_feature not in snapshot["features"]:
+            return jsonify({"success": False, "message": "Este recurso não está incluído na licença da empresa.", "feature": required_feature}), 402
+        if request.method == "POST" and request.path == "/api/company/exams" and snapshot["maxExams"] is not None:
+            cursor = connection.cursor(dictionary=True)
+            try:
+                cursor.execute("SELECT COUNT(*) AS total FROM company_exams WHERE company_id = %s", (payload["sub"],))
+                if cursor.fetchone()["total"] >= snapshot["maxExams"]:
+                    return jsonify({"success": False, "message": "O limite de testes da licença foi atingido."}), 409
+            finally:
+                cursor.close()
+        if request.method == "POST" and request.path in {"/api/company/participants", "/api/company/participants/import"} and snapshot["maxParticipantsMonth"] is not None:
+            incoming = 1
+            if request.path.endswith("/import"):
+                body = request.get_json(silent=True) or {}
+                incoming = len(body.get("participants")) if isinstance(body.get("participants"), list) else 0
+            cursor = connection.cursor(dictionary=True)
+            try:
+                cursor.execute(
+                    "SELECT COUNT(*) AS total FROM company_participants WHERE company_id = %s "
+                    "AND created_at >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01')",
+                    (payload["sub"],),
+                )
+                if cursor.fetchone()["total"] + incoming > snapshot["maxParticipantsMonth"]:
+                    return jsonify({"success": False, "message": "O limite mensal de participantes da licença foi atingido."}), 409
+            finally:
+                cursor.close()
+    finally:
+        connection.close()
+    return None
+
+
 @app.before_request
 def protect_cookie_authenticated_writes():
-    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in {"/login", "/login_empresa"}:
+    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in {"/login", "/login_empresa", "/login_admin", "/api/access-requests"}:
         return None
     if not request.cookies.get(JWT_COOKIE_NAME):
         return None
@@ -215,7 +274,7 @@ def apply_security_headers(response):
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     if request.is_secure or COOKIE_SECURE:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
-    if request.path.startswith("/api/") or request.path in {"/login", "/login_empresa", "/logout"}:
+    if request.path.startswith("/api/") or request.path in {"/login", "/login_empresa", "/login_admin", "/logout"}:
         response.headers["Cache-Control"] = "no-store"
     if request.cookies.get(JWT_COOKIE_NAME) and not request.cookies.get(CSRF_COOKIE_NAME):
         set_csrf_cookie(response)
@@ -224,7 +283,7 @@ def apply_security_headers(response):
 
 @app.errorhandler(413)
 def request_too_large(_error):
-    if request.path.startswith("/api/") or request.path in {"/login", "/login_empresa"}:
+    if request.path.startswith("/api/") or request.path in {"/login", "/login_empresa", "/login_admin"}:
         return jsonify({"success": False, "message": "A requisição excede o tamanho permitido."}), 413
     return "Arquivo muito grande.", 413
 
@@ -233,6 +292,7 @@ app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
 app.register_blueprint(create_participants_blueprint(open_database, token_payload))
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
+app.register_blueprint(create_admin_blueprint(open_database, token_payload))
 
 
 @app.post("/login")
@@ -288,8 +348,39 @@ def login_empresa():
         if needs_upgrade:
             cursor.execute("UPDATE empresas SET senha = %s WHERE id = %s", (generate_password_hash(supplied_password, method="pbkdf2:sha256"), company["id"]))
             connection.commit()
+        snapshot = company_license_snapshot(connection, company["id"])
+        blocked_message = license_block_message(snapshot)
+        if blocked_message:
+            return jsonify({"success": False, "message": blocked_message}), 403
         login_rate_limiter.reset(limit_key)
-        return login_response(company["id"], "company", RazaoSocial=company["RazaoSocial"])
+        return login_response(company["id"], "company", RazaoSocial=company["RazaoSocial"], license=snapshot)
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.post("/login_admin")
+def login_admin():
+    data = request_json()
+    email = str(data.get("email", "")).strip().lower()
+    supplied_password = data.get("senha")
+    if not email or not supplied_password:
+        return jsonify({"success": False, "message": "E-mail e senha são obrigatórios."}), 400
+    limit_key = login_limit_key("admin", email)
+    retry_after = login_rate_limiter.retry_after(limit_key)
+    if retry_after:
+        return rate_limited_response(retry_after)
+    connection = open_database()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute("SELECT id, name, email, password_hash, active FROM admin_users WHERE email = %s LIMIT 1", (email,))
+        admin = cursor.fetchone()
+        valid, _needs_upgrade = password_matches(admin.get("password_hash") if admin else None, supplied_password)
+        if not admin or not admin.get("active") or not valid:
+            login_rate_limiter.record_failure(limit_key)
+            return jsonify({"success": False, "message": "Credenciais administrativas inválidas."}), 401
+        login_rate_limiter.reset(limit_key)
+        return login_response(admin["id"], "admin", AdminName=admin["name"], email=admin["email"])
     finally:
         cursor.close()
         connection.close()

@@ -7,7 +7,7 @@ from secure_app import *  # noqa: F401,F403
 
 
 def protect_same_origin_writes():
-    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in {"/login", "/login_empresa"}:
+    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in {"/login", "/login_empresa", "/login_admin", "/api/access-requests"}:
         return None
     if not request.cookies.get(JWT_COOKIE_NAME):
         return None
