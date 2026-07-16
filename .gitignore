@@ -5,3 +5,4 @@ node_modules/
 front-end/js/node_modules/
 *.log
 *.crdownload
+private_uploads/

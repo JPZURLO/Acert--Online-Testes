@@ -1,7 +1,9 @@
 import re
+import secrets
 
 import mysql.connector
 from flask import Blueprint, jsonify, request
+from werkzeug.security import generate_password_hash
 
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -25,6 +27,9 @@ def clean_participant(data, require_name=True):
     if not EMAIL_PATTERN.fullmatch(email):
         raise ValueError("Informe um e-mail válido.")
     status = clean_text(data.get("status"), 24) or "pending"
+    access_password = clean_text(data.get("accessPassword"), 128)
+    if access_password and len(access_password) < 8:
+        raise ValueError("A senha do participante precisa ter pelo menos 8 caracteres.")
     exam_id = data.get("examId")
     try:
         exam_id = int(exam_id) if exam_id not in (None, "") else None
@@ -39,6 +44,7 @@ def clean_participant(data, require_name=True):
         "status": status if status in ALLOWED_STATUSES else "pending",
         "examId": exam_id,
         "sendInvite": bool(data.get("sendInvite", True)),
+        "accessPassword": access_password,
     }
 
 
@@ -170,6 +176,14 @@ def create_participants_blueprint(open_database, token_payload):
                         participant["sendInvite"],
                     ),
                 )
+                cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (participant["email"],))
+                existing_user = cursor.fetchone()
+                temporary_password = None
+                if not existing_user:
+                    temporary_password = participant["accessPassword"] or secrets.token_urlsafe(10)
+                    if len(temporary_password) < 8:
+                        raise ValueError("A senha do participante precisa ter pelo menos 8 caracteres.")
+                    cursor.execute("INSERT INTO users (NomeCompleto, email, senha) VALUES (%s, %s, %s)", (participant["fullName"], participant["email"], generate_password_hash(temporary_password, method="pbkdf2:sha256")))
                 connection.commit()
             except mysql.connector.IntegrityError:
                 return jsonify({"success": False, "message": "Já existe um participante com esse e-mail."}), 409
@@ -180,7 +194,7 @@ def create_participants_blueprint(open_database, token_payload):
                 "WHERE p.id = %s AND p.company_id = %s",
                 (participant_id, company_id),
             )
-            return jsonify({"success": True, "participant": participant_from_row(cursor.fetchone())}), 201
+            return jsonify({"success": True, "participant": participant_from_row(cursor.fetchone()), "temporaryPassword": temporary_password}), 201
         finally:
             cursor.close()
             connection.close()

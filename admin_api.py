@@ -345,6 +345,69 @@ def create_admin_blueprint(open_database, token_payload):
             cursor.close()
             connection.close()
 
+    @blueprint.get("/api/admin/operations")
+    def admin_operations():
+        admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT a.id,a.status,a.identity_status,a.review_status,a.resume_authorized,a.remaining_seconds,a.started_at,a.submitted_at,a.expires_at, "
+                "e.title AS exam_title,p.full_name AS participant_name,p.email AS participant_email,c.RazaoSocial AS company_name "
+                "FROM exam_attempts a JOIN company_exams e ON e.id=a.exam_id AND e.company_id=a.company_id "
+                "JOIN company_participants p ON p.id=a.participant_id AND p.company_id=a.company_id "
+                "JOIN empresas c ON c.id=a.company_id ORDER BY COALESCE(a.started_at,a.created_at) DESC LIMIT 500"
+            )
+            operations = []
+            for row in cursor.fetchall():
+                operations.append({
+                    "id": row["id"], "status": row["status"], "identityStatus": row["identity_status"],
+                    "reviewStatus": row["review_status"], "resumeAuthorized": bool(row["resume_authorized"]),
+                    "remainingSeconds": row.get("remaining_seconds"), "startedAt": serialize_date(row.get("started_at")),
+                    "submittedAt": serialize_date(row.get("submitted_at")), "expiresAt": serialize_date(row.get("expires_at")),
+                    "examTitle": row["exam_title"], "participantName": row["participant_name"],
+                    "participantEmail": row["participant_email"], "companyName": row["company_name"],
+                })
+            cursor.execute("SELECT COALESCE(SUM(size_bytes),0) AS total FROM attempt_identity_files")
+            storage = int(cursor.fetchone()["total"] or 0)
+            return jsonify({"operations": operations, "storageBytes": storage, "adminId": admin_id})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/admin/attempts/<int:attempt_id>/action")
+    def admin_attempt_action(attempt_id):
+        admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        action = text(data.get("action"), 24)
+        if action not in {"pause", "authorize_resume", "close"}:
+            return jsonify({"success": False, "message": "Ação administrativa inválida."}), 400
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT id,status,expires_at FROM exam_attempts WHERE id=%s", (attempt_id,))
+            attempt = cursor.fetchone()
+            if not attempt:
+                return jsonify({"success": False, "message": "Aplicação não encontrada."}), 404
+            if action == "pause":
+                cursor.execute("UPDATE exam_attempts SET status='paused',remaining_seconds=GREATEST(TIMESTAMPDIFF(SECOND,NOW(),expires_at),0),resume_authorized=FALSE WHERE id=%s AND status='in_progress'", (attempt_id,))
+            elif action == "authorize_resume":
+                cursor.execute("UPDATE exam_attempts SET resume_authorized=TRUE WHERE id=%s AND status='paused'", (attempt_id,))
+            else:
+                cursor.execute("UPDATE exam_attempts SET status='closed',resume_authorized=FALSE WHERE id=%s AND status IN ('not_started','in_progress','paused')", (attempt_id,))
+            if cursor.rowcount == 0:
+                connection.rollback()
+                return jsonify({"success": False, "message": "A ação não é permitida no estado atual da aplicação."}), 409
+            cursor.execute("INSERT INTO admin_audit_log (admin_id,action,entity_type,entity_id,details_json) VALUES (%s,%s,'exam_attempt',%s,%s)", (admin_id, action, attempt_id, json.dumps({"previousStatus": attempt["status"]})))
+            connection.commit()
+            return jsonify({"success": True})
+        finally:
+            cursor.close()
+            connection.close()
     @blueprint.get("/api/company/license")
     def current_company_license():
         payload, error = token_payload("company")

@@ -19,6 +19,7 @@ from company_api import create_company_blueprint
 from license_service import company_license_snapshot, license_block_message
 from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
+from participant_api import create_participant_blueprint
 from results_api import create_results_blueprint
 
 load_dotenv()
@@ -26,6 +27,7 @@ app = Flask(__name__, static_folder="front-end")
 JWT_COOKIE_NAME = "acert_access_token"
 CSRF_COOKIE_NAME = "acert_csrf_token"
 JWT_TTL = timedelta(hours=1)
+PARTICIPANT_JWT_TTL = timedelta(hours=max(2, int(os.getenv("PARTICIPANT_SESSION_HOURS", "12"))))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
 APP_ENV = os.getenv("APP_ENV", "development").lower()
 MAX_LOGIN_ATTEMPTS = max(1, int(os.getenv("LOGIN_RATE_LIMIT_ATTEMPTS", "5")))
@@ -124,20 +126,24 @@ def rate_limited_response(retry_after):
     return response
 
 
+def account_ttl(account_type):
+    return PARTICIPANT_JWT_TTL if account_type == "user" else JWT_TTL
+
+
 def issue_token(account_id, account_type):
     now = datetime.now(timezone.utc)
     return jwt.encode(
-        {"sub": str(account_id), "account_type": account_type, "iat": now, "exp": now + JWT_TTL},
+        {"sub": str(account_id), "account_type": account_type, "iat": now, "exp": now + account_ttl(account_type)},
         required_setting("JWT_SECRET"),
         algorithm="HS256",
     )
 
 
-def set_csrf_cookie(response):
+def set_csrf_cookie(response, ttl=JWT_TTL):
     response.set_cookie(
         CSRF_COOKIE_NAME,
         secrets.token_urlsafe(32),
-        max_age=int(JWT_TTL.total_seconds()),
+        max_age=int(ttl.total_seconds()),
         httponly=False,
         secure=COOKIE_SECURE,
         samesite="Strict",
@@ -145,18 +151,20 @@ def set_csrf_cookie(response):
     )
 
 
+
 def login_response(account_id, account_type, **public_data):
+    ttl = account_ttl(account_type)
     response = make_response(jsonify({"success": True, "message": "Login realizado com sucesso!", **public_data}))
     response.set_cookie(
         JWT_COOKIE_NAME,
         issue_token(account_id, account_type),
-        max_age=int(JWT_TTL.total_seconds()),
+        max_age=int(ttl.total_seconds()),
         httponly=True,
         secure=COOKIE_SECURE,
         samesite="Strict",
         path="/",
     )
-    set_csrf_cookie(response)
+    set_csrf_cookie(response, ttl)
     return response
 
 
@@ -265,12 +273,12 @@ def apply_security_headers(response):
         "form-action 'self'; script-src 'self'; connect-src 'self'; "
         "style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com https://cdn.positus.global; "
         "font-src 'self' data: https://cdnjs.cloudflare.com; "
-        "img-src 'self' data: https://cdn.positus.global"
+        "img-src 'self' data: blob: https://cdn.positus.global; media-src 'self' blob:"
     )
     response.headers["X-Content-Type-Options"] = "nosniff"
     response.headers["X-Frame-Options"] = "DENY"
     response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
-    response.headers["Permissions-Policy"] = "camera=(), microphone=(), geolocation=(), payment=(), usb=()"
+    response.headers["Permissions-Policy"] = "camera=(self), microphone=(self), geolocation=(), payment=(), usb=()"
     response.headers["Cross-Origin-Opener-Policy"] = "same-origin"
     if request.is_secure or COOKIE_SECURE:
         response.headers["Strict-Transport-Security"] = "max-age=31536000; includeSubDomains"
@@ -279,7 +287,6 @@ def apply_security_headers(response):
     if request.cookies.get(JWT_COOKIE_NAME) and not request.cookies.get(CSRF_COOKIE_NAME):
         set_csrf_cookie(response)
     return response
-
 
 @app.errorhandler(413)
 def request_too_large(_error):
@@ -291,6 +298,7 @@ def request_too_large(_error):
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
 app.register_blueprint(create_participants_blueprint(open_database, token_payload))
+app.register_blueprint(create_participant_blueprint(open_database, token_payload))
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
 app.register_blueprint(create_admin_blueprint(open_database, token_payload))
 

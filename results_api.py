@@ -17,7 +17,9 @@ def parse_json(value, default):
         return default
 
 
-def result_label(score, passing_score):
+def result_label(score, passing_score, stored_status=None):
+    if stored_status in {"approved", "review", "failed", "invalidated"}:
+        return stored_status
     score = float(score or 0)
     passing_score = float(passing_score or 60)
     if score >= passing_score:
@@ -32,6 +34,8 @@ def result_from_row(row, include_details=False):
     passing_score = float(row.get("passing_score") or 60)
     result = {
         "id": row["id"],
+        "attemptId": row.get("attempt_id"),
+        "identityStatus": row.get("identity_status") or "not_required",
         "participantId": row["participant_id"],
         "participantName": row.get("participant_name") or "Participante",
         "participantEmail": row.get("participant_email") or "",
@@ -40,15 +44,17 @@ def result_from_row(row, include_details=False):
         "score": round(score, 2),
         "maxScore": int(row.get("max_score") or 100),
         "passingScore": round(passing_score, 2),
-        "result": result_label(score, passing_score),
+        "result": result_label(score, passing_score, row.get("result_status")),
         "durationSeconds": int(row.get("duration_seconds") or 0),
         "correctAnswers": int(row.get("correct_answers") or 0),
         "totalQuestions": int(row.get("total_questions") or 0),
         "completedAt": row.get("completed_at").isoformat() if row.get("completed_at") else None,
+        "releaseStatus": row.get("release_status") or "released",
     }
     if include_details:
         result["answers"] = parse_json(row.get("answers_json"), [])
         result["competencies"] = parse_json(row.get("competency_scores_json"), {})
+        result["reviewerNotes"] = row.get("reviewer_notes") or ""
     return result
 
 
@@ -56,7 +62,7 @@ def compute_dashboard(rows):
     completed = len(rows)
     scores = [float(row.get("score") or 0) for row in rows]
     durations = [int(row.get("duration_seconds") or 0) for row in rows]
-    labels = [result_label(row.get("score"), row.get("passing_score")) for row in rows]
+    labels = [result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) for row in rows]
     approved = labels.count("approved")
 
     distribution = {
@@ -152,15 +158,15 @@ def create_results_blueprint(open_database, token_payload):
             company = cursor.fetchone()
             sql = (
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score FROM company_results r "
-                "JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
+                "e.title AS exam_title, e.passing_score, a.identity_status FROM company_results r "
+                "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
                 f"WHERE {' AND '.join(where)} ORDER BY r.completed_at DESC LIMIT 2000"
             )
             cursor.execute(sql, tuple(params))
             rows = cursor.fetchall()
             if status in {"approved", "review", "failed"}:
-                rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score")) == status]
+                rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) == status]
             dashboard = compute_dashboard(rows)
             cursor.execute("SELECT id, title FROM company_exams WHERE company_id = %s ORDER BY title", (company_id,))
             exams = cursor.fetchall()
@@ -186,8 +192,8 @@ def create_results_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score FROM company_results r "
-                "JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
+                "e.title AS exam_title, e.passing_score, a.identity_status FROM company_results r "
+                "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
                 "WHERE r.id = %s AND r.company_id = %s",
                 (result_id, company_id),
@@ -200,4 +206,58 @@ def create_results_blueprint(open_database, token_payload):
             cursor.close()
             connection.close()
 
+    @blueprint.put("/api/company/results/<int:result_id>/review")
+    def review_result(result_id):
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        manual_scores = data.get("manualScores") if isinstance(data.get("manualScores"), dict) else {}
+        notes = clean_text(data.get("notes"), 5000)
+        release = bool(data.get("release"))
+        requested_status = clean_text(data.get("resultStatus"), 24)
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT r.*, e.passing_score FROM company_results r JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"success": False, "message": "Resultado não encontrado."}), 404
+            answers = parse_json(row.get("answers_json"), [])
+            total_points = 0.0
+            earned_points = 0.0
+            manual_total = 0.0
+            for answer in answers:
+                if not isinstance(answer, dict):
+                    continue
+                points = max(0.0, float(answer.get("points") or 0))
+                earned = max(0.0, min(points, float(answer.get("earnedPoints") or 0)))
+                if answer.get("type") == "essay":
+                    value = manual_scores.get(str(answer.get("questionId") or ""), earned)
+                    try:
+                        earned = max(0.0, min(points, float(value)))
+                    except (TypeError, ValueError):
+                        earned = 0.0
+                    answer["earnedPoints"] = round(earned, 2)
+                    answer["isCorrect"] = earned >= points if points else None
+                    manual_total += earned
+                total_points += points
+                earned_points += earned
+            score = round((earned_points / total_points * 100) if total_points else 0, 2)
+            result_status = "review"
+            if release:
+                result_status = requested_status if requested_status in {"approved", "failed", "invalidated"} else ("approved" if score >= float(row.get("passing_score") or 60) else "failed")
+            release_status = "released" if release else "pending"
+            cursor.execute("UPDATE company_results SET score=%s,answers_json=%s,result_status=%s,release_status=%s,reviewer_notes=%s WHERE id=%s AND company_id=%s", (score, json.dumps(answers, ensure_ascii=False), result_status, release_status, notes, result_id, company_id))
+            if row.get("attempt_id"):
+                cursor.execute("UPDATE exam_attempts SET manual_score=%s,final_score=%s,review_status=%s,reviewer_notes=%s,reviewed_at=NOW() WHERE id=%s AND company_id=%s", (manual_total, score, "completed" if release else "pending", notes, row["attempt_id"], company_id))
+            connection.commit()
+            cursor.execute("SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, e.title AS exam_title, e.passing_score FROM company_results r JOIN company_participants p ON p.id=r.participant_id AND p.company_id=r.company_id JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
+            return jsonify({"success": True, "result": result_from_row(cursor.fetchone(), include_details=True)})
+        except (TypeError, ValueError):
+            connection.rollback()
+            return jsonify({"success": False, "message": "As pontuações informadas são inválidas."}), 400
+        finally:
+            cursor.close()
+            connection.close()
     return blueprint

@@ -7,7 +7,7 @@ class ExamStepperTests(unittest.TestCase):
         css = Path("front-end/css/styleTelaCliente.css").read_text(encoding="utf-8")
         self.assertIn(".stepper { position: sticky; top: 68px", css)
         self.assertIn(".stepper.is-stuck", css)
-        self.assertIn("#exam-information, #questions-section, #branding-panel { scroll-margin-top: 150px; }", css)
+        self.assertIn("#exam-information, #questions-section, #application-settings, #branding-panel { scroll-margin-top: 150px; }", css)
 
     def test_stepper_tracks_scroll_and_updates_accessibility(self):
         javascript = Path("front-end/js/company-dashboard.js").read_text(encoding="utf-8")

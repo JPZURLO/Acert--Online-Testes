@@ -79,7 +79,7 @@ h1 { margin: 0; font-size: clamp(27px, 3vw, 38px); line-height: 1.15; letter-spa
 .stepper li.active button { color: var(--primary); }
 .stepper li.active span { color: #fff; background: var(--primary); border-color: var(--primary); box-shadow: 0 0 0 5px color-mix(in srgb, var(--primary) 10%, transparent); }
 .stepper li.completed span { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 45%, #cbd4df); }
-#exam-information, #questions-section, #branding-panel { scroll-margin-top: 150px; }
+#exam-information, #questions-section, #application-settings, #branding-panel { scroll-margin-top: 150px; }
 
 .editor-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(310px, 365px); gap: 22px; align-items: start; }
 .editor-column { min-width: 0; display: grid; gap: 16px; }
@@ -273,3 +273,12 @@ body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; transition-duration: .01ms !important; }
 }
+
+.application-settings { margin-top: 22px; }
+.application-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:16px; }
+.application-grid .field { margin:0; }
+.application-grid .field>span { color:var(--ink); font-size:11px; font-weight:800; }
+.application-grid .field small { color:var(--muted); font-size:9px; line-height:1.45; }
+.application-toggles { grid-column:1/-1; display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:10px; }
+.application-toggles .toggle-field { min-height:72px; }
+@media(max-width:720px){.application-grid,.application-toggles{grid-template-columns:1fr}.application-toggles{grid-column:auto}}

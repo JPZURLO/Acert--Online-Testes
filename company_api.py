@@ -1,5 +1,6 @@
 import json
 import re
+from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
@@ -11,6 +12,7 @@ ALLOWED_FONTS = {"Inter", "Manrope", "Montserrat", "Poppins", "Roboto"}
 ALLOWED_RADII = {"small", "medium", "large"}
 ALLOWED_QUESTION_TYPES = {"multiple_choice", "true_false", "essay"}
 ALLOWED_STATUSES = {"draft", "published"}
+ALLOWED_RESULT_DELIVERY = {"automatic", "manual"}
 MAX_QUESTIONS = 200
 MAX_LOGO_DATA_LENGTH = 2_800_000
 
@@ -41,6 +43,17 @@ def clean_text(value, maximum, default=""):
 def clean_color(value, default):
     value = clean_text(value, 7)
     return value.upper() if COLOR_PATTERN.fullmatch(value) else default
+
+
+def clean_datetime(value):
+    text = clean_text(value, 32)
+    if not text:
+        return None
+    try:
+        parsed = datetime.fromisoformat(text.replace("Z", "+00:00"))
+        return parsed.replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        return None
 
 
 def clean_branding(data):
@@ -101,6 +114,11 @@ def clean_exam(data):
     if not title:
         raise ValueError("Informe o título do teste.")
     status = clean_text(data.get("status"), 16, "draft")
+    result_delivery = clean_text(data.get("resultDelivery"), 16, "manual")
+    available_from = clean_datetime(data.get("availableFrom"))
+    available_until = clean_datetime(data.get("availableUntil"))
+    if available_from and available_until and available_until <= available_from:
+        raise ValueError("A data final deve ser posterior à data inicial.")
     return {
         "title": title,
         "description": clean_text(data.get("description"), 3000),
@@ -108,6 +126,13 @@ def clean_exam(data):
         "passingScore": clamp_integer(data.get("passingScore"), 0, 100, 60),
         "shuffleQuestions": bool(data.get("shuffleQuestions", False)),
         "status": status if status in ALLOWED_STATUSES else "draft",
+        "resultDelivery": result_delivery if result_delivery in ALLOWED_RESULT_DELIVERY else "manual",
+        "availableFrom": available_from,
+        "availableUntil": available_until,
+        "requireIdentity": bool(data.get("requireIdentity", False)),
+        "requireRecording": bool(data.get("requireRecording", False)),
+        "allowResume": bool(data.get("allowResume", True)),
+        "showAnswerDetails": bool(data.get("showAnswerDetails", False)),
         "questions": questions,
         "totalPoints": sum(question["points"] for question in questions),
     }
@@ -137,6 +162,13 @@ def exam_from_row(row, include_questions=False):
         "passingScore": row.get("passing_score") or 60,
         "shuffleQuestions": bool(row.get("shuffle_questions")),
         "status": row.get("status") or "draft",
+        "resultDelivery": row.get("result_delivery") or "manual",
+        "availableFrom": row.get("available_from").isoformat(timespec="minutes") if row.get("available_from") else None,
+        "availableUntil": row.get("available_until").isoformat(timespec="minutes") if row.get("available_until") else None,
+        "requireIdentity": bool(row.get("require_identity")),
+        "requireRecording": bool(row.get("require_recording")),
+        "allowResume": bool(row.get("allow_resume", True)),
+        "showAnswerDetails": bool(row.get("show_answer_details")),
         "updatedAt": row.get("updated_at").isoformat() if row.get("updated_at") else None,
     }
     if include_questions:
@@ -175,7 +207,8 @@ def create_company_blueprint(open_database, token_payload):
             branding = branding_from_row(cursor.fetchone())
             cursor.execute(
                 "SELECT id, title, description, duration_minutes, total_points, passing_score, "
-                "shuffle_questions, status, updated_at FROM company_exams "
+                "shuffle_questions, status, result_delivery, available_from, available_until, require_identity, "
+                "require_recording, allow_resume, show_answer_details, updated_at FROM company_exams "
                 "WHERE company_id = %s ORDER BY updated_at DESC LIMIT 100",
                 (company_id,),
             )
@@ -233,8 +266,9 @@ def create_company_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "INSERT INTO company_exams "
-                "(company_id, title, description, duration_minutes, total_points, passing_score, shuffle_questions, status, questions_json) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "(company_id, title, description, duration_minutes, total_points, passing_score, shuffle_questions, status, "
+                "result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, questions_json) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (
                     company_id,
                     exam["title"],
@@ -244,6 +278,13 @@ def create_company_blueprint(open_database, token_payload):
                     exam["passingScore"],
                     exam["shuffleQuestions"],
                     exam["status"],
+                    exam["resultDelivery"],
+                    exam["availableFrom"],
+                    exam["availableUntil"],
+                    exam["requireIdentity"],
+                    exam["requireRecording"],
+                    exam["allowResume"],
+                    exam["showAnswerDetails"],
                     json.dumps(exam["questions"], ensure_ascii=False),
                 ),
             )
@@ -307,7 +348,9 @@ def create_company_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "UPDATE company_exams SET title = %s, description = %s, duration_minutes = %s, "
-                "total_points = %s, passing_score = %s, shuffle_questions = %s, status = %s, questions_json = %s "
+                "total_points = %s, passing_score = %s, shuffle_questions = %s, status = %s, result_delivery = %s, "
+                "available_from = %s, available_until = %s, require_identity = %s, require_recording = %s, "
+                "allow_resume = %s, show_answer_details = %s, questions_json = %s "
                 "WHERE id = %s AND company_id = %s",
                 (
                     exam["title"],
@@ -317,6 +360,13 @@ def create_company_blueprint(open_database, token_payload):
                     exam["passingScore"],
                     exam["shuffleQuestions"],
                     exam["status"],
+                    exam["resultDelivery"],
+                    exam["availableFrom"],
+                    exam["availableUntil"],
+                    exam["requireIdentity"],
+                    exam["requireRecording"],
+                    exam["allowResume"],
+                    exam["showAnswerDetails"],
                     json.dumps(exam["questions"], ensure_ascii=False),
                     exam_id,
                     company_id,

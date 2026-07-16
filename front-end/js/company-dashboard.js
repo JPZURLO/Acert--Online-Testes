@@ -11,6 +11,13 @@ const state = {
   },
   examId: null,
   status: 'draft',
+  resultDelivery: 'manual',
+  availableFrom: '',
+  availableUntil: '',
+  requireIdentity: false,
+  requireRecording: false,
+  allowResume: true,
+  showAnswerDetails: false,
   questions: [],
   exams: [],
   dirty: false,
@@ -90,7 +97,8 @@ function cacheElements() {
     'border-radius', 'candidate-instructions', 'logo-upload', 'remove-logo', 'save-status',
     'exam-picker', 'page-title', 'breadcrumb-mode', 'publish-modal', 'modal-question-count',
     'modal-total-points', 'modal-duration', 'toast-region', 'question-import-file',
-    'question-import-mode', 'question-import-errors'
+    'question-import-mode', 'question-import-errors', 'result-delivery', 'available-from', 'available-until',
+    'require-identity', 'require-recording', 'allow-resume', 'show-answer-details'
   ];
   ids.forEach(id => { elements[id] = document.getElementById(id); });
 }
@@ -225,6 +233,13 @@ function collectExam() {
     passingScore: Number(elements['passing-score'].value) || 0,
     shuffleQuestions: elements['shuffle-questions'].checked,
     status: state.status,
+    resultDelivery: elements['result-delivery'].value,
+    availableFrom: elements['available-from'].value || null,
+    availableUntil: elements['available-until'].value || null,
+    requireIdentity: elements['require-identity'].checked,
+    requireRecording: elements['require-recording'].checked,
+    allowResume: elements['allow-resume'].checked,
+    showAnswerDetails: elements['show-answer-details'].checked,
     questions: state.questions
   };
 }
@@ -361,6 +376,13 @@ function fillExam(exam) {
   elements['exam-duration'].value = exam.durationMinutes || 60;
   elements['passing-score'].value = exam.passingScore ?? 60;
   elements['shuffle-questions'].checked = Boolean(exam.shuffleQuestions);
+  elements['result-delivery'].value = exam.resultDelivery || 'manual';
+  elements['available-from'].value = String(exam.availableFrom || '').replace(' ', 'T').slice(0, 16);
+  elements['available-until'].value = String(exam.availableUntil || '').replace(' ', 'T').slice(0, 16);
+  elements['require-identity'].checked = Boolean(exam.requireIdentity);
+  elements['require-recording'].checked = Boolean(exam.requireRecording);
+  elements['allow-resume'].checked = exam.allowResume !== false;
+  elements['show-answer-details'].checked = Boolean(exam.showAnswerDetails);
   elements['page-title'].textContent = state.examId ? 'Editar teste' : 'Criar novo teste';
   elements['breadcrumb-mode'].textContent = state.examId ? 'Editar teste' : 'Criar teste';
   elements['exam-picker'].value = state.examId ? String(state.examId) : '';
@@ -378,6 +400,13 @@ function resetExam() {
     durationMinutes: 60,
     passingScore: 60,
     shuffleQuestions: false,
+    resultDelivery: 'manual',
+    availableFrom: null,
+    availableUntil: null,
+    requireIdentity: false,
+    requireRecording: false,
+    allowResume: true,
+    showAnswerDetails: false,
     status: 'draft',
     questions: defaultQuestions()
   });
@@ -589,11 +618,15 @@ function updateActiveStep() {
   }
   const threshold = 68 + stepper.offsetHeight + 32;
   const questions = document.getElementById('questions-section');
-  if (questions.getBoundingClientRect().top <= threshold) {
-    appearanceStepPinned = false;
+  const application = document.getElementById('application-settings');
+  if (appearanceStepPinned) {
+    setActiveStep('branding-panel');
+  } else if (application.getBoundingClientRect().top <= threshold) {
+    setActiveStep('application-settings');
+  } else if (questions.getBoundingClientRect().top <= threshold) {
     setActiveStep('questions-section');
   } else {
-    setActiveStep(appearanceStepPinned ? 'branding-panel' : 'exam-information');
+    setActiveStep('exam-information');
   }
 }
 
@@ -625,7 +658,7 @@ function closePublishModal() {
 }
 
 function bindEvents() {
-  ['exam-title', 'exam-description', 'exam-duration', 'passing-score', 'shuffle-questions'].forEach(id => {
+  ['exam-title', 'exam-description', 'exam-duration', 'passing-score', 'shuffle-questions', 'result-delivery', 'available-from', 'available-until', 'require-identity', 'require-recording', 'allow-resume', 'show-answer-details'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => { updatePreview(); markDirty(); });
     document.getElementById(id).addEventListener('change', () => { updatePreview(); markDirty(); });
   });

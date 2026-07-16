@@ -38,9 +38,9 @@ loginForm?.addEventListener('submit', function(event) {
 
                 localStorage.setItem('NomeCompleto', data.NomeCompleto);
 
-                console.log('🔄 Redirecionando para login_cliente.html...');
+                console.log('🔄 Redirecionando para AreaParticipante.html...');
                 // Substitui a página para evitar voltar à tela de login
-                window.location.replace('login_cliente.html');
+                window.location.replace('AreaParticipante.html');
             } else {
                 errorMessage.textContent = data.message || 'Erro no login';
             }

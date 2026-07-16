@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Área segura para realização de testes Online Teste.">
+  <title>Online Teste | Área do participante</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./assets/fonts/all.min.css">
+  <link rel="stylesheet" href="./css/participant-application.css">
+</head>
+<body>
+  <header class="candidate-topbar">
+    <a class="candidate-brand" href="./AreaParticipante.html" aria-label="Área do participante"><img id="candidate-logo" src="./assets/images/Logo.png" alt="Online Teste"><span id="candidate-company">Online Teste</span></a>
+    <div class="candidate-account"><span class="account-avatar" id="candidate-initials">PT</span><div><strong id="candidate-name">Participante</strong><small>Ambiente seguro</small></div><button id="candidate-logout" type="button">Sair</button></div>
+  </header>
+
+  <main class="candidate-shell">
+    <section id="assignments-view" class="candidate-view">
+      <div class="candidate-heading"><div><p class="eyebrow">MEUS TESTES</p><h1>Olá, <span id="candidate-first-name">participante</span></h1><p>Veja os testes atribuídos a você e acompanhe cada etapa.</p></div><span class="security-chip"><i class="fa-solid fa-shield-halved"></i> Sessão protegida</span></div>
+      <div class="assignment-summary"><article><i class="fa-regular fa-clipboard"></i><div><small>Testes disponíveis</small><strong id="assignment-total">0</strong></div></article><article><i class="fa-regular fa-clock"></i><div><small>Em andamento</small><strong id="assignment-progress">0</strong></div></article><article><i class="fa-regular fa-circle-check"></i><div><small>Concluídos</small><strong id="assignment-completed">0</strong></div></article></div>
+      <section class="candidate-panel"><header><div><h2>Testes atribuídos</h2><p>Selecione um teste para visualizar as instruções.</p></div></header><div id="assignment-list" class="assignment-list"></div><div id="assignment-empty" class="candidate-empty" hidden><i class="fa-regular fa-folder-open"></i><h2>Nenhum teste disponível</h2><p>Quando uma empresa atribuir um teste ao seu e-mail, ele aparecerá aqui.</p></div></section>
+    </section>
+
+    <section id="preflight-view" class="candidate-view" hidden>
+      <button class="back-link" id="back-to-assignments" type="button"><i class="fa-solid fa-arrow-left"></i> Voltar aos testes</button>
+      <div class="candidate-heading compact"><div><p class="eyebrow">PREPARAÇÃO</p><h1 id="preflight-title">Prepare-se para o teste</h1><p id="preflight-company">Empresa</p></div><div class="exam-meta"><span><i class="fa-regular fa-clock"></i> <b id="preflight-duration">0</b> min</span><span><i class="fa-regular fa-rectangle-list"></i> <b id="preflight-questions">0</b> questões</span></div></div>
+      <ol class="preflight-steps"><li class="active"><span>1</span>Informações</li><li><span>2</span>Identificação</li><li><span>3</span>Equipamentos</li><li><span>4</span>Iniciar</li></ol>
+      <div class="preflight-grid">
+        <section class="candidate-panel instructions-card"><h2>Antes de começar</h2><p id="preflight-description"></p><div id="preflight-instructions" class="instructions-copy"></div><ul><li>Reserve um ambiente silencioso e mantenha conexão estável.</li><li>Não atualize ou feche a página durante o teste.</li><li>Ao terminar o tempo, as respostas serão enviadas automaticamente.</li></ul></section>
+        <aside class="candidate-panel preparation-card">
+          <section id="identity-section"><div class="section-title"><span><i class="fa-regular fa-id-card"></i></span><div><h2>Confirme sua identidade</h2><p>As imagens ficam em uma área privada.</p></div></div><label class="upload-field">Documento com foto<input id="identity-document" type="file" accept="image/png,image/jpeg,image/webp" capture="environment"><span><i class="fa-solid fa-arrow-up-from-bracket"></i><b id="document-label">Selecionar documento</b></span></label><label class="upload-field">Foto do participante<input id="identity-selfie" type="file" accept="image/png,image/jpeg,image/webp" capture="user"><span><i class="fa-solid fa-camera"></i><b id="selfie-label">Tirar ou selecionar foto</b></span></label><button class="candidate-button secondary full" id="submit-identity" type="button">Enviar identificação</button><p class="inline-status" id="identity-status"></p></section>
+          <section id="device-section"><div class="section-title"><span><i class="fa-solid fa-video"></i></span><div><h2>Câmera e microfone</h2><p>Faça o teste dos equipamentos antes de iniciar.</p></div></div><video id="device-preview" muted playsinline hidden></video><button class="candidate-button secondary full" id="check-devices" type="button">Testar equipamentos</button><p class="inline-status" id="device-status"></p></section>
+          <label class="consent-field" id="recording-consent-wrap"><input id="recording-consent" type="checkbox"><span><b>Autorização de áudio e imagem</b><small>Autorizo o uso da câmera e do microfone durante esta aplicação, conforme as regras informadas.</small></span></label>
+          <button class="candidate-button primary full" id="start-attempt" type="button">Iniciar teste com segurança <i class="fa-solid fa-arrow-right"></i></button><p class="form-message" id="preflight-message"></p>
+        </aside>
+      </div>
+    </section>
+
+    <section id="exam-view" class="candidate-view exam-view" hidden>
+      <header class="exam-header"><div><p class="eyebrow">TESTE EM ANDAMENTO</p><h1 id="exam-title">Teste</h1><span id="exam-progress-label">Questão 1 de 1</span></div><div class="timer-card" id="timer-card"><small>Tempo restante</small><strong id="exam-timer">00:00:00</strong></div></header>
+      <div class="exam-layout"><aside class="question-navigation"><h2>Questões</h2><div id="question-navigation"></div><div class="navigation-legend"><span><i class="answered"></i>Respondida</span><span><i></i>Pendente</span></div></aside><section class="question-stage"><div class="autosave-status" id="autosave-status"><i></i> Respostas salvas</div><article id="question-container" class="question-card"></article><footer class="question-actions"><button class="candidate-button secondary" id="previous-question" type="button"><i class="fa-solid fa-arrow-left"></i> Anterior</button><button class="candidate-button primary" id="next-question" type="button">Próxima <i class="fa-solid fa-arrow-right"></i></button><button class="candidate-button finish" id="finish-attempt" type="button" hidden>Finalizar teste <i class="fa-solid fa-check"></i></button></footer></section></div>
+    </section>
+
+    <section id="completion-view" class="candidate-view" hidden>
+      <div class="completion-card"><span class="completion-icon"><i class="fa-solid fa-check"></i></span><p class="eyebrow">TESTE CONCLUÍDO</p><h1>Suas respostas foram enviadas</h1><p id="completion-message">A empresa responsável fará a revisão e liberará o resultado.</p><div id="completion-result" class="completion-result" hidden><small>Seu resultado</small><strong id="completion-score">0</strong><span id="completion-status">Resultado</span></div><button class="candidate-button primary" id="completion-back" type="button">Voltar para meus testes</button></div>
+    </section>
+  </main>
+
+  <div class="candidate-toast-region" id="candidate-toast-region" aria-live="polite"></div>
+  <div class="confirm-backdrop" id="finish-confirmation" hidden><section role="dialog" aria-modal="true" aria-labelledby="finish-title"><span class="confirm-icon"><i class="fa-regular fa-paper-plane"></i></span><h2 id="finish-title">Finalizar e enviar o teste?</h2><p>Depois do envio, as respostas não poderão ser alteradas.</p><div><button class="candidate-button secondary" id="cancel-finish" type="button">Continuar respondendo</button><button class="candidate-button primary" id="confirm-finish" type="button">Finalizar e enviar</button></div></section></div>
+  <script src="./js/participant-application.js?v=1"></script>
+</body>
+</html>

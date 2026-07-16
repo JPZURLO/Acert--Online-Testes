@@ -65,8 +65,9 @@
         <ol class="stepper" aria-label="Etapas de criação">
           <li class="active"><button type="button" data-scroll="exam-information"><span>1</span>Informações</button></li>
           <li><button type="button" data-scroll="questions-section"><span>2</span>Questões</button></li>
-          <li><button type="button" data-scroll="branding-panel"><span>3</span>Aparência</button></li>
-          <li><button type="button" data-action="publish"><span>4</span>Publicar</button></li>
+          <li><button type="button" data-scroll="application-settings"><span>3</span>Aplicação</button></li>
+          <li><button type="button" data-scroll="branding-panel"><span>4</span>Aparência</button></li>
+          <li><button type="button" data-action="publish"><span>5</span>Publicar</button></li>
         </ol>
 
         <div class="editor-layout">
@@ -126,6 +127,21 @@
               <div class="question-import-errors" id="question-import-errors" role="alert" hidden></div>
               <div id="questions-list" class="questions-list" aria-live="polite"></div>
               <button class="add-question" id="add-question" type="button"><span>＋</span> Adicionar questão</button>
+            </section>
+
+            <section class="panel application-settings" id="application-settings">
+              <div class="panel-heading"><div><span class="section-kicker">APLICAÇÃO E RESULTADO</span><h2>Segurança, disponibilidade e correção</h2></div><span class="required-note">Configuração por teste</span></div>
+              <div class="application-grid">
+                <label class="field"><span>Liberação do resultado</span><select id="result-delivery"><option value="manual">Após revisão manual</option><option value="automatic">Automático ao concluir</option></select><small>Questões dissertativas sempre exigem revisão.</small></label>
+                <label class="field"><span>Disponível a partir de</span><input id="available-from" type="datetime-local"><small>Deixe vazio para liberar imediatamente.</small></label>
+                <label class="field"><span>Disponível até</span><input id="available-until" type="datetime-local"><small>Após esse horário não será possível iniciar.</small></label>
+                <div class="application-toggles">
+                  <label class="toggle-field" for="require-identity"><span class="metric-icon">♙</span><span><b>Exigir documento e selfie</b><small>Identificação antes do teste</small></span><input id="require-identity" type="checkbox"><i></i></label>
+                  <label class="toggle-field" for="require-recording"><span class="metric-icon">◉</span><span><b>Exigir câmera e microfone</b><small>Consentimento e teste dos dispositivos</small></span><input id="require-recording" type="checkbox"><i></i></label>
+                  <label class="toggle-field" for="allow-resume"><span class="metric-icon">↻</span><span><b>Permitir retomada</b><small>Continua de onde parou</small></span><input id="allow-resume" type="checkbox" checked><i></i></label>
+                  <label class="toggle-field" for="show-answer-details"><span class="metric-icon">▤</span><span><b>Mostrar detalhes após liberação</b><small>Exibe respostas revisadas</small></span><input id="show-answer-details" type="checkbox"><i></i></label>
+                </div>
+              </div>
             </section>
           </div>
 
