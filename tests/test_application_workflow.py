@@ -47,6 +47,18 @@ class ApplicationWorkflowTests(unittest.TestCase):
         self.assertIn("CREATE TABLE IF NOT EXISTS admin_audit_log", migration)
 
 
+    def test_secure_exam_closes_after_leaving_the_application(self):
+        script = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")
+        page = Path("front-end/AreaParticipante.html").read_text(encoding="utf-8")
+        api = Path("participant_api.py").read_text(encoding="utf-8")
+        self.assertIn("requestFullscreen", script)
+        self.assertIn("visibilitychange", script)
+        self.assertIn("window.addEventListener('blur'", script)
+        self.assertIn("fullscreenchange", script)
+        self.assertIn("terminationReason", script)
+        self.assertIn("Encerramento automático de segurança", api)
+        self.assertIn('result_status = "invalidated"', api)
+        self.assertIn("encerrará a tentativa imediatamente", page)
     def test_candidate_event_elements_are_registered(self):
         import re
         script = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")

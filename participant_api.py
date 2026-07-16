@@ -458,6 +458,7 @@ def create_participant_blueprint(open_database, token_payload):
         if error:
             return error
         data = request.get_json(silent=True) or {}
+        termination_reason = str(data.get("terminationReason") or "").strip()[:160]
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
@@ -473,16 +474,18 @@ def create_participant_blueprint(open_database, token_payload):
             supplied = data.get("answers") if isinstance(data.get("answers"), dict) else parse_json(row.get("answers_json"), {})
             questions = parse_json(row.get("questions_json"), [])
             answers, objective_points, total_points, percentage, correct_answers, has_essay = score_answers(questions, supplied)
-            needs_review = row.get("result_delivery") == "manual" or has_essay
-            result_status = "review" if needs_review else ("approved" if percentage >= float(row.get("passing_score") or 60) else "failed")
+            violated = bool(termination_reason)
+            needs_review = violated or row.get("result_delivery") == "manual" or has_essay
+            result_status = "invalidated" if violated else ("review" if needs_review else ("approved" if percentage >= float(row.get("passing_score") or 60) else "failed"))
             release_status = "pending" if needs_review else "released"
             review_status = "pending" if needs_review else "completed"
+            reviewer_notes = f"Encerramento automático de segurança: {termination_reason}" if violated else None
             started_at = row.get("started_at") or datetime.now()
             duration_seconds = max(0, int((datetime.now() - started_at).total_seconds()))
             cleaned_answers = {str(key)[:80]: str(value)[:10000] for key, value in list(supplied.items())[:200]}
             cursor.execute(
-                "UPDATE exam_attempts SET status='submitted',answers_json=%s,objective_score=%s,final_score=%s,review_status=%s,submitted_at=NOW(),last_saved_at=NOW() WHERE id=%s AND user_id=%s",
-                (json.dumps(cleaned_answers, ensure_ascii=False), objective_points, percentage, review_status, attempt_id, user_id),
+                "UPDATE exam_attempts SET status='submitted',answers_json=%s,objective_score=%s,final_score=%s,review_status=%s,reviewer_notes=%s,resume_authorized=FALSE,submitted_at=NOW(),last_saved_at=NOW() WHERE id=%s AND user_id=%s",
+                (json.dumps(cleaned_answers, ensure_ascii=False), objective_points, percentage, review_status, reviewer_notes, attempt_id, user_id),
             )
             cursor.execute("SELECT id FROM company_results WHERE attempt_id=%s", (attempt_id,))
             existing = cursor.fetchone()
@@ -492,18 +495,18 @@ def create_participant_blueprint(open_database, token_payload):
             )
             if existing:
                 cursor.execute(
-                    "UPDATE company_results SET score=%s,max_score=%s,duration_seconds=%s,correct_answers=%s,total_questions=%s,answers_json=%s,result_status=%s,release_status=%s,completed_at=NOW() WHERE attempt_id=%s",
-                    values,
+                    "UPDATE company_results SET score=%s,max_score=%s,duration_seconds=%s,correct_answers=%s,total_questions=%s,answers_json=%s,result_status=%s,release_status=%s,reviewer_notes=%s,completed_at=NOW() WHERE attempt_id=%s",
+                    values[:-1] + (reviewer_notes, values[-1]),
                 )
             else:
                 cursor.execute(
-                    "INSERT INTO company_results (attempt_id,company_id,participant_id,exam_id,score,max_score,duration_seconds,correct_answers,total_questions,answers_json,result_status,release_status,completed_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())",
-                    (attempt_id, row["company_id"], row["participant_id"], row["exam_id"], percentage, 100, duration_seconds, correct_answers, len(questions), json.dumps(answers, ensure_ascii=False), result_status, release_status),
+                    "INSERT INTO company_results (attempt_id,company_id,participant_id,exam_id,score,max_score,duration_seconds,correct_answers,total_questions,answers_json,result_status,release_status,reviewer_notes,completed_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())",
+                    (attempt_id, row["company_id"], row["participant_id"], row["exam_id"], percentage, 100, duration_seconds, correct_answers, len(questions), json.dumps(answers, ensure_ascii=False), result_status, release_status, reviewer_notes),
                 )
             cursor.execute("UPDATE company_participants SET status='completed',progress=100,last_access=NOW() WHERE id=%s", (row["participant_id"],))
             connection.commit()
-            return jsonify({"success": True, "attemptId": attempt_id, "reviewStatus": review_status, "releaseStatus": release_status, "resultStatus": result_status, "score": percentage if release_status == "released" else None})
+            return jsonify({"success": True, "attemptId": attempt_id, "reviewStatus": review_status, "releaseStatus": release_status, "resultStatus": result_status, "score": percentage if release_status == "released" else None, "terminated": violated, "terminationReason": termination_reason or None})
         finally:
             cursor.close()
             connection.close()
