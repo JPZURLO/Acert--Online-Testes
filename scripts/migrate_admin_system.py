@@ -1,6 +1,9 @@
 from pathlib import Path
+import sys
 
-from secure_app import open_database
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from secure_app import open_database  # noqa: E402
 
 
 def statements(sql):

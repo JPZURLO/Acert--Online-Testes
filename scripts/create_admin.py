@@ -1,9 +1,13 @@
 import getpass
 import re
+import sys
+from pathlib import Path
 
 from werkzeug.security import generate_password_hash
 
-from secure_app import open_database
+sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+
+from secure_app import open_database  # noqa: E402
 
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
