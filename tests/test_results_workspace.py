@@ -82,6 +82,7 @@ class ResultsWorkspaceTests(unittest.TestCase):
         routes = {rule.rule for rule in server.app.url_map.iter_rules()}
         self.assertIn("/api/company/results", routes)
         self.assertIn("/api/company/results/<int:result_id>", routes)
+        self.assertIn("/api/company/attempts/<int:attempt_id>/recording", routes)
         response = server.app.test_client().get("/api/company/results")
         self.assertEqual(response.status_code, 401)
         response.close()

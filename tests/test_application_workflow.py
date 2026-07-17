@@ -59,6 +59,21 @@ class ApplicationWorkflowTests(unittest.TestCase):
         self.assertIn("Encerramento automático de segurança", api)
         self.assertIn('result_status = "invalidated"', api)
         self.assertIn("encerrará a tentativa imediatamente", page)
+    def test_recording_and_audit_contract_is_present(self):
+        script = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")
+        page = Path("front-end/AreaParticipante.html").read_text(encoding="utf-8")
+        results = Path("front-end/Resultados.html").read_text(encoding="utf-8")
+        api = Path("participant_api.py").read_text(encoding="utf-8")
+        migration = Path("migrations/007_attempt_recording_audit.sql").read_text(encoding="utf-8")
+        self.assertIn("getDisplayMedia", script)
+        self.assertIn("MediaRecorder", script)
+        self.assertIn("/recording/chunks", script)
+        self.assertIn("screenChecked", script)
+        self.assertIn('id="check-screen"', page)
+        self.assertIn('id="audit-recording"', results)
+        self.assertIn("upload_recording_chunk", api)
+        self.assertIn("CREATE TABLE IF NOT EXISTS attempt_recordings", migration)
+        self.assertIn("CREATE TABLE IF NOT EXISTS attempt_audit_events", migration)
     def test_candidate_event_elements_are_registered(self):
         import re
         script = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")

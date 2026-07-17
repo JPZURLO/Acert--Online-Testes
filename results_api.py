@@ -50,6 +50,8 @@ def result_from_row(row, include_details=False):
         "totalQuestions": int(row.get("total_questions") or 0),
         "completedAt": row.get("completed_at").isoformat() if row.get("completed_at") else None,
         "releaseStatus": row.get("release_status") or "released",
+        "incidentCount": int(row.get("incident_count") or 0),
+        "recordingStatus": row.get("recording_status") or "not_required",
     }
     if include_details:
         result["answers"] = parse_json(row.get("answers_json"), [])
@@ -158,14 +160,16 @@ def create_results_blueprint(open_database, token_payload):
             company = cursor.fetchone()
             sql = (
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score, a.identity_status FROM company_results r "
+                "e.title AS exam_title, e.passing_score, a.identity_status, "
+                "(SELECT COUNT(*) FROM attempt_audit_events ae WHERE ae.attempt_id=a.id AND ae.severity IN ('warning','critical')) AS incident_count, "
+                "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
                 f"WHERE {' AND '.join(where)} ORDER BY r.completed_at DESC LIMIT 2000"
             )
             cursor.execute(sql, tuple(params))
             rows = cursor.fetchall()
-            if status in {"approved", "review", "failed"}:
+            if status in {"approved", "review", "failed", "invalidated"}:
                 rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) == status]
             dashboard = compute_dashboard(rows)
             cursor.execute("SELECT id, title FROM company_exams WHERE company_id = %s ORDER BY title", (company_id,))
@@ -192,7 +196,9 @@ def create_results_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score, a.identity_status FROM company_results r "
+                "e.title AS exam_title, e.passing_score, a.identity_status, "
+                "(SELECT COUNT(*) FROM attempt_audit_events ae WHERE ae.attempt_id=a.id AND ae.severity IN ('warning','critical')) AS incident_count, "
+                "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
                 "WHERE r.id = %s AND r.company_id = %s",
@@ -201,7 +207,43 @@ def create_results_blueprint(open_database, token_payload):
             row = cursor.fetchone()
             if not row:
                 return jsonify({"success": False, "message": "Resultado não encontrado."}), 404
-            return jsonify({"result": result_from_row(row, include_details=True)})
+            result = result_from_row(row, include_details=True)
+            attempt_id = row.get("attempt_id")
+            result["auditEvents"] = []
+            result["recording"] = None
+            if attempt_id:
+                cursor.execute(
+                    "SELECT event_type,severity,details_json,occurred_at FROM attempt_audit_events "
+                    "WHERE attempt_id=%s ORDER BY occurred_at,id",
+                    (attempt_id,),
+                )
+                result["auditEvents"] = [
+                    {
+                        "type": event["event_type"],
+                        "severity": event["severity"],
+                        "details": parse_json(event.get("details_json"), {}),
+                        "occurredAt": event["occurred_at"].isoformat() if event.get("occurred_at") else None,
+                    }
+                    for event in cursor.fetchall()
+                ]
+                cursor.execute(
+                    "SELECT status,content_type,size_bytes,chunk_count,sha256,started_at,completed_at "
+                    "FROM attempt_recordings WHERE attempt_id=%s",
+                    (attempt_id,),
+                )
+                recording = cursor.fetchone()
+                if recording:
+                    result["recording"] = {
+                        "status": recording["status"],
+                        "contentType": recording["content_type"],
+                        "sizeBytes": int(recording.get("size_bytes") or 0),
+                        "chunkCount": int(recording.get("chunk_count") or 0),
+                        "sha256": recording.get("sha256"),
+                        "startedAt": recording["started_at"].isoformat() if recording.get("started_at") else None,
+                        "completedAt": recording["completed_at"].isoformat() if recording.get("completed_at") else None,
+                        "url": f"/api/company/attempts/{attempt_id}/recording" if recording.get("status") == "completed" else None,
+                    }
+            return jsonify({"result": result})
         finally:
             cursor.close()
             connection.close()

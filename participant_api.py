@@ -1,3 +1,4 @@
+import hashlib
 import json
 import os
 import secrets
@@ -8,7 +9,14 @@ from flask import Blueprint, jsonify, request, send_file
 
 
 MAX_IDENTITY_FILE_BYTES = 2_400_000
+MAX_RECORDING_CHUNK_BYTES = 10_000_000
 ACTIVE_PARTICIPANT_STATUSES = {"pending", "not_started", "active", "in_progress"}
+RECORDING_CONTENT_TYPES = {"video/webm": ".webm", "video/mp4": ".mp4", "application/octet-stream": ".webm"}
+AUDIT_EVENT_TYPES = {
+    "recording_started", "recording_completed", "recording_error", "chunk_upload_failed",
+    "focus_lost", "fullscreen_exit", "screen_share_stopped", "camera_stopped",
+    "microphone_stopped", "application_started", "application_submitted",
+}
 
 
 def parse_json(value, default):
@@ -96,6 +104,7 @@ def score_answers(questions, supplied):
 def create_participant_blueprint(open_database, token_payload):
     blueprint = Blueprint("participant_application", __name__)
     storage_root = Path(os.getenv("PRIVATE_UPLOAD_DIR", Path(__file__).resolve().parent / "private_uploads")).resolve()
+    recording_root = Path(os.getenv("PRIVATE_RECORDING_DIR", storage_root / "recordings")).resolve()
 
     def user_id_or_error():
         payload, error = token_payload("user")
@@ -150,6 +159,22 @@ def create_participant_blueprint(open_database, token_payload):
             (attempt_id, user_id),
         )
         return cursor.fetchone()
+
+    def recording_directory(attempt_id):
+        path = (recording_root / str(int(attempt_id))).resolve()
+        if path.parent != recording_root:
+            raise ValueError("Destino de gravação inválido.")
+        path.mkdir(parents=True, exist_ok=True)
+        return path
+
+    def store_audit_event(cursor, attempt_id, event_type, severity="info", details=None):
+        event_type = event_type if event_type in AUDIT_EVENT_TYPES else "recording_error"
+        severity = severity if severity in {"info", "warning", "critical"} else "info"
+        serialized = json.dumps(details if isinstance(details, dict) else {}, ensure_ascii=False)[:4000]
+        cursor.execute(
+            "INSERT INTO attempt_audit_events (attempt_id,event_type,severity,details_json) VALUES (%s,%s,%s,%s)",
+            (attempt_id, event_type, severity, serialized),
+        )
 
     def available_error(row):
         now = datetime.now()
@@ -356,14 +381,16 @@ def create_participant_blueprint(open_database, token_payload):
             consent = bool(data.get("consentRecording"))
             camera_checked = bool(data.get("cameraChecked"))
             microphone_checked = bool(data.get("microphoneChecked"))
-            if row.get("require_recording") and not (consent and camera_checked and microphone_checked):
-                return jsonify({"success": False, "message": "Autorize e teste a câmera e o microfone antes de iniciar."}), 409
+            screen_checked = bool(data.get("screenChecked"))
+            if row.get("require_recording") and not (consent and camera_checked and microphone_checked and screen_checked):
+                return jsonify({"success": False, "message": "Autorize e valide a câmera, o microfone e o compartilhamento da tela inteira."}), 409
             cursor.execute(
-                "UPDATE exam_attempts SET status='in_progress', consent_recording=%s, camera_checked=%s, microphone_checked=%s, "
+                "UPDATE exam_attempts SET status='in_progress', consent_recording=%s, camera_checked=%s, microphone_checked=%s, screen_checked=%s, recording_status=%s, "
                 "started_at=COALESCE(started_at,NOW()), expires_at=COALESCE(expires_at,DATE_ADD(NOW(), INTERVAL %s MINUTE)), last_saved_at=NOW() "
                 "WHERE id=%s AND user_id=%s",
-                (consent, camera_checked, microphone_checked, int(row.get("duration_minutes") or 60), attempt_id, user_id),
+                (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("duration_minutes") or 60), attempt_id, user_id),
             )
+            store_audit_event(cursor, attempt_id, "application_started", "info", {"recordingRequired": bool(row.get("require_recording"))})
             cursor.execute("UPDATE company_participants SET status='in_progress', progress=1, last_access=NOW() WHERE id=%s", (row["participant_id"],))
             connection.commit()
             return jsonify({"success": True, "attemptId": attempt_id, "resumed": False})
@@ -416,7 +443,7 @@ def create_participant_blueprint(open_database, token_payload):
                         "id": row["exam_id"], "title": row["title"], "description": row.get("description") or "",
                         "durationMinutes": row.get("duration_minutes") or 60, "passingScore": row.get("passing_score") or 60,
                         "questions": questions, "companyName": row.get("company_name") or "Empresa",
-                        "instructions": row.get("candidate_instructions") or "Leia as instruções com atenção.",
+                        "instructions": row.get("candidate_instructions") or "Leia as instruções com atenção.", "requireRecording": bool(row.get("require_recording")),
                     },
                     "branding": {
                         "logoData": row.get("logo_data") or "", "primaryColor": row.get("primary_color") or "#0F6F73",
@@ -430,6 +457,158 @@ def create_participant_blueprint(open_database, token_payload):
             cursor.close()
             connection.close()
 
+    @blueprint.post("/api/participant/attempts/<int:attempt_id>/audit-events")
+    def create_audit_event(attempt_id):
+        user_id, error = user_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            row = attempt_for_user(cursor, attempt_id, user_id)
+            if not row:
+                return jsonify({"success": False, "message": "Aplicação não encontrada."}), 404
+            if row.get("status") != "in_progress":
+                return jsonify({"success": False, "message": "A auditoria desta aplicação não está ativa."}), 409
+            event_type = str(data.get("type") or "")[:48]
+            if event_type not in AUDIT_EVENT_TYPES:
+                return jsonify({"success": False, "message": "Evento de auditoria inválido."}), 400
+            store_audit_event(cursor, attempt_id, event_type, str(data.get("severity") or "info"), data.get("details"))
+            connection.commit()
+            return jsonify({"success": True})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/participant/attempts/<int:attempt_id>/recording/chunks")
+    def upload_recording_chunk(attempt_id):
+        user_id, error = user_id_or_error()
+        if error:
+            return error
+        upload = request.files.get("chunk")
+        try:
+            sequence = int(request.form.get("sequence", "-1"))
+            duration_ms = max(1, min(60_000, int(request.form.get("durationMs", "5000"))))
+        except (TypeError, ValueError):
+            return jsonify({"success": False, "message": "Informações do fragmento inválidas."}), 400
+        if not upload or sequence < 0 or sequence > 100_000:
+            return jsonify({"success": False, "message": "Fragmento de gravação inválido."}), 400
+        content_type = str(upload.mimetype or "application/octet-stream").split(";", 1)[0].lower()
+        if content_type not in RECORDING_CONTENT_TYPES:
+            return jsonify({"success": False, "message": "Formato de gravação não permitido."}), 400
+        content = upload.read(MAX_RECORDING_CHUNK_BYTES + 1)
+        if not content or len(content) > MAX_RECORDING_CHUNK_BYTES:
+            return jsonify({"success": False, "message": "O fragmento excedeu o limite de 10 MB."}), 413
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        path = None
+        try:
+            row = attempt_for_user(cursor, attempt_id, user_id)
+            if not row or row.get("status") != "in_progress" or not row.get("require_recording"):
+                return jsonify({"success": False, "message": "A gravação não está disponível para esta aplicação."}), 409
+            directory = recording_directory(attempt_id)
+            extension = RECORDING_CONTENT_TYPES[content_type]
+            storage_name = f"{attempt_id}/chunk-{sequence:06d}-{secrets.token_hex(8)}{extension}"
+            path = (recording_root / storage_name).resolve()
+            if path.parent != directory:
+                raise ValueError("Destino de gravação inválido.")
+            path.write_bytes(content)
+            digest = hashlib.sha256(content).hexdigest()
+            cursor.execute("SELECT storage_name FROM attempt_recording_chunks WHERE attempt_id=%s AND sequence_number=%s", (attempt_id, sequence))
+            previous = cursor.fetchone()
+            cursor.execute(
+                "INSERT INTO attempt_recording_chunks (attempt_id,sequence_number,storage_name,content_type,size_bytes,duration_ms,sha256) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE storage_name=VALUES(storage_name),content_type=VALUES(content_type),size_bytes=VALUES(size_bytes),duration_ms=VALUES(duration_ms),sha256=VALUES(sha256)",
+                (attempt_id, sequence, storage_name, content_type, len(content), duration_ms, digest),
+            )
+            cursor.execute(
+                "INSERT INTO attempt_recordings (attempt_id,status,content_type,chunk_count,size_bytes,started_at) VALUES (%s,'recording',%s,1,%s,NOW()) "
+                "ON DUPLICATE KEY UPDATE status='recording',content_type=VALUES(content_type),chunk_count=(SELECT COUNT(*) FROM attempt_recording_chunks WHERE attempt_id=%s),size_bytes=(SELECT COALESCE(SUM(size_bytes),0) FROM attempt_recording_chunks WHERE attempt_id=%s),started_at=COALESCE(started_at,NOW())",
+                (attempt_id, content_type, len(content), attempt_id, attempt_id),
+            )
+            cursor.execute("UPDATE exam_attempts SET recording_status='recording' WHERE id=%s AND user_id=%s", (attempt_id, user_id))
+            connection.commit()
+            if previous and previous.get("storage_name") != storage_name:
+                old_path = (recording_root / previous["storage_name"]).resolve()
+                if old_path.parent == directory:
+                    old_path.unlink(missing_ok=True)
+            return jsonify({"success": True, "sequence": sequence, "sizeBytes": len(content), "sha256": digest})
+        except Exception:
+            connection.rollback()
+            if path:
+                path.unlink(missing_ok=True)
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/participant/attempts/<int:attempt_id>/recording/complete")
+    def complete_recording(attempt_id):
+        user_id, error = user_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        final_path = None
+        try:
+            row = attempt_for_user(cursor, attempt_id, user_id)
+            if not row or not row.get("require_recording"):
+                return jsonify({"success": False, "message": "Gravação não encontrada."}), 404
+            cursor.execute("SELECT * FROM attempt_recording_chunks WHERE attempt_id=%s ORDER BY sequence_number", (attempt_id,))
+            chunks = cursor.fetchall()
+            if not chunks:
+                return jsonify({"success": False, "message": "Nenhum fragmento foi recebido."}), 409
+            directory = recording_directory(attempt_id)
+            content_type = chunks[0].get("content_type") or "video/webm"
+            extension = RECORDING_CONTENT_TYPES.get(content_type, ".webm")
+            storage_name = f"{attempt_id}/recording-{secrets.token_hex(12)}{extension}"
+            final_path = (recording_root / storage_name).resolve()
+            if final_path.parent != directory:
+                raise ValueError("Destino de gravação inválido.")
+            digest = hashlib.sha256()
+            size_bytes = 0
+            with final_path.open("wb") as destination:
+                for chunk in chunks:
+                    chunk_path = (recording_root / chunk["storage_name"]).resolve()
+                    if chunk_path.parent != directory or not chunk_path.is_file():
+                        raise ValueError("Um fragmento da gravação não foi encontrado.")
+                    chunk_content = chunk_path.read_bytes()
+                    destination.write(chunk_content)
+                    digest.update(chunk_content)
+                    size_bytes += len(chunk_content)
+            cursor.execute("SELECT storage_name FROM attempt_recordings WHERE attempt_id=%s", (attempt_id,))
+            previous = cursor.fetchone()
+            cursor.execute(
+                "INSERT INTO attempt_recordings (attempt_id,status,storage_name,content_type,size_bytes,chunk_count,sha256,started_at,completed_at) "
+                "VALUES (%s,'completed',%s,%s,%s,%s,%s,NOW(),NOW()) ON DUPLICATE KEY UPDATE status='completed',storage_name=VALUES(storage_name),content_type=VALUES(content_type),size_bytes=VALUES(size_bytes),chunk_count=VALUES(chunk_count),sha256=VALUES(sha256),completed_at=NOW()",
+                (attempt_id, storage_name, content_type, size_bytes, len(chunks), digest.hexdigest()),
+            )
+            cursor.execute("UPDATE exam_attempts SET recording_status='completed' WHERE id=%s AND user_id=%s", (attempt_id, user_id))
+            store_audit_event(cursor, attempt_id, "recording_completed", "info", {"chunkCount": len(chunks), "sizeBytes": size_bytes})
+            connection.commit()
+            if previous and previous.get("storage_name") and previous["storage_name"] != storage_name:
+                old_path = (recording_root / previous["storage_name"]).resolve()
+                if old_path.parent == directory:
+                    old_path.unlink(missing_ok=True)
+            for chunk in chunks:
+                chunk_path = (recording_root / chunk["storage_name"]).resolve()
+                if chunk_path.parent == directory:
+                    chunk_path.unlink(missing_ok=True)
+            return jsonify({"success": True, "chunkCount": len(chunks), "sizeBytes": size_bytes})
+        except ValueError as exc:
+            connection.rollback()
+            if final_path:
+                final_path.unlink(missing_ok=True)
+            return jsonify({"success": False, "message": str(exc)}), 409
+        except Exception:
+            connection.rollback()
+            if final_path:
+                final_path.unlink(missing_ok=True)
+            raise
+        finally:
+            cursor.close()
+            connection.close()
     @blueprint.put("/api/participant/attempts/<int:attempt_id>/answers")
     def save_answers(attempt_id):
         user_id, error = user_id_or_error()
@@ -505,6 +684,7 @@ def create_participant_blueprint(open_database, token_payload):
                     (attempt_id, row["company_id"], row["participant_id"], row["exam_id"], percentage, 100, duration_seconds, correct_answers, len(questions), json.dumps(answers, ensure_ascii=False), result_status, release_status, reviewer_notes),
                 )
             cursor.execute("UPDATE company_participants SET status='completed',progress=100,last_access=NOW() WHERE id=%s", (row["participant_id"],))
+            store_audit_event(cursor, attempt_id, "application_submitted", "critical" if violated else "info", {"terminationReason": termination_reason or None})
             connection.commit()
             return jsonify({"success": True, "attemptId": attempt_id, "reviewStatus": review_status, "releaseStatus": release_status, "resultStatus": result_status, "score": percentage if release_status == "released" else None, "terminated": violated, "terminationReason": termination_reason or None})
         finally:
@@ -550,4 +730,28 @@ def create_participant_blueprint(open_database, token_payload):
             return jsonify({"success": False, "message": "Tipo de arquivo inválido."}), 400
         return identity_download(attempt_id, kind, "admin")
 
+    @blueprint.get("/api/company/attempts/<int:attempt_id>/recording")
+    def company_recording(attempt_id):
+        payload, error = token_payload("company")
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT r.storage_name,r.content_type FROM attempt_recordings r "
+                "JOIN exam_attempts a ON a.id=r.attempt_id WHERE r.attempt_id=%s AND a.company_id=%s AND r.status='completed'",
+                (attempt_id, int(payload["sub"])),
+            )
+            row = cursor.fetchone()
+            if not row or not row.get("storage_name"):
+                return jsonify({"success": False, "message": "Gravação ainda não disponível."}), 404
+            directory = recording_directory(attempt_id)
+            path = (recording_root / row["storage_name"]).resolve()
+            if path.parent != directory or not path.is_file():
+                return jsonify({"success": False, "message": "Arquivo de gravação não encontrado."}), 404
+            return send_file(path, mimetype=row["content_type"], download_name=f"auditoria-{attempt_id}{path.suffix}", as_attachment=False, conditional=True, max_age=0)
+        finally:
+            cursor.close()
+            connection.close()
     return blueprint
