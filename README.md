@@ -49,4 +49,6 @@ O limitador embutido protege uma única instância. Em implantação com vários
 4. Teste manualmente com `python scripts/run_recording_maintenance.py`.
 5. Depois do teste, defina `RECORDING_MAINTENANCE_ENABLED=true` para executar a manutenção a cada 15 minutos junto do servidor.
 
+Para validar apenas o SMTP, execute `python scripts/test_smtp.py` e informe o destinatário solicitado.
+
 O sistema envia um link autenticado quando a gravação fica disponível. Se não houver download, envia um aviso final com todas as gravações pendentes e concede mais 48 horas. O vídeo é excluído ao final do prazo, mas seus metadados de auditoria permanecem no banco. Sem um e-mail responsável e sem SMTP configurado, uma gravação não baixada não é excluída automaticamente, evitando perda silenciosa.
