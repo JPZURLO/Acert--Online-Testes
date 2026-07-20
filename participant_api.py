@@ -32,6 +32,10 @@ def iso(value):
     return value.isoformat() if value else None
 
 
+def clean_text(value, maximum):
+    return str(value or "").strip()[:maximum]
+
+
 def image_type(content):
     if content.startswith(b"\x89PNG\r\n\x1a\n"):
         return "image/png", ".png"
@@ -278,6 +282,7 @@ def create_participant_blueprint(open_database, token_payload):
                         "requireIdentity": bool(row.get("require_identity")),
                         "requireRecording": bool(row.get("require_recording")),
                         "allowResume": bool(row.get("allow_resume")),
+                        "requiresResumeCode": (row.get("attempt_status") in {"paused", "in_progress"}),
                         "instructions": row.get("candidate_instructions") or "Leia todas as instruções antes de iniciar.",
                         "companyName": row.get("company_name") or "Empresa",
                     },
@@ -365,16 +370,21 @@ def create_participant_blueprint(open_database, token_payload):
                 return jsonify({"success": False, "message": "Esta aplicação foi encerrada pelo administrador."}), 409
             if row.get("status") == "submitted":
                 return jsonify({"success": False, "message": "Este teste já foi enviado."}), 409
-            if row.get("status") == "paused":
-                if not row.get("resume_authorized"):
-                    return jsonify({"success": False, "message": "A retomada aguarda autorização do administrador."}), 409
-                cursor.execute("UPDATE exam_attempts SET status='in_progress',resume_authorized=FALSE,expires_at=DATE_ADD(NOW(), INTERVAL %s SECOND) WHERE id=%s AND user_id=%s", (int(row.get("remaining_seconds") or 60), attempt_id, user_id))
-                connection.commit()
-                return jsonify({"success": True, "attemptId": attempt_id, "resumed": True})
-            if row.get("status") == "in_progress":
+            is_resuming = row.get("status") in {"paused", "in_progress"}
+            if is_resuming:
                 if not row.get("allow_resume"):
                     return jsonify({"success": False, "message": "A retomada não foi habilitada para este teste."}), 409
-                return jsonify({"success": True, "attemptId": attempt_id, "resumed": True})
+                supplied_code = clean_text(data.get("resumeCode"), 32).upper()
+                code_valid = (
+                    row.get("resume_authorized")
+                    and row.get("resume_code_hash")
+                    and not row.get("resume_code_used_at")
+                    and row.get("resume_code_expires_at")
+                    and row["resume_code_expires_at"] >= datetime.now()
+                    and check_password_hash(row["resume_code_hash"], supplied_code)
+                )
+                if not code_valid:
+                    return jsonify({"success": False, "message": "Informe o código especial enviado pela empresa. Ele deve estar válido e ainda não utilizado."}), 409
             if row.get("require_identity"):
                 cursor.execute("SELECT COUNT(*) AS total FROM attempt_identity_files WHERE attempt_id = %s", (attempt_id,))
                 if int(cursor.fetchone()["total"] or 0) < 2:
@@ -385,16 +395,24 @@ def create_participant_blueprint(open_database, token_payload):
             screen_checked = bool(data.get("screenChecked"))
             if row.get("require_recording") and not (consent and camera_checked and microphone_checked and screen_checked):
                 return jsonify({"success": False, "message": "Autorize e valide a câmera, o microfone e o compartilhamento da tela inteira."}), 409
-            cursor.execute(
-                "UPDATE exam_attempts SET status='in_progress', consent_recording=%s, camera_checked=%s, microphone_checked=%s, screen_checked=%s, recording_status=%s, "
-                "started_at=COALESCE(started_at,NOW()), expires_at=COALESCE(expires_at,DATE_ADD(NOW(), INTERVAL %s MINUTE)), last_saved_at=NOW() "
-                "WHERE id=%s AND user_id=%s",
-                (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("duration_minutes") or 60), attempt_id, user_id),
-            )
-            store_audit_event(cursor, attempt_id, "application_started", "info", {"recordingRequired": bool(row.get("require_recording"))})
+            if is_resuming:
+                cursor.execute(
+                    "UPDATE exam_attempts SET status='in_progress',resume_authorized=FALSE,resume_code_used_at=NOW(),resume_code_hash=NULL,"
+                    "consent_recording=%s,camera_checked=%s,microphone_checked=%s,screen_checked=%s,recording_status=%s,"
+                    "expires_at=DATE_ADD(NOW(),INTERVAL %s SECOND),last_saved_at=NOW() WHERE id=%s AND user_id=%s",
+                    (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("remaining_seconds") or 60), attempt_id, user_id),
+                )
+            else:
+                cursor.execute(
+                    "UPDATE exam_attempts SET status='in_progress', consent_recording=%s, camera_checked=%s, microphone_checked=%s, screen_checked=%s, recording_status=%s, "
+                    "started_at=COALESCE(started_at,NOW()), expires_at=COALESCE(expires_at,DATE_ADD(NOW(), INTERVAL %s MINUTE)), last_saved_at=NOW() "
+                    "WHERE id=%s AND user_id=%s",
+                    (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("duration_minutes") or 60), attempt_id, user_id),
+                )
+            store_audit_event(cursor, attempt_id, "application_started", "info", {"recordingRequired": bool(row.get("require_recording")), "resumed": is_resuming})
             cursor.execute("UPDATE company_participants SET status='in_progress', progress=1, last_access=NOW() WHERE id=%s", (row["participant_id"],))
             connection.commit()
-            return jsonify({"success": True, "attemptId": attempt_id, "resumed": False})
+            return jsonify({"success": True, "attemptId": attempt_id, "resumed": is_resuming})
         finally:
             cursor.close()
             connection.close()
@@ -417,6 +435,8 @@ def create_participant_blueprint(open_database, token_payload):
                 remaining = int(row.get("remaining_seconds") or 0)
             elif row.get("expires_at"):
                 remaining = max(0, int((row["expires_at"] - datetime.now()).total_seconds()))
+            cursor.execute("SELECT COALESCE(MAX(sequence_number),-1)+1 AS next_sequence FROM attempt_recording_chunks WHERE attempt_id=%s", (attempt_id,))
+            recording_next_sequence = int((cursor.fetchone() or {}).get("next_sequence") or 0)
             result = None
             if row.get("status") == "closed":
                 return jsonify({"success": False, "message": "Esta aplicação foi encerrada pelo administrador."}), 409
@@ -446,7 +466,7 @@ def create_participant_blueprint(open_database, token_payload):
                         "durationMinutes": row.get("duration_minutes") or 60, "passingScore": row.get("passing_score") if row.get("passing_score") is not None else 60,
                         "gradingScale": normalize_grading_scale(row.get("grading_scale_json")),
                         "questions": questions, "companyName": row.get("company_name") or "Empresa",
-                        "instructions": row.get("candidate_instructions") or "Leia as instruções com atenção.", "requireRecording": bool(row.get("require_recording")),
+                        "instructions": row.get("candidate_instructions") or "Leia as instruções com atenção.", "requireRecording": bool(row.get("require_recording")), "recordingNextSequence": recording_next_sequence,
                     },
                     "branding": {
                         "logoData": row.get("logo_data") or "", "primaryColor": row.get("primary_color") or "#0F6F73",

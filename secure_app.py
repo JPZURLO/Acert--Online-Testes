@@ -16,6 +16,7 @@ from werkzeug.utils import safe_join
 
 from admin_api import create_admin_blueprint
 from company_api import create_company_blueprint
+from company_operations_api import create_company_operations_blueprint
 from license_service import company_license_snapshot, license_block_message
 from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
@@ -206,6 +207,8 @@ COMPANY_FEATURE_ROUTES = (
     ("/api/company/question-imports", "excel_import"),
     ("/api/company/branding", "branding"),
     ("/api/company/participants", "participants"),
+    ("/api/company/operations", "exams"),
+    ("/api/company/attempts", "exams"),
     ("/api/company/results", "results"),
     ("/api/company/exams", "exams"),
 )
@@ -238,26 +241,9 @@ def enforce_company_license():
                     return jsonify({"success": False, "message": "O limite de testes da licença foi atingido."}), 409
             finally:
                 cursor.close()
-        if request.method == "POST" and request.path in {"/api/company/participants", "/api/company/participants/import"} and snapshot["maxParticipantsMonth"] is not None:
-            incoming = 1
-            if request.path.endswith("/import"):
-                body = request.get_json(silent=True) or {}
-                incoming = len(body.get("participants")) if isinstance(body.get("participants"), list) else 0
-            cursor = connection.cursor(dictionary=True)
-            try:
-                cursor.execute(
-                    "SELECT COUNT(*) AS total FROM company_participants WHERE company_id = %s "
-                    "AND created_at >= DATE_FORMAT(CURDATE(), '%%Y-%%m-01')",
-                    (payload["sub"],),
-                )
-                if cursor.fetchone()["total"] + incoming > snapshot["maxParticipantsMonth"]:
-                    return jsonify({"success": False, "message": "O limite mensal de participantes da licença foi atingido."}), 409
-            finally:
-                cursor.close()
     finally:
         connection.close()
     return None
-
 
 @app.before_request
 def protect_cookie_authenticated_writes():
@@ -302,6 +288,7 @@ def request_too_large(_error):
 
 
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
+app.register_blueprint(create_company_operations_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
 app.register_blueprint(create_participants_blueprint(open_database, token_payload))
 app.register_blueprint(create_participant_blueprint(open_database, token_payload))

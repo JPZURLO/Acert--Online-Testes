@@ -52,3 +52,10 @@ O limitador embutido protege uma única instância. Em implantação com vários
 Para validar apenas o SMTP, execute `python scripts/test_smtp.py` e informe o destinatário solicitado.
 
 O sistema envia um link autenticado quando a gravação fica disponível. Se não houver download, envia um aviso final com todas as gravações pendentes e concede mais 48 horas. O vídeo é excluído ao final do prazo, mas seus metadados de auditoria permanecem no banco. Sem um e-mail responsável e sem SMTP configurado, uma gravação não baixada não é excluída automaticamente, evitando perda silenciosa.
+## Monitoramento, retomada e chat
+
+1. Execute `python scripts/migrate_company_operations.py` uma única vez em cada banco.
+2. Reinicie o servidor e acesse `http://127.0.0.1:5500/Monitoramento.html` com uma conta de empresa.
+3. Para retomar uma aplicação interrompida, selecione-a, clique em **Enviar código de retomada** e confirme que o participante recebeu o e-mail.
+4. O código é individual, de uso único e expira em 24 horas. As respostas e os fragmentos de gravação anteriores são preservados.
+5. O limite mensal da licença considera também participantes inativos; somente o administrador pode ajustar o limite do plano.

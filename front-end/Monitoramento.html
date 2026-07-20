@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Monitoramento de testes em andamento.">
+  <title>ACERT | Monitoramento</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/styleVisaoGeral.css">
+  <link rel="stylesheet" href="./css/dashboard-shell.css">
+  <link rel="stylesheet" href="./css/company-operations.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <a class="brand" href="./index.html"><img src="./assets/images/Logo.png" alt="ACERT"><span>ACERT</span></a>
+      <nav class="sidebar-nav" aria-label="Navegação principal">
+        <a class="nav-item" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
+        <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Testes</span></a>
+        <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
+        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
+        <a class="nav-item active" href="./Monitoramento.html"><span class="nav-icon">◉</span><span>Monitoramento</span></a>
+        <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">?</span><span>Suporte</span></a>
+      </nav>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+    </aside>
+    <main class="workspace">
+      <header class="topbar"><button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button><div class="breadcrumb"><span>Operação</span><b>/</b><strong>Monitoramento</strong></div><div class="account-area"><div class="account-badge" id="company-initials">AC</div><span id="company-name">Empresa</span><button class="logout-button" id="logout-button" type="button">Sair</button></div></header>
+      <section class="operations-page">
+        <div class="operations-heading"><div><p class="eyebrow">CENTRAL DE APLICAÇÕES</p><h1>Monitoramento em tempo real</h1><p>Acompanhe cada participante, envie orientações e controle interrupções com segurança.</p></div><span class="live-indicator"><i></i> Atualização automática</span></div>
+        <section class="operation-stats"><article><span class="stat-symbol active">▶</span><div><small>Em andamento</small><strong id="operations-active">0</strong></div></article><article><span class="stat-symbol paused">Ⅱ</span><div><small>Aguardando retomada</small><strong id="operations-paused">0</strong></div></article><article><span class="stat-symbol message">✉</span><div><small>Mensagens não lidas</small><strong id="operations-unread">0</strong></div></article><article><span class="stat-symbol done">✓</span><div><small>Finalizadas</small><strong id="operations-finished">0</strong></div></article></section>
+        <section class="operations-grid">
+          <article class="operations-list-card">
+            <header><div><h2>Aplicações</h2><p>Clique em uma data ou linha para abrir os controles.</p></div><div class="operation-filters"><input id="operation-search" type="search" placeholder="Buscar participante ou teste"><select id="operation-status"><option value="all">Todos os status</option><option value="in_progress">Em andamento</option><option value="paused">Pausados</option><option value="submitted">Enviados</option><option value="closed">Encerrados</option></select></div></header>
+            <div class="operations-table-wrap"><table><thead><tr><th>Data da aplicação</th><th>Participante</th><th>Teste</th><th>Tempo restante</th><th>Status</th><th></th></tr></thead><tbody id="operations-body"></tbody></table></div>
+            <div id="operations-empty" class="operation-empty" hidden><span>◎</span><strong>Nenhuma aplicação encontrada</strong><p>As tentativas aparecerão quando os participantes abrirem um teste.</p></div>
+          </article>
+          <aside class="operation-detail" id="operation-detail">
+            <div id="operation-placeholder" class="detail-placeholder"><span>◉</span><h2>Selecione uma aplicação</h2><p>Os controles, dados e o chat aparecerão aqui.</p></div>
+            <div id="operation-content" hidden>
+              <header class="detail-header"><div><span class="detail-avatar" id="detail-avatar">PT</span><div><h2 id="detail-name">Participante</h2><p id="detail-email">email</p></div></div><span id="detail-status" class="operation-status">Status</span></header>
+              <dl class="detail-facts"><div><dt>Teste</dt><dd id="detail-exam">—</dd></div><div><dt>Início</dt><dd id="detail-started">—</dd></div><div><dt>Tempo restante</dt><dd id="detail-remaining">—</dd></div><div><dt>Retomada</dt><dd id="detail-resume">—</dd></div></dl>
+              <section class="operation-actions"><h3>Controle da aplicação</h3><div><button id="pause-attempt" class="operation-button secondary" type="button">Pausar avaliação</button><button id="resume-attempt" class="operation-button primary" type="button">Enviar código de retomada</button><button id="close-attempt" class="operation-button danger" type="button">Fechar avaliação</button></div><p id="operation-feedback"></p></section>
+              <section class="company-chat"><header><div><h3>Chat com o participante</h3><p>As mensagens ficam registradas nesta aplicação.</p></div><span id="chat-live"><i></i> Online</span></header><div id="company-chat-messages" class="company-chat-messages"><p class="chat-empty">Nenhuma mensagem ainda.</p></div><form id="company-chat-form"><input id="company-chat-input" type="text" maxlength="2000" autocomplete="off" placeholder="Digite uma orientação..."><button type="submit">Enviar</button></form></section>
+            </div>
+          </aside>
+        </section>
+      </section>
+    </main>
+  </div>
+  <div id="operations-toast-region" class="operations-toast-region" aria-live="polite"></div>
+  <script src="./js/company-operations.js?v=1"></script>
+</body>
+</html>
