@@ -21,6 +21,7 @@ from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
 from participant_api import create_participant_blueprint
 from results_api import create_results_blueprint
+from recording_retention import start_recording_maintenance
 from support_finance_api import create_support_finance_blueprint
 
 load_dotenv()
@@ -307,6 +308,7 @@ app.register_blueprint(create_participant_blueprint(open_database, token_payload
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
 app.register_blueprint(create_admin_blueprint(open_database, token_payload))
 app.register_blueprint(create_support_finance_blueprint(open_database, token_payload))
+recording_maintenance_thread = start_recording_maintenance(open_database)
 
 
 @app.post("/login")

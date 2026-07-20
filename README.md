@@ -40,3 +40,13 @@ Plataforma para criação e gerenciamento de provas, certificações e testes de
 - Bloqueio de executáveis, arquivos compactados e `node_modules` na rota pública.
 
 O limitador embutido protege uma única instância. Em implantação com vários processos ou servidores, use também rate limiting centralizado no proxy/API gateway com Redis ou serviço equivalente.
+
+## Retenção das gravações
+
+1. Execute `python scripts/migrate_recording_retention.py` uma única vez em cada banco.
+2. No Admin, informe o prazo de retenção de cada plano e o e-mail responsável em **Clientes e licenças**.
+3. Configure `PUBLIC_BASE_URL`, `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` e `SMTP_FROM` no `.env`.
+4. Teste manualmente com `python scripts/run_recording_maintenance.py`.
+5. Depois do teste, defina `RECORDING_MAINTENANCE_ENABLED=true` para executar a manutenção a cada 15 minutos junto do servidor.
+
+O sistema envia um link autenticado quando a gravação fica disponível. Se não houver download, envia um aviso final com todas as gravações pendentes e concede mais 48 horas. O vídeo é excluído ao final do prazo, mas seus metadados de auditoria permanecem no banco. Sem um e-mail responsável e sem SMTP configurado, uma gravação não baixada não é excluída automaticamente, evitando perda silenciosa.

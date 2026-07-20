@@ -71,6 +71,7 @@ def plan_from_row(row):
         "maxParticipantsMonth": row.get("max_participants_month"),
         "maxAdminUsers": row.get("max_admin_users"),
         "resultRetentionMonths": row.get("result_retention_months"),
+        "recordingRetentionDays": int(row.get("recording_retention_days") or 5),
         "features": clean_features(features),
         "updatedAt": row.get("updated_at").isoformat() if row.get("updated_at") else None,
     }
@@ -240,6 +241,7 @@ def create_admin_blueprint(open_database, token_payload):
             "maxParticipantsMonth": nullable_integer(data.get("maxParticipantsMonth")),
             "maxAdminUsers": nullable_integer(data.get("maxAdminUsers")),
             "resultRetentionMonths": nullable_integer(data.get("resultRetentionMonths"), 1, 1200),
+            "recordingRetentionDays": nullable_integer(data.get("recordingRetentionDays"), 1, 365) or 5,
             "features": clean_features(data.get("features")),
         }
 
@@ -259,9 +261,9 @@ def create_admin_blueprint(open_database, token_payload):
             if cursor.fetchone():
                 return jsonify({"success": False, "message": "Já existe um plano com este nome."}), 409
             cursor.execute(
-                "INSERT INTO license_plans (name, slug, description, monthly_price, status, max_exams, max_participants_month, max_admin_users, result_retention_months, features_json) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (plan["name"], plan["slug"], plan["description"], plan["monthlyPrice"], plan["status"], plan["maxExams"], plan["maxParticipantsMonth"], plan["maxAdminUsers"], plan["resultRetentionMonths"], json.dumps(plan["features"])),
+                "INSERT INTO license_plans (name, slug, description, monthly_price, status, max_exams, max_participants_month, max_admin_users, result_retention_months, recording_retention_days, features_json) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                (plan["name"], plan["slug"], plan["description"], plan["monthlyPrice"], plan["status"], plan["maxExams"], plan["maxParticipantsMonth"], plan["maxAdminUsers"], plan["resultRetentionMonths"], plan["recordingRetentionDays"], json.dumps(plan["features"])),
             )
             connection.commit()
             return jsonify({"success": True, "plan": {**plan, "id": cursor.lastrowid}}), 201
@@ -288,8 +290,8 @@ def create_admin_blueprint(open_database, token_payload):
             if cursor.fetchone():
                 return jsonify({"success": False, "message": "Já existe outro plano com este nome."}), 409
             cursor.execute(
-                "UPDATE license_plans SET name=%s, slug=%s, description=%s, monthly_price=%s, status=%s, max_exams=%s, max_participants_month=%s, max_admin_users=%s, result_retention_months=%s, features_json=%s WHERE id=%s",
-                (plan["name"], plan["slug"], plan["description"], plan["monthlyPrice"], plan["status"], plan["maxExams"], plan["maxParticipantsMonth"], plan["maxAdminUsers"], plan["resultRetentionMonths"], json.dumps(plan["features"]), plan_id),
+                "UPDATE license_plans SET name=%s, slug=%s, description=%s, monthly_price=%s, status=%s, max_exams=%s, max_participants_month=%s, max_admin_users=%s, result_retention_months=%s, recording_retention_days=%s, features_json=%s WHERE id=%s",
+                (plan["name"], plan["slug"], plan["description"], plan["monthlyPrice"], plan["status"], plan["maxExams"], plan["maxParticipantsMonth"], plan["maxAdminUsers"], plan["resultRetentionMonths"], plan["recordingRetentionDays"], json.dumps(plan["features"]), plan_id),
             )
             connection.commit()
             return jsonify({"success": True, "plan": {**plan, "id": plan_id}})
@@ -307,7 +309,7 @@ def create_admin_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "SELECT e.id AS company_id, e.RazaoSocial, e.CNPJ, l.status, l.starts_at, l.ends_at, l.plan_id, "
-                "l.max_exams_override, l.max_participants_override, l.notes, l.monthly_value, l.billing_due_day, l.payment_status, l.next_due_at, l.last_paid_at, p.name AS plan_name, p.monthly_price "
+                "l.max_exams_override, l.max_participants_override, l.notes, l.monthly_value, l.billing_due_day, l.payment_status, l.next_due_at, l.last_paid_at, l.recording_contact_email, p.name AS plan_name, p.monthly_price "
                 "FROM empresas e LEFT JOIN company_licenses l ON l.company_id = e.id "
                 "LEFT JOIN license_plans p ON p.id = l.plan_id ORDER BY e.RazaoSocial LIMIT 1000"
             )
@@ -319,7 +321,7 @@ def create_admin_blueprint(open_database, token_payload):
                     "startsAt": serialize_date(row.get("starts_at")), "endsAt": serialize_date(row.get("ends_at")),
                     "maxExamsOverride": row.get("max_exams_override"), "maxParticipantsOverride": row.get("max_participants_override"),
                     "monthlyValue": float(row.get("monthly_value") or row.get("monthly_price") or 0), "billingDueDay": row.get("billing_due_day") or 10,
-                    "paymentStatus": row.get("payment_status") or "pending", "nextDueAt": serialize_date(row.get("next_due_at")), "lastPaidAt": serialize_date(row.get("last_paid_at")), "notes": row.get("notes") or "",
+                    "paymentStatus": row.get("payment_status") or "pending", "nextDueAt": serialize_date(row.get("next_due_at")), "lastPaidAt": serialize_date(row.get("last_paid_at")), "recordingContactEmail": row.get("recording_contact_email") or "", "notes": row.get("notes") or "",
                 })
             return jsonify({"licenses": licenses})
         finally:
@@ -337,6 +339,9 @@ def create_admin_blueprint(open_database, token_payload):
             return jsonify({"success": False, "message": "Status de licença inválido."}), 400
         plan_id = nullable_integer(data.get("planId"), 1)
         features_override = data.get("featuresOverride")
+        recording_contact_email = text(data.get("recordingContactEmail"), 254).lower()
+        if recording_contact_email and not EMAIL_PATTERN.fullmatch(recording_contact_email):
+            return jsonify({"success": False, "message": "Informe um e-mail responsável válido."}), 400
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
@@ -348,9 +353,9 @@ def create_admin_blueprint(open_database, token_payload):
                 if not cursor.fetchone():
                     return jsonify({"success": False, "message": "Plano não encontrado."}), 404
             cursor.execute(
-                "INSERT INTO company_licenses (company_id, plan_id, monthly_value, billing_due_day, payment_status, next_due_at, status, starts_at, ends_at, max_exams_override, max_participants_override, features_override_json, notes) "
-                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE plan_id=VALUES(plan_id), monthly_value=VALUES(monthly_value), billing_due_day=VALUES(billing_due_day), payment_status=VALUES(payment_status), next_due_at=VALUES(next_due_at), status=VALUES(status), starts_at=VALUES(starts_at), ends_at=VALUES(ends_at), max_exams_override=VALUES(max_exams_override), max_participants_override=VALUES(max_participants_override), features_override_json=VALUES(features_override_json), notes=VALUES(notes)",
-                (company_id, plan_id, nullable_decimal(data.get("monthlyValue")), nullable_integer(data.get("billingDueDay"), 1, 28) or 10, text(data.get("paymentStatus"), 20, "pending"), text(data.get("nextDueAt"), 10) or None, status, text(data.get("startsAt"), 10) or None, text(data.get("endsAt"), 10) or None, nullable_integer(data.get("maxExamsOverride")), nullable_integer(data.get("maxParticipantsOverride")), json.dumps(clean_features(features_override)) if isinstance(features_override, list) else None, text(data.get("notes"), 3000)),
+                "INSERT INTO company_licenses (company_id, plan_id, monthly_value, billing_due_day, payment_status, next_due_at, recording_contact_email, status, starts_at, ends_at, max_exams_override, max_participants_override, features_override_json, notes) "
+                "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s) ON DUPLICATE KEY UPDATE plan_id=VALUES(plan_id), monthly_value=VALUES(monthly_value), billing_due_day=VALUES(billing_due_day), payment_status=VALUES(payment_status), next_due_at=VALUES(next_due_at), recording_contact_email=VALUES(recording_contact_email), status=VALUES(status), starts_at=VALUES(starts_at), ends_at=VALUES(ends_at), max_exams_override=VALUES(max_exams_override), max_participants_override=VALUES(max_participants_override), features_override_json=VALUES(features_override_json), notes=VALUES(notes)",
+                (company_id, plan_id, nullable_decimal(data.get("monthlyValue")), nullable_integer(data.get("billingDueDay"), 1, 28) or 10, text(data.get("paymentStatus"), 20, "pending"), text(data.get("nextDueAt"), 10) or None, recording_contact_email or None, status, text(data.get("startsAt"), 10) or None, text(data.get("endsAt"), 10) or None, nullable_integer(data.get("maxExamsOverride")), nullable_integer(data.get("maxParticipantsOverride")), json.dumps(clean_features(features_override)) if isinstance(features_override, list) else None, text(data.get("notes"), 3000)),
             )
             connection.commit()
             return jsonify({"success": True, "license": company_license_snapshot(connection, company_id)})

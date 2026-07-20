@@ -229,7 +229,7 @@ def create_results_blueprint(open_database, token_payload):
                     for event in cursor.fetchall()
                 ]
                 cursor.execute(
-                    "SELECT status,content_type,size_bytes,chunk_count,sha256,started_at,completed_at "
+                    "SELECT status,content_type,size_bytes,chunk_count,sha256,started_at,completed_at,available_until,delete_after,downloaded_at,deleted_at,deletion_reason "
                     "FROM attempt_recordings WHERE attempt_id=%s",
                     (attempt_id,),
                 )
@@ -243,6 +243,11 @@ def create_results_blueprint(open_database, token_payload):
                         "sha256": recording.get("sha256"),
                         "startedAt": recording["started_at"].isoformat() if recording.get("started_at") else None,
                         "completedAt": recording["completed_at"].isoformat() if recording.get("completed_at") else None,
+                        "availableUntil": recording["available_until"].isoformat() if recording.get("available_until") else None,
+                        "deleteAfter": recording["delete_after"].isoformat() if recording.get("delete_after") else None,
+                        "downloadedAt": recording["downloaded_at"].isoformat() if recording.get("downloaded_at") else None,
+                        "deletedAt": recording["deleted_at"].isoformat() if recording.get("deleted_at") else None,
+                        "deletionReason": recording.get("deletion_reason") or "",
                         "url": f"/api/company/attempts/{attempt_id}/recording" if recording.get("status") == "completed" else None,
                     }
             return jsonify({"result": result})

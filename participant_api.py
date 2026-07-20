@@ -558,6 +558,14 @@ def create_participant_blueprint(open_database, token_payload):
             row = attempt_for_user(cursor, attempt_id, user_id)
             if not row or not row.get("require_recording"):
                 return jsonify({"success": False, "message": "Gravação não encontrada."}), 404
+            cursor.execute(
+                "SELECT COALESCE(p.recording_retention_days,5) AS retention_days "
+                "FROM exam_attempts a LEFT JOIN company_licenses l ON l.company_id=a.company_id "
+                "LEFT JOIN license_plans p ON p.id=l.plan_id WHERE a.id=%s",
+                (attempt_id,),
+            )
+            retention_row = cursor.fetchone() or {}
+            retention_days = max(1, min(365, int(retention_row.get("retention_days") or 5)))
             cursor.execute("SELECT * FROM attempt_recording_chunks WHERE attempt_id=%s ORDER BY sequence_number", (attempt_id,))
             chunks = cursor.fetchall()
             if not chunks:
@@ -583,9 +591,9 @@ def create_participant_blueprint(open_database, token_payload):
             cursor.execute("SELECT storage_name FROM attempt_recordings WHERE attempt_id=%s", (attempt_id,))
             previous = cursor.fetchone()
             cursor.execute(
-                "INSERT INTO attempt_recordings (attempt_id,status,storage_name,content_type,size_bytes,chunk_count,sha256,started_at,completed_at) "
-                "VALUES (%s,'completed',%s,%s,%s,%s,%s,NOW(),NOW()) ON DUPLICATE KEY UPDATE status='completed',storage_name=VALUES(storage_name),content_type=VALUES(content_type),size_bytes=VALUES(size_bytes),chunk_count=VALUES(chunk_count),sha256=VALUES(sha256),completed_at=NOW()",
-                (attempt_id, storage_name, content_type, size_bytes, len(chunks), digest.hexdigest()),
+                "INSERT INTO attempt_recordings (attempt_id,status,storage_name,content_type,size_bytes,chunk_count,sha256,started_at,completed_at,available_until,delete_after) "
+                "VALUES (%s,'completed',%s,%s,%s,%s,%s,NOW(),NOW(),DATE_ADD(NOW(),INTERVAL %s DAY),DATE_ADD(NOW(),INTERVAL %s DAY)) ON DUPLICATE KEY UPDATE status='completed',storage_name=VALUES(storage_name),content_type=VALUES(content_type),size_bytes=VALUES(size_bytes),chunk_count=VALUES(chunk_count),sha256=VALUES(sha256),completed_at=NOW(),available_until=VALUES(available_until),delete_after=VALUES(delete_after),downloaded_at=NULL,first_notice_sent_at=NULL,reminder_sent_at=NULL,deleted_at=NULL,deletion_reason=NULL,notification_error=NULL",
+                (attempt_id, storage_name, content_type, size_bytes, len(chunks), digest.hexdigest(), retention_days, retention_days + 2),
             )
             cursor.execute("UPDATE exam_attempts SET recording_status='completed' WHERE id=%s AND user_id=%s", (attempt_id, user_id))
             store_audit_event(cursor, attempt_id, "recording_completed", "info", {"chunkCount": len(chunks), "sizeBytes": size_bytes})
@@ -742,7 +750,7 @@ def create_participant_blueprint(open_database, token_payload):
         cursor = connection.cursor(dictionary=True)
         try:
             cursor.execute(
-                "SELECT r.storage_name,r.content_type FROM attempt_recordings r "
+                "SELECT r.id,r.storage_name,r.content_type,r.available_until FROM attempt_recordings r "
                 "JOIN exam_attempts a ON a.id=r.attempt_id WHERE r.attempt_id=%s AND a.company_id=%s AND r.status='completed'",
                 (attempt_id, int(payload["sub"])),
             )
@@ -753,7 +761,11 @@ def create_participant_blueprint(open_database, token_payload):
             path = (recording_root / row["storage_name"]).resolve()
             if path.parent != directory or not path.is_file():
                 return jsonify({"success": False, "message": "Arquivo de gravação não encontrado."}), 404
-            return send_file(path, mimetype=row["content_type"], download_name=f"auditoria-{attempt_id}{path.suffix}", as_attachment=False, conditional=True, max_age=0)
+            as_download = request.args.get("download") == "1"
+            if as_download:
+                cursor.execute("UPDATE attempt_recordings SET downloaded_at=COALESCE(downloaded_at,NOW()) WHERE id=%s", (row["id"],))
+                connection.commit()
+            return send_file(path, mimetype=row["content_type"], download_name=f"auditoria-{attempt_id}{path.suffix}", as_attachment=as_download, conditional=True, max_age=0)
         finally:
             cursor.close()
             connection.close()
