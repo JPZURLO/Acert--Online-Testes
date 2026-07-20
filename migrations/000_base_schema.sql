@@ -1,0 +1,21 @@
+-- Estrutura mínima legada exigida antes das migrações versionadas.
+-- Este arquivo é usado apenas na criação de um banco totalmente vazio.
+CREATE TABLE IF NOT EXISTS users (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    NomeCompleto VARCHAR(180) NOT NULL,
+    email VARCHAR(254) NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_users_email (email)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS empresas (
+    id BIGINT NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    RazaoSocial VARCHAR(180) NOT NULL,
+    CNPJ VARCHAR(24) NOT NULL,
+    senha VARCHAR(255) NOT NULL,
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    UNIQUE KEY uq_empresas_cnpj (CNPJ)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

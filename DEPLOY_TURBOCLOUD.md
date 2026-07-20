@@ -15,13 +15,18 @@ No cPanel, abra **Backup/JetBackup** e gere um backup do site e do banco WordPre
 ## 2. Banco de produção
 
 1. Em **MySQL Databases**, crie um banco e um usuário exclusivos para o sistema.
-2. Conceda os privilégios necessários desse usuário somente nesse banco.
-3. No MySQL Workbench local, exporte o banco escolhido para produção em arquivo SQL autocontido.
-4. No phpMyAdmin da TurboCloud, selecione o banco recém-criado e importe o SQL.
-5. Não importe senhas de usuários MySQL nem comandos `CREATE DATABASE`; o prefixo do cPanel deve ser preservado.
-6. Depois da importação, execute a migração `python scripts/migrate_company_operations.py` no ambiente Python da hospedagem.
+2. Conceda **ALL PRIVILEGES** a esse usuário somente nesse banco.
+3. Cadastre `DB_HOST`, `DB_PORT`, `DB_USER`, `DB_PASSWORD` e `DB_NAME` no **Setup Python App**.
+4. Com o virtualenv da aplicação ativado, execute:
 
-Antes da exportação, confirme se a origem será `acert` ou `acert_homologacao`. Remova participantes, gravações e testes fictícios caso existam.
+```bash
+cd ~/online_test_app
+python scripts/bootstrap_production_database.py
+python scripts/create_admin.py
+python scripts/create_company.py
+```
+
+O instalador recusa qualquer banco que já contenha tabelas. Ele cria somente a estrutura, os planos padrão e os acessos informados nos dois comandos seguintes; nenhum participante, teste, resultado ou gravação de homologação é copiado.
 
 ## 3. Código da aplicação
 
