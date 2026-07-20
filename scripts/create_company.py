@@ -1,4 +1,5 @@
-import getpass
+﻿import getpass
+import os
 import re
 import sys
 from pathlib import Path
@@ -17,13 +18,39 @@ def digits(value):
     return "".join(character for character in str(value or "") if character.isdigit())
 
 
+def company_credentials():
+    company_name = os.getenv("BOOTSTRAP_COMPANY_NAME", "").strip()
+    cnpj = digits(os.getenv("BOOTSTRAP_COMPANY_CNPJ", ""))
+    plan_slug = os.getenv("BOOTSTRAP_COMPANY_PLAN", "").strip().lower()
+    recording_email = os.getenv("BOOTSTRAP_COMPANY_RECORDING_EMAIL", "").strip().lower()
+    password = os.getenv("BOOTSTRAP_COMPANY_PASSWORD", "")
+    environment_mode = any((company_name, cnpj, plan_slug, recording_email, password))
+    if environment_mode:
+        required = (
+            ("BOOTSTRAP_COMPANY_NAME", company_name),
+            ("BOOTSTRAP_COMPANY_CNPJ", cnpj),
+            ("BOOTSTRAP_COMPANY_PASSWORD", password),
+        )
+        missing = [variable for variable, value in required if not value]
+        if missing:
+            raise SystemExit(f"Configure também: {', '.join(missing)}.")
+        return company_name, cnpj, plan_slug or "profissional", recording_email, password, password, True
+
+    return (
+        input("Razão social da empresa: ").strip(),
+        digits(input("CNPJ: ")),
+        input("Plano [profissional]: ").strip().lower() or "profissional",
+        input("E-mail responsável pelas gravações: ").strip().lower(),
+        getpass.getpass("Senha da empresa (mínimo de 12 caracteres): "),
+        None,
+        False,
+    )
+
+
 def main():
-    company_name = input("Razão social da empresa: ").strip()
-    cnpj = digits(input("CNPJ: "))
-    plan_slug = input("Plano [profissional]: ").strip().lower() or "profissional"
-    recording_email = input("E-mail responsável pelas gravações: ").strip().lower()
-    password = getpass.getpass("Senha da empresa (mínimo de 12 caracteres): ")
-    confirmation = getpass.getpass("Confirme a senha: ")
+    company_name, cnpj, plan_slug, recording_email, password, confirmation, environment_mode = company_credentials()
+    if confirmation is None:
+        confirmation = getpass.getpass("Confirme a senha: ")
 
     if not company_name:
         raise SystemExit("Informe a razão social.")
@@ -73,6 +100,8 @@ def main():
         connection.commit()
         print(f"Empresa criada ou atualizada com sucesso. ID: {company_id}")
         print(f"Login: CNPJ {cnpj} | Plano: {plan_slug}")
+        if environment_mode:
+            print("Remova as variáveis BOOTSTRAP_COMPANY_* do painel agora.")
     except Exception:
         connection.rollback()
         raise
