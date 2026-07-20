@@ -55,7 +55,7 @@ No cPanel, abra **Setup Python App** e crie a aplicação:
 - Modo: Production
 - Application root: `online_test_app`
 - Application URL: `https://www.onlineteste.com.br/`
-- Startup file: `passenger_wsgi.py`
+- Startup file: `app_wsgi.py`
 - Entry point: `application`
 
 Depois clique para instalar as dependências do `requirements.txt` no ambiente virtual criado pelo cPanel.
