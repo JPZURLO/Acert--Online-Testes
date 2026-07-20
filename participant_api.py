@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 
 from flask import Blueprint, jsonify, request, send_file
+from grading import grade_for_score, normalize_grading_scale
 
 
 MAX_IDENTITY_FILE_BYTES = 2_400_000
@@ -147,7 +148,7 @@ def create_participant_blueprint(open_database, token_payload):
 
     def attempt_for_user(cursor, attempt_id, user_id):
         cursor.execute(
-            "SELECT a.*, e.title, e.description, e.duration_minutes, e.total_points, e.passing_score, "
+            "SELECT a.*, e.title, e.description, e.duration_minutes, e.total_points, e.passing_score, e.grading_scale_json, "
             "e.result_delivery, e.require_identity, e.require_recording, e.allow_resume, e.show_answer_details, "
             "e.questions_json, p.full_name, p.email, c.RazaoSocial AS company_name, b.logo_data, "
             "b.primary_color, b.accent_color, b.background_color, b.font_family, b.candidate_instructions "
@@ -425,6 +426,7 @@ def create_participant_blueprint(open_database, token_payload):
                 if result_row:
                     result = {
                         "score": float(result_row["score"] or 0) if result_row.get("release_status") == "released" else None,
+                        "grade": grade_for_score(result_row["score"], row.get("grading_scale_json")) if result_row.get("release_status") == "released" else None,
                         "status": result_row.get("result_status") or "review",
                         "releaseStatus": result_row.get("release_status") or "pending",
                         "notes": result_row.get("reviewer_notes") or "",
@@ -441,7 +443,8 @@ def create_participant_blueprint(open_database, token_payload):
                     },
                     "exam": {
                         "id": row["exam_id"], "title": row["title"], "description": row.get("description") or "",
-                        "durationMinutes": row.get("duration_minutes") or 60, "passingScore": row.get("passing_score") or 60,
+                        "durationMinutes": row.get("duration_minutes") or 60, "passingScore": row.get("passing_score") if row.get("passing_score") is not None else 60,
+                        "gradingScale": normalize_grading_scale(row.get("grading_scale_json")),
                         "questions": questions, "companyName": row.get("company_name") or "Empresa",
                         "instructions": row.get("candidate_instructions") or "Leia as instruções com atenção.", "requireRecording": bool(row.get("require_recording")),
                     },
@@ -655,7 +658,7 @@ def create_participant_blueprint(open_database, token_payload):
             answers, objective_points, total_points, percentage, correct_answers, has_essay = score_answers(questions, supplied)
             violated = bool(termination_reason)
             needs_review = violated or row.get("result_delivery") == "manual" or has_essay
-            result_status = "invalidated" if violated else ("review" if needs_review else ("approved" if percentage >= float(row.get("passing_score") or 60) else "failed"))
+            result_status = "invalidated" if violated else ("review" if needs_review else ("approved" if percentage >= float(60 if row.get("passing_score") is None else row["passing_score"]) else "failed"))
             release_status = "pending" if needs_review else "released"
             review_status = "pending" if needs_review else "completed"
             reviewer_notes = f"Encerramento automático de segurança: {termination_reason}" if violated else None
@@ -686,7 +689,7 @@ def create_participant_blueprint(open_database, token_payload):
             cursor.execute("UPDATE company_participants SET status='completed',progress=100,last_access=NOW() WHERE id=%s", (row["participant_id"],))
             store_audit_event(cursor, attempt_id, "application_submitted", "critical" if violated else "info", {"terminationReason": termination_reason or None})
             connection.commit()
-            return jsonify({"success": True, "attemptId": attempt_id, "reviewStatus": review_status, "releaseStatus": release_status, "resultStatus": result_status, "score": percentage if release_status == "released" else None, "terminated": violated, "terminationReason": termination_reason or None})
+            return jsonify({"success": True, "attemptId": attempt_id, "reviewStatus": review_status, "releaseStatus": release_status, "resultStatus": result_status, "score": percentage if release_status == "released" else None, "grade": grade_for_score(percentage, row.get("grading_scale_json")) if release_status == "released" else None, "terminated": violated, "terminationReason": termination_reason or None})
         finally:
             cursor.close()
             connection.close()

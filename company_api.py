@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, jsonify, request
 
 from question_import import QuestionImportError, parse_question_workbook
+from grading import grading_scale_json, normalize_grading_scale
 
 
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -124,6 +125,7 @@ def clean_exam(data):
         "description": clean_text(data.get("description"), 3000),
         "durationMinutes": clamp_integer(data.get("durationMinutes"), 1, 1440, 60),
         "passingScore": clamp_integer(data.get("passingScore"), 0, 100, 60),
+        "gradingScale": normalize_grading_scale(data.get("gradingScale")),
         "shuffleQuestions": bool(data.get("shuffleQuestions", False)),
         "status": status if status in ALLOWED_STATUSES else "draft",
         "resultDelivery": result_delivery if result_delivery in ALLOWED_RESULT_DELIVERY else "manual",
@@ -159,7 +161,8 @@ def exam_from_row(row, include_questions=False):
         "description": row.get("description") or "",
         "durationMinutes": row.get("duration_minutes") or 60,
         "totalPoints": row.get("total_points") or 0,
-        "passingScore": row.get("passing_score") or 60,
+        "passingScore": row.get("passing_score") if row.get("passing_score") is not None else 60,
+        "gradingScale": normalize_grading_scale(row.get("grading_scale_json")),
         "shuffleQuestions": bool(row.get("shuffle_questions")),
         "status": row.get("status") or "draft",
         "resultDelivery": row.get("result_delivery") or "manual",
@@ -206,7 +209,7 @@ def create_company_blueprint(open_database, token_payload):
             cursor.execute("SELECT * FROM company_brand_settings WHERE company_id = %s", (company_id,))
             branding = branding_from_row(cursor.fetchone())
             cursor.execute(
-                "SELECT id, title, description, duration_minutes, total_points, passing_score, "
+                "SELECT id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, "
                 "shuffle_questions, status, result_delivery, available_from, available_until, require_identity, "
                 "require_recording, allow_resume, show_answer_details, updated_at FROM company_exams "
                 "WHERE company_id = %s ORDER BY updated_at DESC LIMIT 100",
@@ -266,9 +269,9 @@ def create_company_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "INSERT INTO company_exams "
-                "(company_id, title, description, duration_minutes, total_points, passing_score, shuffle_questions, status, "
+                "(company_id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, shuffle_questions, status, "
                 "result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, questions_json) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (
                     company_id,
                     exam["title"],
@@ -276,6 +279,7 @@ def create_company_blueprint(open_database, token_payload):
                     exam["durationMinutes"],
                     exam["totalPoints"],
                     exam["passingScore"],
+                    grading_scale_json(exam["gradingScale"]),
                     exam["shuffleQuestions"],
                     exam["status"],
                     exam["resultDelivery"],
@@ -348,7 +352,7 @@ def create_company_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "UPDATE company_exams SET title = %s, description = %s, duration_minutes = %s, "
-                "total_points = %s, passing_score = %s, shuffle_questions = %s, status = %s, result_delivery = %s, "
+                "total_points = %s, passing_score = %s, grading_scale_json = %s, shuffle_questions = %s, status = %s, result_delivery = %s, "
                 "available_from = %s, available_until = %s, require_identity = %s, require_recording = %s, "
                 "allow_resume = %s, show_answer_details = %s, questions_json = %s "
                 "WHERE id = %s AND company_id = %s",
@@ -358,6 +362,7 @@ def create_company_blueprint(open_database, token_payload):
                     exam["durationMinutes"],
                     exam["totalPoints"],
                     exam["passingScore"],
+                    grading_scale_json(exam["gradingScale"]),
                     exam["shuffleQuestions"],
                     exam["status"],
                     exam["resultDelivery"],

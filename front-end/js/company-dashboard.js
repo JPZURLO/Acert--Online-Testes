@@ -98,7 +98,8 @@ function cacheElements() {
     'exam-picker', 'page-title', 'breadcrumb-mode', 'publish-modal', 'modal-question-count',
     'modal-total-points', 'modal-duration', 'toast-region', 'question-import-file',
     'question-import-mode', 'question-import-errors', 'result-delivery', 'available-from', 'available-until',
-    'require-identity', 'require-recording', 'allow-resume', 'show-answer-details'
+    'require-identity', 'require-recording', 'allow-resume', 'show-answer-details', 'grading-scale-type',
+    'grading-preview', 'concept-scale-editor', 'concept-bands'
   ];
   ids.forEach(id => { elements[id] = document.getElementById(id); });
 }
@@ -225,12 +226,80 @@ function updateSummary() {
   elements['modal-total-points'].textContent = String(total);
 }
 
+function defaultGradingScale() {
+  return {
+    type: 'numeric',
+    maximum: 100,
+    decimals: 0,
+    bands: [
+      { min: 0, code: 'I', label: 'Irregular' },
+      { min: 50, code: 'R', label: 'Regular' },
+      { min: 70, code: 'B', label: 'Bom' },
+      { min: 90, code: 'MB', label: 'Muito bom' }
+    ]
+  };
+}
+
+function collectGradingScale() {
+  const selected = elements['grading-scale-type'].value;
+  if (selected === 'concept') {
+    const bands = [...elements['concept-bands'].querySelectorAll('.concept-band')].map(row => ({
+      code: row.querySelector('[data-field="code"]').value.trim(),
+      label: row.querySelector('[data-field="label"]').value.trim(),
+      min: Number(row.querySelector('[data-field="min"]').value) || 0
+    }));
+    return { type: 'concept', maximum: 100, decimals: 0, bands };
+  }
+  const maximum = Number(selected.split('-')[1]) || 100;
+  return { type: 'numeric', maximum, decimals: maximum === 100 ? 0 : 1, bands: defaultGradingScale().bands };
+}
+
+function updateGradingPreview() {
+  const score = Math.max(0, Math.min(100, Number(elements['passing-score'].value) || 0));
+  const scale = collectGradingScale();
+  if (scale.type === 'concept') {
+    const bands = [...scale.bands].sort((a, b) => a.min - b.min);
+    const band = bands.reduce((current, item) => score >= item.min ? item : current, bands[0]);
+    elements['grading-preview'].textContent = band ? `${band.code} — ${band.label}` : 'Configure os conceitos';
+  } else {
+    const converted = score * scale.maximum / 100;
+    elements['grading-preview'].textContent = `${converted.toLocaleString('pt-BR', { maximumFractionDigits: scale.decimals })} / ${scale.maximum}`;
+  }
+}
+
+function renderGradingScale(scale = defaultGradingScale()) {
+  const normalized = scale && typeof scale === 'object' ? scale : defaultGradingScale();
+  elements['grading-scale-type'].value = normalized.type === 'concept' ? 'concept' : `numeric-${[5, 10, 100].includes(Number(normalized.maximum)) ? Number(normalized.maximum) : 100}`;
+  const bands = Array.isArray(normalized.bands) && normalized.bands.length ? normalized.bands : defaultGradingScale().bands;
+  elements['concept-bands'].replaceChildren();
+  bands.forEach((band, index) => {
+    const row = document.createElement('div');
+    row.className = 'concept-band';
+    [['code', band.code], ['label', band.label], ['min', band.min]].forEach(([field, value]) => {
+      const input = document.createElement('input');
+      input.dataset.field = field;
+      input.value = value ?? '';
+      input.maxLength = field === 'code' ? 8 : field === 'label' ? 50 : 3;
+      if (field === 'min') {
+        input.type = 'number';
+        input.min = '0';
+        input.max = '100';
+        input.disabled = index === 0;
+      }
+      row.appendChild(input);
+    });
+    elements['concept-bands'].appendChild(row);
+  });
+  elements['concept-scale-editor'].hidden = normalized.type !== 'concept';
+  updateGradingPreview();
+}
 function collectExam() {
   return {
     title: elements['exam-title'].value.trim(),
     description: elements['exam-description'].value.trim(),
     durationMinutes: Number(elements['exam-duration'].value) || 60,
     passingScore: Number(elements['passing-score'].value) || 0,
+    gradingScale: collectGradingScale(),
     shuffleQuestions: elements['shuffle-questions'].checked,
     status: state.status,
     resultDelivery: elements['result-delivery'].value,
@@ -251,6 +320,7 @@ function updatePreview() {
   elements['preview-duration'].textContent = `${duration} min`;
   elements['modal-duration'].textContent = String(duration);
   elements['title-count'].textContent = `${elements['exam-title'].value.length}/180`;
+  updateGradingPreview();
   updateSummary();
 }
 
@@ -375,6 +445,7 @@ function fillExam(exam) {
   elements['exam-description'].value = exam.description || '';
   elements['exam-duration'].value = exam.durationMinutes || 60;
   elements['passing-score'].value = exam.passingScore ?? 60;
+  renderGradingScale(exam.gradingScale);
   elements['shuffle-questions'].checked = Boolean(exam.shuffleQuestions);
   elements['result-delivery'].value = exam.resultDelivery || 'manual';
   elements['available-from'].value = String(exam.availableFrom || '').replace(' ', 'T').slice(0, 16);
@@ -399,6 +470,7 @@ function resetExam() {
     description: 'Avaliação para identificar competências técnicas e comportamentais alinhadas à vaga.',
     durationMinutes: 60,
     passingScore: 60,
+    gradingScale: defaultGradingScale(),
     shuffleQuestions: false,
     resultDelivery: 'manual',
     availableFrom: null,
@@ -661,6 +733,15 @@ function bindEvents() {
   ['exam-title', 'exam-description', 'exam-duration', 'passing-score', 'shuffle-questions', 'result-delivery', 'available-from', 'available-until', 'require-identity', 'require-recording', 'allow-resume', 'show-answer-details'].forEach(id => {
     document.getElementById(id).addEventListener('input', () => { updatePreview(); markDirty(); });
     document.getElementById(id).addEventListener('change', () => { updatePreview(); markDirty(); });
+  });
+  elements['grading-scale-type'].addEventListener('change', () => {
+    const scale = collectGradingScale();
+    renderGradingScale(scale);
+    markDirty();
+  });
+  elements['concept-bands'].addEventListener('input', () => {
+    updateGradingPreview();
+    markDirty();
   });
   elements['questions-list'].addEventListener('input', event => syncQuestionFromTarget(event.target));
   elements['questions-list'].addEventListener('change', event => syncQuestionFromTarget(event.target));

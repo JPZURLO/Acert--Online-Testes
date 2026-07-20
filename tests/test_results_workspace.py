@@ -6,7 +6,7 @@ from pathlib import Path
 
 from flask import Flask, jsonify
 
-from results_api import compute_dashboard, create_results_blueprint, result_label
+from results_api import compute_dashboard, create_results_blueprint, result_from_row, result_label
 
 
 os.environ.setdefault("JWT_SECRET", "test-secret-not-for-production")
@@ -32,6 +32,18 @@ class ResultsWorkspaceTests(unittest.TestCase):
         self.assertEqual(result_label(80, 70), "approved")
         self.assertEqual(result_label(65, 70), "review")
         self.assertEqual(result_label(45, 70), "failed")
+
+    def test_result_uses_exam_grading_scale(self):
+        result = result_from_row({
+            "id": 1,
+            "participant_id": 2,
+            "exam_id": 3,
+            "score": 82,
+            "passing_score": 60,
+            "grading_scale_json": '{"type":"numeric","maximum":10,"decimals":1}',
+        })
+        self.assertEqual(result["grade"]["value"], 8.2)
+        self.assertEqual(result["grade"]["maximum"], 10)
 
     def test_dashboard_metrics_are_computed(self):
         rows = [

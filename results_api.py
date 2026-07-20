@@ -3,6 +3,7 @@ from collections import defaultdict
 from datetime import datetime, timedelta
 
 from flask import Blueprint, jsonify, request
+from grading import grade_for_score
 
 
 def clean_text(value, maximum):
@@ -21,7 +22,7 @@ def result_label(score, passing_score, stored_status=None):
     if stored_status in {"approved", "review", "failed", "invalidated"}:
         return stored_status
     score = float(score or 0)
-    passing_score = float(passing_score or 60)
+    passing_score = float(60 if passing_score is None else passing_score)
     if score >= passing_score:
         return "approved"
     if score >= max(0, passing_score - 10):
@@ -31,7 +32,7 @@ def result_label(score, passing_score, stored_status=None):
 
 def result_from_row(row, include_details=False):
     score = float(row.get("score") or 0)
-    passing_score = float(row.get("passing_score") or 60)
+    passing_score = float(60 if row.get("passing_score") is None else row["passing_score"])
     result = {
         "id": row["id"],
         "attemptId": row.get("attempt_id"),
@@ -43,6 +44,7 @@ def result_from_row(row, include_details=False):
         "examTitle": row.get("exam_title") or "Teste",
         "score": round(score, 2),
         "maxScore": int(row.get("max_score") or 100),
+        "grade": grade_for_score(score, row.get("grading_scale_json")),
         "passingScore": round(passing_score, 2),
         "result": result_label(score, passing_score, row.get("result_status")),
         "durationSeconds": int(row.get("duration_seconds") or 0),
@@ -160,7 +162,7 @@ def create_results_blueprint(open_database, token_payload):
             company = cursor.fetchone()
             sql = (
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score, a.identity_status, "
+                "e.title AS exam_title, e.passing_score, e.grading_scale_json, a.identity_status, "
                 "(SELECT COUNT(*) FROM attempt_audit_events ae WHERE ae.attempt_id=a.id AND ae.severity IN ('warning','critical')) AS incident_count, "
                 "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
@@ -196,7 +198,7 @@ def create_results_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
-                "e.title AS exam_title, e.passing_score, a.identity_status, "
+                "e.title AS exam_title, e.passing_score, e.grading_scale_json, a.identity_status, "
                 "(SELECT COUNT(*) FROM attempt_audit_events ae WHERE ae.attempt_id=a.id AND ae.severity IN ('warning','critical')) AS incident_count, "
                 "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
@@ -261,7 +263,7 @@ def create_results_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT r.*, e.passing_score FROM company_results r JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
+            cursor.execute("SELECT r.*, e.passing_score, e.grading_scale_json FROM company_results r JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
             row = cursor.fetchone()
             if not row:
                 return jsonify({"success": False, "message": "Resultado não encontrado."}), 404
@@ -294,7 +296,7 @@ def create_results_blueprint(open_database, token_payload):
             if row.get("attempt_id"):
                 cursor.execute("UPDATE exam_attempts SET manual_score=%s,final_score=%s,review_status=%s,reviewer_notes=%s,reviewed_at=NOW() WHERE id=%s AND company_id=%s", (manual_total, score, "completed" if release else "pending", notes, row["attempt_id"], company_id))
             connection.commit()
-            cursor.execute("SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, e.title AS exam_title, e.passing_score FROM company_results r JOIN company_participants p ON p.id=r.participant_id AND p.company_id=r.company_id JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
+            cursor.execute("SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, e.title AS exam_title, e.passing_score, e.grading_scale_json FROM company_results r JOIN company_participants p ON p.id=r.participant_id AND p.company_id=r.company_id JOIN company_exams e ON e.id=r.exam_id AND e.company_id=r.company_id WHERE r.id=%s AND r.company_id=%s", (result_id, company_id))
             return jsonify({"success": True, "result": result_from_row(cursor.fetchone(), include_details=True)})
         except (TypeError, ValueError):
             connection.rollback()

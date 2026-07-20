@@ -6,7 +6,7 @@
   <meta name="description" content="Área da empresa para criação e personalização de testes ACERT.">
   <title>ACERT | Estúdio de Testes</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
-  <link rel="stylesheet" href="./css/styleTelaCliente.css">
+  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=2">
   <link rel="stylesheet" href="./css/dashboard-shell.css">
 </head>
 <body>
@@ -97,6 +97,19 @@
                 <div class="metric-field"><span class="metric-icon">♜</span><label>Pontuação total</label><div><output id="total-points">100</output><small>pontos</small></div></div>
                 <div class="metric-field"><span class="metric-icon">◎</span><label for="passing-score">Nota mínima</label><div><input id="passing-score" type="number" min="0" max="100" value="60"><small>%</small></div></div>
                 <label class="toggle-field" for="shuffle-questions"><span class="metric-icon">⌘</span><span><b>Embaralhar questões</b><small>Ordem diferente por candidato</small></span><input id="shuffle-questions" type="checkbox"><i></i></label>
+              </div>
+              <div class="grading-editor">
+                <div class="grading-heading">
+                  <div><strong>Escala de resultado</strong><small>Escolha como a nota será apresentada ao participante.</small></div>
+                  <label for="grading-scale-type">Formato<select id="grading-scale-type"><option value="numeric-100">Numérica — 0 a 100</option><option value="numeric-10">Numérica — 0 a 10</option><option value="numeric-5">Numérica — 0 a 5</option><option value="concept">Conceitos — I, R, B, MB</option></select></label>
+                </div>
+                <div class="grading-preview"><span>Exemplo com a nota mínima configurada</span><strong id="grading-preview">60 / 100</strong></div>
+                <div id="concept-scale-editor" class="concept-scale-editor" hidden>
+                  <div class="concept-labels"><span>Conceito</span><span>Descrição</span><span>A partir de (%)</span></div>
+                  <div id="concept-bands"></div>
+                  <small>Os intervalos são editáveis. A primeira faixa sempre começa em 0%.</small>
+                </div>
+                <p class="grading-note">A aprovação continua usando a nota mínima em percentual; a escala altera apenas a forma de exibir o resultado.</p>
               </div>
             </section>
 
@@ -231,6 +244,6 @@
   </template>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/company-dashboard.js?v=6"></script>
+  <script src="./js/company-dashboard.js?v=7"></script>
 </body>
 </html>

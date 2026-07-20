@@ -22,6 +22,8 @@ class CompanyWorkspaceValidationTests(unittest.TestCase):
         self.assertEqual(exam["durationMinutes"], 1440)
         self.assertEqual(exam["passingScore"], 0)
         self.assertEqual(exam["totalPoints"], 50)
+        self.assertEqual(exam["gradingScale"]["type"], "numeric")
+        self.assertEqual(exam["gradingScale"]["maximum"], 100)
         self.assertEqual(exam["questions"][0]["options"], ["Verdadeiro", "Falso"])
 
     def test_branding_rejects_unsafe_values(self):
