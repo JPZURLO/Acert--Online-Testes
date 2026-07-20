@@ -21,6 +21,7 @@ from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
 from participant_api import create_participant_blueprint
 from results_api import create_results_blueprint
+from support_finance_api import create_support_finance_blueprint
 
 load_dotenv()
 app = Flask(__name__, static_folder="front-end")
@@ -305,6 +306,7 @@ app.register_blueprint(create_participants_blueprint(open_database, token_payloa
 app.register_blueprint(create_participant_blueprint(open_database, token_payload))
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
 app.register_blueprint(create_admin_blueprint(open_database, token_payload))
+app.register_blueprint(create_support_finance_blueprint(open_database, token_payload))
 
 
 @app.post("/login")
