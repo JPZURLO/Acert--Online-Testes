@@ -113,6 +113,10 @@ def password_matches(stored_password, supplied_password):
     return legacy_match, legacy_match
 
 
+def normalize_cnpj(value):
+    return "".join(character for character in str(value or "") if character.isdigit())
+
+
 def login_limit_key(account_type, identifier):
     remote_address = request.remote_addr or "unknown"
     raw_key = f"{account_type}|{remote_address}|{identifier.lower()}".encode("utf-8")
@@ -336,9 +340,10 @@ def login():
 @app.post("/login_empresa")
 def login_empresa():
     data = request_json()
-    cnpj = str(data.get("CNPJ", "")).strip()
+    raw_cnpj = str(data.get("CNPJ", "")).strip()
+    cnpj = normalize_cnpj(raw_cnpj)
     supplied_password = data.get("senha")
-    if not cnpj or not supplied_password:
+    if len(cnpj) != 14 or not supplied_password:
         return jsonify({"success": False, "message": "CNPJ e senha são obrigatórios."}), 400
     limit_key = login_limit_key("company", cnpj)
     retry_after = login_rate_limiter.retry_after(limit_key)
@@ -347,7 +352,10 @@ def login_empresa():
     connection = open_database()
     cursor = connection.cursor(dictionary=True)
     try:
-        cursor.execute("SELECT id, RazaoSocial, senha FROM empresas WHERE CNPJ = %s LIMIT 1", (cnpj,))
+        cursor.execute(
+            "SELECT id, RazaoSocial, senha FROM empresas WHERE CNPJ IN (%s, %s) LIMIT 1",
+            (cnpj, raw_cnpj),
+        )
         company = cursor.fetchone()
         valid, needs_upgrade = password_matches(company.get("senha") if company else None, supplied_password)
         if not valid:

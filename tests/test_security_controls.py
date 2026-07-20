@@ -34,6 +34,11 @@ class SecurityControlsTests(unittest.TestCase):
     def test_plaintext_passwords_are_rejected_by_default(self):
         self.assertEqual(server.password_matches("senha-legada", "senha-legada"), (False, False))
 
+    def test_company_login_normalizes_masked_cnpj(self):
+        self.assertEqual(server.normalize_cnpj("99.999.999/0001-99"), "99999999000199")
+        login_script = Path("front-end/js/scriptLoginEmpresa.js").read_text(encoding="utf-8")
+        self.assertIn(".replace(/\\D/g, '')", login_script)
+
     def test_login_limiter_blocks_after_configured_failures(self):
         limiter = server.LoginRateLimiter(attempts=2, window_seconds=60)
         self.assertEqual(limiter.retry_after("key"), 0)

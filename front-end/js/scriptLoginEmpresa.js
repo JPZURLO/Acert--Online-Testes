@@ -3,7 +3,7 @@ const loginForm = document.getElementById('login-form');
 loginForm?.addEventListener('submit', function(event) {
     event.preventDefault();
 
-    const CNPJ = document.getElementById('CNPJ').value;
+    const CNPJ = document.getElementById('CNPJ').value.replace(/\D/g, '');
     const senha = document.getElementById('senha').value;
     const errorMessage = document.getElementById('error-message');
 
