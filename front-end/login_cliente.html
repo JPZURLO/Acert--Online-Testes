@@ -6,7 +6,7 @@
   <meta name="description" content="Área da empresa para criação e personalização de testes ACERT.">
   <title>ACERT | Estúdio de Testes</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
-  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=2">
+  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=3">
   <link rel="stylesheet" href="./css/dashboard-shell.css">
 </head>
 <body>
@@ -94,7 +94,7 @@
               <div class="panel-heading compact"><div><span class="section-kicker">REGRAS</span><h2 id="general-settings-title">Configurações gerais</h2></div></div>
               <div class="settings-grid">
                 <div class="metric-field"><span class="metric-icon">◷</span><label for="exam-duration">Duração</label><div><input id="exam-duration" type="number" min="1" max="1440" value="60"><small>min</small></div></div>
-                <div class="metric-field"><span class="metric-icon">♜</span><label>Pontuação total</label><div><output id="total-points">100</output><small>pontos</small></div></div>
+                <div class="metric-field"><span class="metric-icon">♜</span><label id="grading-scale-summary-label">Escala 0 a 100</label><div><output id="total-points">100</output><small id="total-points-unit">pontos</small></div></div>
                 <div class="metric-field"><span class="metric-icon">◎</span><label for="passing-score">Nota mínima</label><div><input id="passing-score" type="number" min="0" max="100" value="60"><small>%</small></div></div>
                 <label class="toggle-field" for="shuffle-questions"><span class="metric-icon">⌘</span><span><b>Embaralhar questões</b><small>Ordem diferente por candidato</small></span><input id="shuffle-questions" type="checkbox"><i></i></label>
               </div>
@@ -244,6 +244,6 @@
   </template>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/company-dashboard.js?v=7"></script>
+  <script src="./js/company-dashboard.js?v=8"></script>
 </body>
 </html>

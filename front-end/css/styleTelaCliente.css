@@ -292,6 +292,7 @@ body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }
 .grading-preview { padding: 11px 13px; display: flex; justify-content: space-between; align-items: center; gap: 12px; background: #fff; border: 1px solid var(--line); border-radius: 9px; color: var(--muted); font-size: 11px; }
 .grading-preview strong { color: var(--primary); font-size: 16px; }
 .concept-scale-editor { display: grid; gap: 8px; }
+.concept-scale-editor[hidden] { display: none; }
 .concept-labels, .concept-band { display: grid; grid-template-columns: 90px minmax(140px, 1fr) 120px; gap: 8px; }
 .concept-labels { padding: 0 8px; color: var(--muted); font-size: 9px; font-weight: 750; text-transform: uppercase; }
 #concept-bands { display: grid; gap: 7px; }

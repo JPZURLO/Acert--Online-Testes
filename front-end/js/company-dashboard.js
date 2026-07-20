@@ -91,7 +91,7 @@ function cacheElements() {
   const ids = [
     'company-name', 'company-initials', 'exam-title', 'exam-description', 'exam-duration',
     'passing-score', 'shuffle-questions', 'questions-list', 'question-count', 'question-total',
-    'total-points', 'title-count', 'preview-title', 'preview-duration', 'preview-questions',
+    'total-points', 'total-points-unit', 'grading-scale-summary-label', 'title-count', 'preview-title', 'preview-duration', 'preview-questions',
     'preview-instructions', 'preview-logo', 'preview-company', 'primary-color', 'accent-color',
     'background-color', 'primary-value', 'accent-value', 'background-value', 'font-family',
     'border-radius', 'candidate-instructions', 'logo-upload', 'remove-logo', 'save-status',
@@ -220,7 +220,6 @@ function updateSummary() {
   const count = state.questions.length;
   elements['question-count'].textContent = `(${count})`;
   elements['question-total'].textContent = `Pontuação total: ${total} pontos`;
-  elements['total-points'].textContent = String(total);
   elements['preview-questions'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
   elements['modal-question-count'].textContent = String(count);
   elements['modal-total-points'].textContent = String(total);
@@ -261,9 +260,15 @@ function updateGradingPreview() {
     const bands = [...scale.bands].sort((a, b) => a.min - b.min);
     const band = bands.reduce((current, item) => score >= item.min ? item : current, bands[0]);
     elements['grading-preview'].textContent = band ? `${band.code} — ${band.label}` : 'Configure os conceitos';
+    elements['grading-scale-summary-label'].textContent = 'Escala por conceitos';
+    elements['total-points'].textContent = bands.length ? (bands[0].code + '–' + bands.at(-1).code) : '—';
+    elements['total-points-unit'].textContent = 'conceitos';
   } else {
     const converted = score * scale.maximum / 100;
     elements['grading-preview'].textContent = `${converted.toLocaleString('pt-BR', { maximumFractionDigits: scale.decimals })} / ${scale.maximum}`;
+    elements['grading-scale-summary-label'].textContent = 'Escala 0 a ' + scale.maximum;
+    elements['total-points'].textContent = String(scale.maximum);
+    elements['total-points-unit'].textContent = 'pontos';
   }
 }
 
