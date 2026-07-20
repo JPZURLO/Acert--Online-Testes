@@ -3,6 +3,7 @@ import os
 import smtplib
 import threading
 from email.message import EmailMessage
+from email.utils import formatdate, make_msgid, parseaddr
 from pathlib import Path
 
 
@@ -13,6 +14,7 @@ def mail_settings():
         "user": os.getenv("SMTP_USER", "").strip(),
         "password": os.getenv("SMTP_PASSWORD", ""),
         "sender": os.getenv("SMTP_FROM", "").strip(),
+        "reply_to": os.getenv("SMTP_REPLY_TO", "").strip(),
         "starttls": os.getenv("SMTP_STARTTLS", "true").lower() == "true",
         "ssl": os.getenv("SMTP_SSL", "false").lower() == "true",
         "base_url": os.getenv("PUBLIC_BASE_URL", "http://localhost:5500").rstrip("/"),
@@ -27,6 +29,13 @@ def send_email(recipient, subject, text_body, html_body):
     message["From"] = settings["sender"]
     message["To"] = recipient
     message["Subject"] = subject
+    sender_address = parseaddr(settings["sender"])[1] or settings["sender"]
+    sender_domain = sender_address.rsplit("@", 1)[-1] if "@" in sender_address else None
+    message["Date"] = formatdate(localtime=False)
+    message["Message-ID"] = make_msgid(domain=sender_domain)
+    message["Reply-To"] = settings["reply_to"] or sender_address
+    message["Auto-Submitted"] = "auto-generated"
+    message["X-Auto-Response-Suppress"] = "All"
     message.set_content(text_body)
     message.add_alternative(html_body, subtype="html")
     client_type = smtplib.SMTP_SSL if settings["ssl"] else smtplib.SMTP

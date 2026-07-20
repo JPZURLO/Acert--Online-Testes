@@ -1,13 +1,14 @@
 import re
 import secrets
 from html import escape
+from urllib.parse import urlparse
 
 import mysql.connector
 from flask import Blueprint, jsonify, request
 from werkzeug.security import generate_password_hash
 
 from license_service import company_license_snapshot, license_block_message
-from recording_retention import send_email
+from recording_retention import mail_settings, send_email
 
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -95,19 +96,27 @@ def participant_license_usage(connection, company_id, requested=0):
     return {"used": used, "limit": limit, "remaining": None if limit is None else max(0, limit - used)}
 
 
+def participant_login_url():
+    base_url = mail_settings()["base_url"]
+    hostname = (urlparse(base_url).hostname or "").lower()
+    if not hostname or hostname in {"localhost", "127.0.0.1"} or hostname.endswith(".trycloudflare.com"):
+        return ""
+    return base_url.rstrip("/") + "/login.html"
+
 def participant_invite(company_name, participant, password, login_url):
     subject = f"Seu acesso ao Online Teste — {company_name}"
     text = (
         f"Olá, {participant['fullName']}.\n\n"
         f"A empresa {company_name} criou seu acesso ao Online Teste.\n"
         f"Login: {participant['email']}\nSenha temporária: {password}\n"
-        f"Acesse: {login_url}\n\nGuarde esses dados em local seguro."
+        + (f"Acesse: {login_url}\n" if login_url else "Acesse pelo endereço oficial informado pela empresa.\n")
+        + "\nGuarde esses dados em local seguro e altere a senha após o primeiro acesso."
     )
     html_body = (
         f"<h2>Seu acesso foi criado</h2><p>Olá, <strong>{escape(participant['fullName'])}</strong>.</p>"
         f"<p>A empresa <strong>{escape(company_name)}</strong> criou seu acesso ao Online Teste.</p>"
         f"<p><strong>Login:</strong> {escape(participant['email'])}<br><strong>Senha temporária:</strong> {escape(password)}</p>"
-        f"<p><a href=\"{escape(login_url)}\">Acessar o sistema</a></p>"
+        + (f"<p><a href=\"{escape(login_url)}\">Acessar o sistema</a></p>" if login_url else "<p>Acesse pelo endereço oficial informado pela empresa.</p>")
     )
     return subject, text, html_body
 
@@ -248,7 +257,7 @@ def create_participants_blueprint(open_database, token_payload):
             invite_error = ""
             if participant["sendInvite"] and temporary_password:
                 try:
-                    login_url = request.host_url.rstrip("/") + "/login.html"
+                    login_url = participant_login_url()
                     send_email(participant["email"], *participant_invite(company_name, participant, temporary_password, login_url))
                     invite_sent = True
                 except Exception as exc:
@@ -380,7 +389,7 @@ def create_participants_blueprint(open_database, token_payload):
                         invitations.append((item, password))
             connection.commit()
             invite_errors = []
-            login_url = request.host_url.rstrip("/") + "/login.html"
+            login_url = participant_login_url()
             for item, password in invitations:
                 try:
                     send_email(item["email"], *participant_invite(company_name, item, password, login_url))
