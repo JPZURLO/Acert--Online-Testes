@@ -123,8 +123,8 @@
               <div class="question-import-card">
                 <span class="question-import-icon" aria-hidden="true">⇩</span>
                 <div class="question-import-copy">
-                  <strong>Importar questões por Excel</strong>
-                  <span>Baixe o modelo, preencha as questões e envie o arquivo. O rascunho será salvo automaticamente.</span>
+                  <strong>Importar questões por Excel ou GIFT</strong>
+                  <span>Use o modelo Excel ou envie um arquivo GIFT exportado do Moodle. Revise as questões antes de publicar.</span>
                 </div>
                 <label class="question-import-mode" for="question-import-mode">
                   <span>Ao importar</span>
@@ -134,9 +134,10 @@
                   </select>
                 </label>
                 <div class="question-import-actions">
-                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.xlsx" download>Baixar modelo</a>
-                  <button class="button primary" id="import-questions" type="button">Importar Excel</button>
-                  <input id="question-import-file" type="file" accept=".xlsx,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" hidden>
+                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.xlsx" download>Modelo Excel</a>
+                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.gift" download>Exemplo GIFT</a>
+                  <button class="button primary" id="import-questions" type="button">Importar arquivo</button>
+                  <input id="question-import-file" type="file" accept=".xlsx,.gift,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain" hidden>
                 </div>
               </div>
               <div class="question-import-errors" id="question-import-errors" role="alert" hidden></div>

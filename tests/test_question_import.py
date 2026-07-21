@@ -6,6 +6,7 @@ from flask import Flask, jsonify
 from openpyxl import Workbook, load_workbook
 
 from company_api import create_company_blueprint
+from gift_import import parse_gift_questions
 from question_import import QuestionImportError, parse_question_workbook
 
 
@@ -106,10 +107,78 @@ class QuestionImportTests(unittest.TestCase):
         html = Path("front-end/login_cliente.html").read_text(encoding="utf-8")
         script = Path("front-end/js/company-dashboard.js").read_text(encoding="utf-8")
         self.assertIn("modelo-importacao-questoes.xlsx", html)
+        self.assertIn("modelo-importacao-questoes.gift", html)
+        self.assertIn(".gift,.txt", html)
         self.assertIn('id="question-import-file"', html)
         self.assertIn("/api/company/question-imports", script)
         self.assertIn("await saveExam('draft', true)", script)
 
+
+
+    def test_valid_gift_normalizes_supported_question_types(self):
+        payload = """// Banco exportado do Moodle
+$CATEGORY: Demonstração
+
+::Capital::Qual é a capital do Brasil? {=Brasília ~São Paulo ~Salvador}
+
+::Congelamento::A água congela a 0 graus Celsius. {TRUE}
+
+::Dissertativa::Explique o conceito de segurança da informação. {}
+
+::Resposta curta::Qual linguagem estrutura páginas web? {=HTML}
+"""
+        questions = parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertEqual(
+            [question["type"] for question in questions],
+            ["multiple_choice", "true_false", "essay", "essay"],
+        )
+        self.assertEqual(questions[0]["correctAnswer"], "Brasília")
+        self.assertEqual(questions[1]["correctAnswer"], "Verdadeiro")
+        self.assertEqual(questions[3]["correctAnswer"], "HTML")
+        self.assertTrue(all(question["points"] == 10 for question in questions))
+
+    def test_gift_supports_missing_word_and_escaped_control_characters(self):
+        payload = r"""::Lacuna::Dois mais dois {~\= 5 =\= 4 ~\= 3} em aritmética.
+"""
+        [question] = parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertEqual(question["type"], "multiple_choice")
+        self.assertIn("_____", question["prompt"])
+        self.assertEqual(question["correctAnswer"], "= 4")
+        self.assertEqual(question["options"], ["= 5", "= 4", "= 3"])
+
+    def test_gift_rejects_unsupported_numerical_and_matching_questions(self):
+        payload = """::Número::Quanto é dois mais dois? {#4}
+
+::Associação::Relacione os países. {=Brasil -> Brasília =França -> Paris}
+"""
+        with self.assertRaises(QuestionImportError) as context:
+            parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertTrue(any("numéricas" in error for error in context.exception.errors))
+        self.assertTrue(any("associação" in error for error in context.exception.errors))
+
+    def test_authenticated_endpoint_parses_gift_without_opening_database(self):
+        app = Flask(__name__)
+
+        def company_session(_expected_type):
+            return {"sub": "7"}, None
+
+        def should_not_open_database():
+            raise AssertionError("A validação do GIFT não deve abrir o banco")
+
+        app.register_blueprint(create_company_blueprint(should_not_open_database, company_session))
+        response = app.test_client().post(
+            "/api/company/question-imports",
+            data={"file": (io.BytesIO("Pergunta de teste {TRUE}".encode("utf-8")), "questoes.gift")},
+            content_type="multipart/form-data",
+        )
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.get_json()["format"], "GIFT")
+        self.assertEqual(response.get_json()["count"], 1)
+
+    def test_gift_requires_utf8_encoding(self):
+        with self.assertRaises(QuestionImportError) as context:
+            parse_gift_questions(io.BytesIO(b"Pergunta {=\xff}"))
+        self.assertIn("UTF-8", str(context.exception))
 
 if __name__ == "__main__":
     unittest.main()

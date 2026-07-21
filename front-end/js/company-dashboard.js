@@ -566,15 +566,16 @@ function showQuestionImportErrors(message, details = []) {
   container.hidden = false;
 }
 
-async function importQuestionsFromExcel() {
+async function importQuestionsFromFile() {
   const [file] = elements['question-import-file'].files;
   if (!file) return;
   const button = document.getElementById('import-questions');
   elements['question-import-errors'].hidden = true;
   elements['question-import-errors'].replaceChildren();
 
-  if (!file.name.toLowerCase().endsWith('.xlsx')) {
-    showQuestionImportErrors('Selecione o modelo preenchido no formato Excel .xlsx.');
+  const extension = file.name.toLowerCase().split('.').pop();
+  if (!['xlsx', 'gift', 'txt'].includes(extension)) {
+    showQuestionImportErrors('Selecione um arquivo Excel .xlsx ou GIFT .gift/.txt.');
     elements['question-import-file'].value = '';
     return;
   }
@@ -584,9 +585,10 @@ async function importQuestionsFromExcel() {
     return;
   }
 
+  const formatLabel = extension === 'xlsx' ? 'Excel' : 'GIFT';
   button.disabled = true;
   button.textContent = 'Importando...';
-  setSaveStatus('Validando Excel...', 'saving');
+  setSaveStatus(`Validando ${formatLabel}...`, 'saving');
   try {
     const body = new FormData();
     body.append('file', file);
@@ -611,10 +613,10 @@ async function importQuestionsFromExcel() {
   } catch (error) {
     setSaveStatus('Falha na importação');
     showQuestionImportErrors(error.message, error.details || []);
-    toast('Revise o arquivo Excel e tente novamente.', 'error');
+    toast(`Revise o arquivo ${formatLabel} e tente novamente.`, 'error');
   } finally {
     button.disabled = false;
-    button.textContent = 'Importar Excel';
+    button.textContent = 'Importar arquivo';
     elements['question-import-file'].value = '';
   }
 }
@@ -757,7 +759,7 @@ function bindEvents() {
   elements['questions-list'].addEventListener('dragend', handleDragEnd);
   document.getElementById('add-question').addEventListener('click', addQuestion);
   document.getElementById('import-questions').addEventListener('click', () => elements['question-import-file'].click());
-  elements['question-import-file'].addEventListener('change', importQuestionsFromExcel);
+  elements['question-import-file'].addEventListener('change', importQuestionsFromFile);
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   document.getElementById('publish-exam').addEventListener('click', openPublishModal);
   document.querySelector('[data-action="publish"]').addEventListener('click', openPublishModal);

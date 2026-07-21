@@ -4,6 +4,7 @@ from datetime import datetime
 
 from flask import Blueprint, jsonify, request
 
+from gift_import import parse_gift_questions
 from question_import import QuestionImportError, parse_question_workbook
 from grading import grading_scale_json, normalize_grading_scale
 
@@ -305,16 +306,24 @@ def create_company_blueprint(open_database, token_payload):
             return error
         uploaded_file = request.files.get("file")
         if not uploaded_file or not uploaded_file.filename:
-            return jsonify({"success": False, "message": "Selecione um arquivo Excel .xlsx."}), 400
-        if not uploaded_file.filename.lower().endswith(".xlsx"):
-            return jsonify({"success": False, "message": "Use o modelo no formato Excel .xlsx."}), 400
+            return jsonify({"success": False, "message": "Selecione um arquivo Excel .xlsx ou GIFT .gift/.txt."}), 400
+        filename = uploaded_file.filename.lower()
+        if filename.endswith(".xlsx"):
+            parser = parse_question_workbook
+            imported_format = "Excel"
+        elif filename.endswith((".gift", ".txt")):
+            parser = parse_gift_questions
+            imported_format = "GIFT"
+        else:
+            return jsonify({"success": False, "message": "Envie um arquivo Excel .xlsx ou GIFT .gift/.txt."}), 400
         try:
-            questions = parse_question_workbook(uploaded_file.stream)
+            questions = parser(uploaded_file.stream)
         except QuestionImportError as exc:
             return jsonify({"success": False, "message": str(exc), "errors": exc.errors}), 400
         return jsonify(
             {
                 "success": True,
+                "format": imported_format,
                 "questions": questions,
                 "count": len(questions),
                 "totalPoints": sum(question["points"] for question in questions),

@@ -1,0 +1,15 @@
+﻿// Exemplo compatível com o Online Teste (arquivo UTF-8)
+$CATEGORY: Demonstração
+
+::Questão 1::Qual é a capital do Brasil? {
+=Brasília
+~São Paulo
+~Rio de Janeiro
+~Salvador
+}
+
+::Questão 2::A água congela a 0 graus Celsius. {TRUE}
+
+::Questão 3::Explique por que a segurança da informação é importante. {}
+
+::Questão 4::Qual linguagem é utilizada para estruturar páginas web? {=HTML}
