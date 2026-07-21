@@ -27,7 +27,7 @@ class PublicPagesTests(unittest.TestCase):
         html = Path("front-end/NossosPlanos.html").read_text(encoding="utf-8")
         self.assertNotIn("R$", html)
         self.assertNotIn("/mês", html)
-        self.assertEqual(html.count("Solicitar proposta"), 2)
+        self.assertEqual(html.count("Solicitar proposta"), 4)
 
 
 if __name__ == "__main__":

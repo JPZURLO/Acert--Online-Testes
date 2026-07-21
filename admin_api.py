@@ -1,11 +1,14 @@
 import json
+import os
 import re
 import unicodedata
 from datetime import date
+from html import escape
 
 from flask import Blueprint, jsonify, request
 
 from license_service import ALL_LICENSE_FEATURES, company_license_snapshot
+from recording_retention import send_email
 
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -93,6 +96,59 @@ def request_from_row(row):
     }
 
 
+def proposal_message(data):
+    subject = f"Nova solicitação de proposta — {data['planInterest'] or 'Plano a definir'}"
+    lines = [
+        "Uma nova solicitação de proposta foi recebida pelo site Online Teste.",
+        "",
+        f"Nome: {data['contactName']}",
+        f"Empresa: {data['companyName']}",
+        f"E-mail: {data['email']}",
+        f"Telefone/WhatsApp: {data['phone']}",
+        f"CNPJ: {data['cnpj'] or 'Não informado'}",
+        f"Plano: {data['planInterest'] or 'Solicitou recomendação'}",
+        "",
+        "Necessidade informada:",
+        data['needs'] or "Não informada.",
+        "",
+        "A solicitação também está disponível no painel administrativo.",
+    ]
+    fields = (
+        ("Nome", data["contactName"]),
+        ("Empresa", data["companyName"]),
+        ("E-mail", data["email"]),
+        ("Telefone/WhatsApp", data["phone"]),
+        ("CNPJ", data["cnpj"] or "Não informado"),
+        ("Plano", data["planInterest"] or "Solicitou recomendação"),
+    )
+    rows = "".join(
+        f"<tr><th style='padding:8px 12px;text-align:left;background:#f3f8f8'>{escape(label)}</th>"
+        f"<td style='padding:8px 12px'>{escape(value)}</td></tr>"
+        for label, value in fields
+    )
+    html = (
+        "<h2>Nova solicitação de proposta</h2>"
+        "<p>Uma nova solicitação foi recebida pelo site Online Teste.</p>"
+        f"<table style='border-collapse:collapse;border:1px solid #dbe5e7'>{rows}</table>"
+        "<h3>Necessidade informada</h3>"
+        f"<p>{escape(data['needs'] or 'Não informada.')}</p>"
+        "<p>A solicitação também está disponível no painel administrativo.</p>"
+    )
+    return subject, "\n".join(lines), html
+
+
+def notify_proposal(data):
+    recipient = os.getenv("PROPOSAL_EMAIL", "comercial@onlineteste.com.br").strip()
+    if recipient:
+        try:
+            send_email(recipient, *proposal_message(data))
+        except Exception:
+            # A solicitação já está salva no painel; uma indisponibilidade do
+            # SMTP não deve apagar o pedido nem interromper a resposta HTTP.
+            return False
+    return True
+
+
 def create_admin_blueprint(open_database, token_payload):
     blueprint = Blueprint("admin_system", __name__)
 
@@ -117,6 +173,15 @@ def create_admin_blueprint(open_database, token_payload):
             return jsonify({"success": False, "message": "Preencha nome, empresa, e-mail e telefone."}), 400
         if not EMAIL_PATTERN.fullmatch(email):
             return jsonify({"success": False, "message": "Informe um e-mail válido."}), 400
+        proposal = {
+            "contactName": contact_name,
+            "companyName": company_name,
+            "email": email,
+            "phone": phone,
+            "cnpj": cnpj,
+            "planInterest": text(data.get("planInterest"), 80),
+            "needs": text(data.get("needs"), 3000),
+        }
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
@@ -135,11 +200,12 @@ def create_admin_blueprint(open_database, token_payload):
                     email,
                     phone,
                     cnpj,
-                    text(data.get("planInterest"), 80),
-                    text(data.get("needs"), 3000),
+                    proposal["planInterest"],
+                    proposal["needs"],
                 ),
             )
             connection.commit()
+            notify_proposal(proposal)
             return jsonify({"success": True, "message": "Solicitação enviada com sucesso.", "requestId": cursor.lastrowid}), 201
         finally:
             cursor.close()

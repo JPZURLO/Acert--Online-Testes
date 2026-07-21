@@ -4,7 +4,7 @@ from pathlib import Path
 from flask import Flask, jsonify
 
 import server
-from admin_api import clean_features, create_admin_blueprint, slug
+from admin_api import clean_features, create_admin_blueprint, proposal_message, slug
 from license_service import ALL_LICENSE_FEATURES, company_license_snapshot, license_block_message
 
 
@@ -99,6 +99,29 @@ class AdminSystemTests(unittest.TestCase):
     def test_plan_values_are_normalized(self):
         self.assertEqual(slug("Plano Profissional Ágil"), "plano-profissional-agil")
         self.assertEqual(clean_features(["exams", "invalido", "exams", "results"]), ["exams", "results"])
+
+    def test_proposal_email_contains_commercial_contact_details(self):
+        subject, text_body, html_body = proposal_message({
+            "contactName": "João da Silva",
+            "companyName": "Empresa Exemplo",
+            "email": "joao@exemplo.com",
+            "phone": "(11) 99999-9999",
+            "cnpj": "",
+            "planInterest": "Plano Flex",
+            "needs": "Aplicações sazonais.",
+        })
+        self.assertIn("Plano Flex", subject)
+        self.assertIn("joao@exemplo.com", text_body)
+        self.assertIn("(11) 99999-9999", html_body)
+
+    def test_public_plan_and_privacy_content(self):
+        plans = Path("front-end/NossosPlanos.html").read_text(encoding="utf-8")
+        privacy = Path("front-end/PoliticaDePrivacidade.html").read_text(encoding="utf-8")
+        for plan in ("Essencial", "Pró", "Enterprise", "Plano Flex"):
+            self.assertIn(plan, plans)
+        self.assertEqual(plans.count("Solicitar proposta"), 4)
+        self.assertIn("Política de Cookies do Centro de Testes", privacy)
+        self.assertIn("Esta política é efetiva a partir de setembro de 2020", privacy)
 
     def test_admin_pages_and_public_links_exist(self):
         for path in ("front-end/login_admin.html", "front-end/Admin.html", "front-end/SolicitarAcesso.html"):
