@@ -63,7 +63,7 @@
 
 .legacy-banner {
   width: 100%;
-  height: clamp(190px, 24vw, 340px);
+  aspect-ratio: 1920 / 450;
   overflow: hidden;
   background: #e6edef;
   border-bottom: 1px solid #d9e2e7;
@@ -71,12 +71,12 @@
 
 .legacy-banner img {
   width: 100%;
-  height: 100%;
+  height: auto;
+  aspect-ratio: 1920 / 450;
   display: block;
-  object-fit: cover;
-  object-position: center;
+  object-fit: contain;
 }
 
 @media (max-width: 680px) {
-  .legacy-banner { height: 180px; }
+  .legacy-banner { aspect-ratio: 1920 / 450; }
 }

@@ -39,10 +39,10 @@ feedbackStyles.href = './css/public-owner-feedback.css?v=1';
 document.head.appendChild(feedbackStyles);
 
 const banners = {
-  'index.html': { src: './assets/images/banner.png', alt: 'Banner institucional da Online Teste' },
-  'quemsomos.html': { src: './assets/images/banner.png', alt: 'Banner institucional da Online Teste' },
-  'solucoes.html': { src: './assets/images/foto 1.jpg', alt: 'Soluções para testes online' },
-  'nossosplanos.html': { src: './assets/images/foto 3.jpg', alt: 'Planos para testes online' }
+  'index.html': { src: './assets/images/public-banners/home-1920x450.png', alt: 'Profissionais realizando testes online' },
+  'quemsomos.html': { src: './assets/images/public-banners/quem-somos-1920x450.png', alt: 'Profissional utilizando a plataforma Online Teste' },
+  'solucoes.html': { src: './assets/images/public-banners/solucoes-1920x450.png', alt: 'Gestor acompanhando avaliações online' },
+  'nossosplanos.html': { src: './assets/images/public-banners/planos-1920x450.png', alt: 'Equipe de atendimento da Online Teste' }
 };
 
 const bannerConfig = banners[currentPage];
@@ -54,6 +54,8 @@ if (bannerConfig && publicHeader && !document.querySelector('.legacy-banner')) {
   const image = document.createElement('img');
   image.src = bannerConfig.src;
   image.alt = bannerConfig.alt;
+  image.width = 1920;
+  image.height = 450;
   banner.appendChild(image);
   publicHeader.insertAdjacentElement('afterend', banner);
 }
