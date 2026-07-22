@@ -1,11 +1,14 @@
 import json
+import hashlib
 import os
 import re
+import secrets
 import unicodedata
-from datetime import date
+from datetime import date, datetime, timedelta
 from html import escape
 
 from flask import Blueprint, current_app, jsonify, request
+from werkzeug.security import generate_password_hash
 
 from license_service import ALL_LICENSE_FEATURES, company_license_snapshot
 from recording_retention import send_email
@@ -15,6 +18,7 @@ EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
 REQUEST_STATUSES = {"pending", "approved", "rejected"}
 PLAN_STATUSES = {"active", "draft", "archived"}
 LICENSE_STATUSES = {"active", "trial", "blocked", "expired"}
+ACTIVATION_TTL_HOURS = 24
 
 
 def text(value, maximum, default=""):
@@ -150,6 +154,41 @@ def notify_proposal(data):
     return True
 
 
+def activation_token_hash(token):
+    return hashlib.sha256(str(token or "").encode("utf-8")).hexdigest()
+
+
+def normalize_cnpj(value):
+    return "".join(character for character in str(value or "") if character.isdigit())
+
+
+def password_validation_message(password):
+    password = str(password or "")
+    if len(password) < 12:
+        return "A senha deve ter pelo menos 12 caracteres."
+    if not re.search(r"[a-z]", password) or not re.search(r"[A-Z]", password) or not re.search(r"\d", password):
+        return "Use ao menos uma letra maiúscula, uma minúscula e um número."
+    return ""
+
+
+def activation_message(company_name, contact_name, activation_url):
+    subject = "Ative seu acesso ao Online Teste"
+    text_body = (
+        f"Olá, {contact_name}.\n\nO acesso da empresa {company_name} foi aprovado.\n"
+        f"Crie sua senha pelo link abaixo, válido por {ACTIVATION_TTL_HOURS} horas e para um único uso:\n"
+        f"{activation_url}\n\nSe você não solicitou este acesso, ignore esta mensagem."
+    )
+    html_body = (
+        f"<h2>Seu acesso foi aprovado</h2><p>Olá, <strong>{escape(contact_name)}</strong>.</p>"
+        f"<p>O acesso da empresa <strong>{escape(company_name)}</strong> ao Online Teste foi aprovado.</p>"
+        f"<p><a href=\"{escape(activation_url)}\" style=\"display:inline-block;padding:12px 18px;color:#fff;"
+        "background:#0f6f73;border-radius:8px;text-decoration:none;font-weight:700\">Criar minha senha</a></p>"
+        f"<p>Este link vale por {ACTIVATION_TTL_HOURS} horas e pode ser usado uma única vez.</p>"
+        "<p>Se você não solicitou este acesso, ignore esta mensagem.</p>"
+    )
+    return subject, text_body, html_body
+
+
 def create_admin_blueprint(open_database, token_payload):
     blueprint = Blueprint("admin_system", __name__)
 
@@ -269,20 +308,153 @@ def create_admin_blueprint(open_database, token_payload):
         admin_id, error = admin_id_or_error()
         if error:
             return error
-        status = text((request.get_json(silent=True) or {}).get("status"), 20)
+        data = request.get_json(silent=True) or {}
+        status = text(data.get("status"), 20)
         if status not in {"approved", "rejected"}:
             return jsonify({"success": False, "message": "Decisão inválida."}), 400
         connection = open_database()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute(
-                "UPDATE access_requests SET status = %s, reviewed_by = %s, reviewed_at = NOW() WHERE id = %s",
-                (status, admin_id, request_id),
-            )
-            if cursor.rowcount == 0:
+            if status == "rejected":
+                cursor.execute(
+                    "UPDATE access_requests SET status='rejected', reviewed_by=%s, reviewed_at=NOW() WHERE id=%s",
+                    (admin_id, request_id),
+                )
+                if cursor.rowcount == 0:
+                    return jsonify({"success": False, "message": "Solicitação não encontrada."}), 404
+                connection.commit()
+                return jsonify({"success": True, "status": status})
+
+            cnpj = normalize_cnpj(data.get("cnpj"))
+            plan_id = nullable_integer(data.get("planId"), 1)
+            if len(cnpj) != 14:
+                return jsonify({"success": False, "message": "Confirme um CNPJ com 14 dígitos antes de aprovar."}), 400
+            if not plan_id:
+                return jsonify({"success": False, "message": "Escolha o plano da licença antes de aprovar."}), 400
+            cursor.execute("SELECT * FROM access_requests WHERE id=%s FOR UPDATE", (request_id,))
+            access_request = cursor.fetchone()
+            if not access_request:
                 return jsonify({"success": False, "message": "Solicitação não encontrada."}), 404
+            cursor.execute("SELECT id FROM license_plans WHERE id=%s AND status='active'", (plan_id,))
+            if not cursor.fetchone():
+                return jsonify({"success": False, "message": "Selecione um plano ativo."}), 400
+            cursor.execute(
+                "SELECT id FROM empresas WHERE REPLACE(REPLACE(REPLACE(CNPJ,'.',''),'/',''),'-','')=%s LIMIT 1",
+                (cnpj,),
+            )
+            company = cursor.fetchone()
+            if company:
+                company_id = company["id"]
+                cursor.execute(
+                    "UPDATE empresas SET RazaoSocial=%s,CNPJ=%s,contact_email=%s WHERE id=%s",
+                    (access_request["company_name"], cnpj, access_request["email"], company_id),
+                )
+            else:
+                unavailable_password = generate_password_hash(secrets.token_urlsafe(48), method="pbkdf2:sha256")
+                cursor.execute(
+                    "INSERT INTO empresas (RazaoSocial,CNPJ,contact_email,senha) VALUES (%s,%s,%s,%s)",
+                    (access_request["company_name"], cnpj, access_request["email"], unavailable_password),
+                )
+                company_id = cursor.lastrowid
+            cursor.execute(
+                "INSERT INTO company_licenses (company_id,plan_id,status,starts_at,payment_status,recording_contact_email) "
+                "VALUES (%s,%s,'active',CURDATE(),'pending',%s) ON DUPLICATE KEY UPDATE "
+                "plan_id=VALUES(plan_id),status='active',recording_contact_email=VALUES(recording_contact_email)",
+                (company_id, plan_id, access_request["email"]),
+            )
+            cursor.execute(
+                "UPDATE company_activation_tokens SET used_at=NOW() WHERE company_id=%s AND used_at IS NULL",
+                (company_id,),
+            )
+            raw_token = secrets.token_urlsafe(32)
+            expires_at = datetime.now() + timedelta(hours=ACTIVATION_TTL_HOURS)
+            cursor.execute(
+                "INSERT INTO company_activation_tokens (company_id,request_id,email,token_hash,expires_at,created_by) "
+                "VALUES (%s,%s,%s,%s,%s,%s)",
+                (company_id, request_id, access_request["email"], activation_token_hash(raw_token), expires_at, admin_id),
+            )
+            cursor.execute(
+                "UPDATE access_requests SET status='approved',cnpj=%s,reviewed_by=%s,reviewed_at=NOW() WHERE id=%s",
+                (cnpj, admin_id, request_id),
+            )
             connection.commit()
-            return jsonify({"success": True, "status": status})
+            base_url = os.getenv("PUBLIC_BASE_URL", request.url_root.rstrip("/")).rstrip("/")
+            activation_url = f"{base_url}/AtivarEmpresa.html?token={raw_token}"
+            email_sent = True
+            try:
+                send_email(
+                    access_request["email"],
+                    *activation_message(access_request["company_name"], access_request["contact_name"], activation_url),
+                )
+            except Exception:
+                email_sent = False
+                current_app.logger.exception("Falha ao enviar link de ativação da empresa %s", company_id)
+            response = {"success": True, "status": status, "companyId": company_id, "activationEmailSent": email_sent}
+            if not email_sent:
+                response["warning"] = "A licença foi aprovada, mas o e-mail não foi enviado. Clique novamente para reenviar."
+            return jsonify(response)
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
+    def activation_record(cursor, token, lock=False):
+        token_hash = activation_token_hash(token)
+        suffix = " FOR UPDATE" if lock else ""
+        cursor.execute(
+            "SELECT t.id,t.company_id,t.email,t.expires_at,t.used_at,e.RazaoSocial,e.CNPJ "
+            "FROM company_activation_tokens t JOIN empresas e ON e.id=t.company_id "
+            "WHERE t.token_hash=%s LIMIT 1" + suffix,
+            (token_hash,),
+        )
+        return cursor.fetchone()
+
+    @blueprint.post("/api/company-activation/validate")
+    def validate_company_activation():
+        token = text((request.get_json(silent=True) or {}).get("token"), 200)
+        if not token:
+            return jsonify({"success": False, "message": "Link de ativação inválido."}), 400
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            record = activation_record(cursor, token)
+            if not record or record.get("used_at") or record["expires_at"] <= datetime.now():
+                return jsonify({"success": False, "message": "Este link expirou ou já foi utilizado."}), 410
+            return jsonify({"success": True, "companyName": record["RazaoSocial"], "cnpjEnding": str(record["CNPJ"])[-4:]})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/company-activation/complete")
+    def complete_company_activation():
+        data = request.get_json(silent=True) or {}
+        token = text(data.get("token"), 200)
+        password = str(data.get("password") or "")
+        confirmation = str(data.get("passwordConfirmation") or "")
+        validation_error = password_validation_message(password)
+        if validation_error:
+            return jsonify({"success": False, "message": validation_error}), 400
+        if password != confirmation:
+            return jsonify({"success": False, "message": "As senhas não coincidem."}), 400
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            record = activation_record(cursor, token, lock=True)
+            if not record or record.get("used_at") or record["expires_at"] <= datetime.now():
+                connection.rollback()
+                return jsonify({"success": False, "message": "Este link expirou ou já foi utilizado."}), 410
+            cursor.execute(
+                "UPDATE empresas SET senha=%s,contact_email=%s WHERE id=%s",
+                (generate_password_hash(password, method="pbkdf2:sha256"), record["email"], record["company_id"]),
+            )
+            cursor.execute("UPDATE company_activation_tokens SET used_at=NOW() WHERE id=%s", (record["id"],))
+            connection.commit()
+            return jsonify({"success": True, "message": "Senha criada com sucesso. Você já pode entrar como empresa."})
+        except Exception:
+            connection.rollback()
+            raise
         finally:
             cursor.close()
             connection.close()

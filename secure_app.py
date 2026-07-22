@@ -247,7 +247,11 @@ def enforce_company_license():
 
 @app.before_request
 def protect_cookie_authenticated_writes():
-    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in {"/login", "/login_empresa", "/login_admin", "/api/access-requests"}:
+    public_writes = {
+        "/login", "/login_empresa", "/login_admin", "/api/access-requests",
+        "/api/company-activation/validate", "/api/company-activation/complete",
+    }
+    if request.method in {"GET", "HEAD", "OPTIONS"} or request.path in public_writes:
         return None
     if not request.cookies.get(JWT_COOKIE_NAME):
         return None
