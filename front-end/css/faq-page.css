@@ -61,7 +61,9 @@
 .faq-answer li + li { margin-top: 10px; }
 
 @media (max-width: 600px) {
-  .faq-hero { padding-block: 58px; }
-  .faq-layout summary { padding: 18px; }
-  .faq-answer { padding: 0 18px 20px; }
+  .faq-hero { padding-block: 48px; }
+  .faq-hero p:last-child { font-size: 16px; }
+  .faq-layout summary { padding: 16px; gap: 10px; line-height: 1.35; }
+  .faq-layout summary span { width: 28px; height: 28px; font-size: 13px; }
+  .faq-answer { padding: 0 16px 19px; font-size: 15px; }
 }

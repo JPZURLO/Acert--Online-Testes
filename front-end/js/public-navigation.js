@@ -35,14 +35,14 @@ document.querySelectorAll('.public-nav-link').forEach(link => {
 
 const feedbackStyles = document.createElement('link');
 feedbackStyles.rel = 'stylesheet';
-feedbackStyles.href = './css/public-owner-feedback.css?v=1';
+feedbackStyles.href = './css/public-owner-feedback.css?v=2';
 document.head.appendChild(feedbackStyles);
 
 const banners = {
   'index.html': { src: './assets/images/public-banners/home-1920x450.png', alt: 'Profissionais realizando testes online' },
   'quemsomos.html': { src: './assets/images/public-banners/quem-somos-1920x450.png', alt: 'Profissional utilizando a plataforma Online Teste' },
   'solucoes.html': { src: './assets/images/public-banners/solucoes-1920x450.png', alt: 'Gestor acompanhando avaliações online' },
-  'nossosplanos.html': { src: './assets/images/public-banners/planos-1920x450.png', alt: 'Equipe de atendimento da Online Teste' }
+  'nossosplanos.html': { src: './assets/images/public-banners/planos-1920x450.jpg', alt: 'Planejamento estratégico e planos da Online Teste' }
 };
 
 const bannerConfig = banners[currentPage];

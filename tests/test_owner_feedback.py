@@ -16,7 +16,7 @@ class OwnerFeedbackTests(unittest.TestCase):
         self.assertIn("'index.html': { src: './assets/images/public-banners/home-1920x450.png'", javascript)
         self.assertIn("'quemsomos.html': { src: './assets/images/public-banners/quem-somos-1920x450.png'", javascript)
         self.assertIn("'solucoes.html': { src: './assets/images/public-banners/solucoes-1920x450.png'", javascript)
-        self.assertIn("'nossosplanos.html': { src: './assets/images/public-banners/planos-1920x450.png'", javascript)
+        self.assertIn("'nossosplanos.html': { src: './assets/images/public-banners/planos-1920x450.jpg'", javascript)
         self.assertIn("image.width = 1920", javascript)
         self.assertIn("image.height = 450", javascript)
         self.assertIn("insertAdjacentElement('afterend', banner)", javascript)

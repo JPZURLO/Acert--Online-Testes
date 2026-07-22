@@ -29,7 +29,7 @@ class PublicNavigationTests(unittest.TestCase):
             parser.feed(html)
             self.assertEqual(parser.public_headers, 1, page)
             self.assertEqual(parser.login_menus, 1, page)
-            self.assertIn("./css/public-navigation.css?v=2", html)
+            self.assertIn("./css/public-navigation.css?v=4", html)
             self.assertIn("./js/public-navigation.js?v=3", html)
             self.assertIn('name="viewport"', html)
             start = html.index('<header class="public-header">')
@@ -54,6 +54,12 @@ class PublicNavigationTests(unittest.TestCase):
         self.assertIn("event.target.closest('.public-login-dropdown')", javascript)
         self.assertIn("aria-current", javascript)
         self.assertIn("currentPage", javascript)
+
+    def test_mobile_navigation_uses_a_five_column_grid_without_scrolling(self):
+        css = Path("front-end/css/public-navigation.css").read_text(encoding="utf-8")
+        self.assertIn("grid-template-columns: repeat(5, minmax(0, 1fr))", css)
+        self.assertIn("overflow: visible", css)
+        self.assertIn("flex-direction: column", css)
 
 
 if __name__ == "__main__":

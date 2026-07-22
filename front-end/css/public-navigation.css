@@ -180,15 +180,30 @@ body {
 @media (max-width: 680px) {
   .public-header {
     height: auto;
-    min-height: 64px;
-    padding: 8px;
-    gap: 8px;
+    min-height: 108px;
+    padding: 8px 10px 6px;
+    flex-direction: column;
+    justify-content: center;
+    gap: 3px;
   }
-  .public-logo { width: 92px; }
-  .public-navigation { overflow-x: auto; scrollbar-width: thin; }
-  .public-navigation > .public-nav-list { width: max-content; gap: 3px; }
+  .public-logo { width: 108px; max-height: 48px; }
+  .public-navigation { width: 100%; margin: 0; overflow: visible; }
+  .public-navigation > .public-nav-list {
+    width: 100%;
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 0;
+  }
+  .public-navigation > .public-nav-list > li { min-width: 0; }
   .public-nav-link,
-  .public-login-trigger { min-height: 38px; padding-inline: 5px; font-size: 11px; }
-  .public-login-trigger { gap: 4px; }
-  .public-login-menu { position: fixed; top: 62px; right: 8px; min-width: 178px; }
+  .public-login-trigger {
+    width: 100%;
+    min-height: 36px;
+    padding-inline: 2px;
+    justify-content: center;
+    font-size: clamp(9px, 2.8vw, 11px);
+    white-space: nowrap;
+  }
+  .public-login-trigger { gap: 3px; }
+  .public-login-menu { position: fixed; top: 104px; right: 8px; min-width: 178px; }
 }
