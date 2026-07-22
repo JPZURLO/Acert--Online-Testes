@@ -17,6 +17,7 @@ from werkzeug.utils import safe_join
 from admin_api import create_admin_blueprint
 from company_api import create_company_blueprint
 from company_operations_api import create_company_operations_blueprint
+from error_monitoring import create_error_monitoring_blueprint, install_error_handlers
 from license_service import company_license_snapshot, license_block_message
 from overview_api import create_overview_blueprint
 from participants_api import create_participants_blueprint
@@ -299,6 +300,8 @@ app.register_blueprint(create_participant_blueprint(open_database, token_payload
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
 app.register_blueprint(create_admin_blueprint(open_database, token_payload))
 app.register_blueprint(create_support_finance_blueprint(open_database, token_payload))
+app.register_blueprint(create_error_monitoring_blueprint(open_database, token_payload))
+install_error_handlers(app, open_database, token_payload)
 recording_maintenance_thread = start_recording_maintenance(open_database)
 
 

@@ -1,6 +1,13 @@
 (function () {
   "use strict";
 
+  if (!document.querySelector('script[data-error-reporter]')) {
+    const reporter = document.createElement('script');
+    reporter.src = './js/error-reporter.js?v=1';
+    reporter.dataset.errorReporter = 'true';
+    document.head.appendChild(reporter);
+  }
+
   const STORAGE_KEY = "onlineTesteLanguage";
   const PORTUGUESE = "pt-BR";
   const ENGLISH = "en";
