@@ -5,7 +5,7 @@ import unicodedata
 from datetime import date
 from html import escape
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, current_app, jsonify, request
 
 from license_service import ALL_LICENSE_FEATURES, company_license_snapshot
 from recording_retention import send_email
@@ -145,6 +145,7 @@ def notify_proposal(data):
         except Exception:
             # A solicitação já está salva no painel; uma indisponibilidade do
             # SMTP não deve apagar o pedido nem interromper a resposta HTTP.
+            current_app.logger.exception("Falha ao enviar solicitação de proposta por e-mail")
             return False
     return True
 
@@ -205,8 +206,16 @@ def create_admin_blueprint(open_database, token_payload):
                 ),
             )
             connection.commit()
-            notify_proposal(proposal)
-            return jsonify({"success": True, "message": "Solicitação enviada com sucesso.", "requestId": cursor.lastrowid}), 201
+            notification_sent = notify_proposal(proposal)
+            response = {
+                "success": True,
+                "message": "Solicitação enviada com sucesso.",
+                "requestId": cursor.lastrowid,
+                "notificationSent": notification_sent,
+            }
+            if not notification_sent:
+                response["warning"] = "A solicitação foi salva, mas o aviso por e-mail não pôde ser enviado."
+            return jsonify(response), 201
         finally:
             cursor.close()
             connection.close()

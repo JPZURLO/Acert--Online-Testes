@@ -114,6 +114,12 @@ class AdminSystemTests(unittest.TestCase):
         self.assertIn("joao@exemplo.com", text_body)
         self.assertIn("(11) 99999-9999", html_body)
 
+    def test_access_request_page_reports_email_delivery_status(self):
+        page = Path("front-end/SolicitarAcesso.html").read_text(encoding="utf-8")
+        script = Path("front-end/js/access-request.js").read_text(encoding="utf-8")
+        self.assertIn('id="request-success-message"', page)
+        self.assertIn("notificationSent", script)
+
     def test_public_plan_and_privacy_content(self):
         plans = Path("front-end/NossosPlanos.html").read_text(encoding="utf-8")
         privacy = Path("front-end/PoliticaDePrivacidade.html").read_text(encoding="utf-8")

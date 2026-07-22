@@ -1,4 +1,5 @@
 import argparse
+import os
 import sys
 from pathlib import Path
 
@@ -16,7 +17,14 @@ def main():
     args = parser.parse_args()
 
     settings = mail_settings()
-    recipient = (args.recipient or input("E-mail que receberá o teste: ")).strip()
+    configured_recipient = os.getenv("SMTP_TEST_TO", "").strip() or os.getenv(
+        "PROPOSAL_EMAIL", "comercial@onlineteste.com.br"
+    ).strip()
+    recipient = (
+        args.recipient
+        or (input(f"E-mail que receberá o teste [{configured_recipient}]: ").strip() if sys.stdin.isatty() else "")
+        or configured_recipient
+    ).strip()
     if "@" not in recipient:
         raise SystemExit("Informe um e-mail destinatário válido.")
 
