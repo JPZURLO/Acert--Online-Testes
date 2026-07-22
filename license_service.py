@@ -11,6 +11,9 @@ ALL_LICENSE_FEATURES = {
     "export_results",
     "api_access",
     "priority_support",
+    "sso",
+    "dedicated_support",
+    "prepaid_credits",
 }
 
 

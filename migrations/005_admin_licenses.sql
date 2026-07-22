@@ -65,9 +65,16 @@ CREATE TABLE IF NOT EXISTS company_licenses (
 INSERT INTO license_plans
     (name, slug, description, status, max_exams, max_participants_month, max_admin_users, result_retention_months, features_json)
 VALUES
-    ('Essencial', 'essencial', 'Para empresas que estão iniciando com testes online.', 'active', 10, 250, 1, 12, '["exams","participants","results"]'),
-    ('Profissional', 'profissional', 'Para operações recorrentes com personalização e importação.', 'active', 50, 1000, 5, 24, '["exams","excel_import","branding","participants","results","export_results"]'),
-    ('Empresarial', 'empresarial', 'Para operações amplas com todos os recursos da plataforma.', 'active', NULL, NULL, NULL, NULL, '["exams","excel_import","branding","participants","results","export_results","api_access","priority_support"]')
+    ('Essencial', 'essencial', 'Para organizações que buscam uma solução ágil e segura para aplicar suas avaliações online.', 'active', NULL, NULL, 1, NULL, '["exams","participants","results"]'),
+    ('Pró', 'pro', 'Para empresas que demandam maior controle, relatórios avançados e personalização visual.', 'active', NULL, NULL, 5, NULL, '["exams","excel_import","branding","participants","results","export_results","priority_support"]'),
+    ('Enterprise', 'enterprise', 'Para grandes operações que exigem escala, integrações via API e atendimento exclusivo.', 'active', NULL, NULL, NULL, NULL, '["exams","excel_import","branding","participants","results","export_results","api_access","priority_support","sso","dedicated_support"]'),
+    ('Plano Flex', 'plano-flex', 'Para demandas pontuais ou sazonais de testes e avaliações, com créditos sem prazo de validade.', 'active', NULL, NULL, 5, NULL, '["exams","excel_import","branding","participants","results","export_results","priority_support","prepaid_credits"]')
 ON DUPLICATE KEY UPDATE
     name = VALUES(name),
-    description = VALUES(description);
+    description = VALUES(description),
+    status = VALUES(status),
+    max_exams = VALUES(max_exams),
+    max_participants_month = VALUES(max_participants_month),
+    max_admin_users = VALUES(max_admin_users),
+    result_retention_months = VALUES(result_retention_months),
+    features_json = VALUES(features_json);
