@@ -12,6 +12,8 @@
 .ot-language-menu b { color: #087f81; text-align: center; }
 .ot-language-floating { position: fixed; top: 18px; right: 20px; z-index: 9999; }
 .ot-language-floating .ot-language-trigger { border: 1px solid #d6e1eb; background: rgba(255, 255, 255, .96); box-shadow: 0 8px 24px rgba(20, 33, 61, .12); }
+.ot-language-internal { margin-left: auto; display: flex; align-items: center; }
+.ot-language-internal .ot-language-trigger { border: 1px solid #d6e1eb; background: #fff; }
 
 @media (max-width: 900px) {
   .ot-language-trigger { padding-inline: 4px; font-size: 14px; }
@@ -27,4 +29,6 @@
   .ot-language-floating { top: 10px; right: 10px; }
   .ot-language-floating .ot-language-trigger { width: auto; padding-inline: 9px; }
   .ot-language-floating .ot-language-menu { top: 54px; }
+  .ot-language-internal { margin-left: 6px; }
+  .ot-language-internal .ot-language-menu { position: fixed; top: 58px; right: 8px; }
 }

@@ -112,7 +112,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .toggle-field { min-height: 93px; padding: 12px; display: grid; grid-template-columns: 28px 1fr auto; gap: 8px; align-items: center; background: var(--surface-soft); border: 1px solid #edf0f5; border-radius: 11px; cursor: pointer; }
 .toggle-field > span:nth-child(2) { display: grid; gap: 4px; font-size: 11px; }
 .toggle-field small { color: var(--muted); font-weight: 400; }
-.toggle-field input, .mini-toggle input { position: absolute; opacity: 0; pointer-events: none; }
+.toggle-field input, .mini-toggle input { position: absolute; width: 1px; height: 1px; opacity: 0; pointer-events: none; }
 .toggle-field i, .mini-toggle i { position: relative; width: 38px; height: 21px; background: #c9d2df; border-radius: 999px; transition: .2s; }
 .toggle-field i::after, .mini-toggle i::after { content: ""; position: absolute; top: 3px; left: 3px; width: 15px; height: 15px; background: #fff; border-radius: 50%; box-shadow: 0 1px 3px rgba(0,0,0,.22); transition: .2s; }
 .toggle-field input:checked + i, .mini-toggle input:checked + i { background: var(--primary); }

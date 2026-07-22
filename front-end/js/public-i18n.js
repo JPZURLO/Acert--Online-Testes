@@ -318,6 +318,8 @@
     "Não foi possível entrar.": "Unable to sign in."
   };
 
+  Object.assign(translations, window.ONLINE_TESTE_I18N_EXTRA || {});
+
   const placeholders = {
     "Email": "Email",
     "Senha": "Password",
@@ -351,11 +353,35 @@
     return start + replacement + end;
   }
 
+  function translateDynamicText(value) {
+    const rules = [
+      [/^(\d+) solicitaç(?:ão|ões)$/, "$1 request(s)"],
+      [/^(\d+) participantes?$/, "$1 participant(s)"],
+      [/^(\d+) resultados?$/, "$1 result(s)"],
+      [/^(\d+) avaliações no período$/, "$1 assessments in this period"],
+      [/^(\d+) avaliações?$/, "$1 assessment(s)"],
+      [/^(\d+) questões?$/, "$1 question(s)"],
+      [/^(\d+) pontos?$/, "$1 point(s)"],
+      [/^(\d+) ocorrências?$/, "$1 incident(s)"],
+      [/^(\d+) fragmentos enviados$/, "$1 chunks uploaded"],
+      [/^(\d+) de (\d+) participantes? concluíram$/, "$1 of $2 participant(s) completed"],
+      [/^(\d+) teste(?:s)? cadastrado(?:s)?$/, "$1 registered test(s)"],
+      [/^(\d+) participante(?:s)? aprovado(?:s)?$/, "$1 approved participant(s)"],
+      [/^(\d+) por página$/, "$1 per page"],
+      [/^(\d+) MB armazenados$/, "$1 MB stored"]
+    ];
+    for (const rule of rules) {
+      if (rule[0].test(value)) return value.replace(rule[0], rule[1]);
+    }
+    return null;
+  }
+
   function translateTextNode(node) {
     const value = node.nodeValue;
     const key = value.trim();
-    if (key && translations[key]) {
-      node.nodeValue = preserveSpacing(value, translations[key]);
+    const replacement = translations[key] || translateDynamicText(key);
+    if (key && replacement) {
+      node.nodeValue = preserveSpacing(value, replacement);
     }
   }
 
@@ -415,9 +441,18 @@
       host.innerHTML = selectorMarkup(language, false);
       navList.appendChild(host);
     } else {
+      const internalTopbar = document.querySelector(".admin-topbar, .topbar, .candidate-account");
+      if (internalTopbar) {
+        host = document.createElement("div");
+        host.className = "ot-language-internal";
+        host.innerHTML = selectorMarkup(language, false);
+        const accountArea = internalTopbar.querySelector(".admin-profile, .account-area, #candidate-logout");
+        internalTopbar.insertBefore(host, accountArea || null);
+      } else {
       host = document.createElement("div");
       host.innerHTML = selectorMarkup(language, true);
       document.body.appendChild(host.firstElementChild);
+      }
     }
 
     const selector = document.querySelector(".ot-language-selector");
