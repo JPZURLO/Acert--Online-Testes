@@ -29,7 +29,7 @@ class PublicNavigationTests(unittest.TestCase):
             parser.feed(html)
             self.assertEqual(parser.public_headers, 1, page)
             self.assertEqual(parser.login_menus, 1, page)
-            self.assertIn("./css/public-navigation.css?v=4", html)
+            self.assertIn("./css/public-navigation.css?v=5", html)
             self.assertIn("./js/public-navigation.js?v=3", html)
             self.assertIn('name="viewport"', html)
             start = html.index('<header class="public-header">')

@@ -9,7 +9,7 @@ class PublicPagesTests(unittest.TestCase):
         for page in self.pages:
             html = Path("front-end", page).read_text(encoding="utf-8")
             self.assertIn('class="public-page"', html, page)
-            self.assertIn("./css/public-site.css?v=3", html, page)
+            self.assertIn("./css/public-site.css?v=4", html, page)
             self.assertEqual(html.count('class="public-footer"'), 1, page)
             self.assertNotIn("tinymce", html.lower(), page)
 
