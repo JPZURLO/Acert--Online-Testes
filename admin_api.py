@@ -164,8 +164,8 @@ def normalize_cnpj(value):
 
 def password_validation_message(password):
     password = str(password or "")
-    if len(password) < 12:
-        return "A senha deve ter pelo menos 12 caracteres."
+    if len(password) < 8:
+        return "A senha deve ter pelo menos 8 caracteres."
     if not re.search(r"[a-z]", password) or not re.search(r"[A-Z]", password) or not re.search(r"\d", password):
         return "Use ao menos uma letra maiúscula, uma minúscula e um número."
     return ""

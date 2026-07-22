@@ -16,10 +16,11 @@ class CompanyActivationTests(unittest.TestCase):
         self.assertEqual(digest, activation_token_hash(token))
 
     def test_password_policy_requires_length_case_and_number(self):
-        self.assertTrue(password_validation_message("short"))
+        self.assertTrue(password_validation_message("Abc1234"))
         self.assertTrue(password_validation_message("alllowercase123"))
         self.assertTrue(password_validation_message("ALLUPPERCASE123"))
         self.assertTrue(password_validation_message("NoNumbersHere"))
+        self.assertEqual(password_validation_message("Senha123"), "")
         self.assertEqual(password_validation_message("SenhaSegura123"), "")
 
     def test_activation_schema_and_page_contract(self):
