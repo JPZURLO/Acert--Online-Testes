@@ -60,6 +60,8 @@ class ParticipantsWorkspaceTests(unittest.TestCase):
         client = app.test_client()
         self.assertEqual(client.get("/api/company/participants").status_code, 403)
         self.assertEqual(client.post("/api/company/participants", json={}).status_code, 403)
+        self.assertEqual(client.put("/api/company/participants/1", json={}).status_code, 403)
+        self.assertEqual(client.delete("/api/company/participants/1").status_code, 403)
         self.assertEqual(client.post("/api/company/participants/bulk", json={}).status_code, 403)
         self.assertEqual(client.post("/api/company/participants/import", json={}).status_code, 403)
 
@@ -71,8 +73,12 @@ class ParticipantsWorkspaceTests(unittest.TestCase):
         self.assertEqual(duplicates, set())
         self.assertIn("./css/styleTelaParticipante.css", html)
         self.assertIn("./js/participants-dashboard.js", html)
+        self.assertIn('data-row-action="edit"', html)
+        self.assertIn('data-row-action="delete"', html)
+        self.assertIn('data-bulk="delete"', html)
         routes = {rule.rule for rule in server.app.url_map.iter_rules()}
         self.assertIn("/api/company/participants", routes)
+        self.assertIn("/api/company/participants/<int:participant_id>", routes)
         self.assertIn("/api/company/participants/bulk", routes)
         self.assertIn("/api/company/participants/import", routes)
         response = server.app.test_client().get("/api/company/participants")

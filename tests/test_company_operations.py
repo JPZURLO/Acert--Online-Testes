@@ -66,9 +66,12 @@ class CompanyOperationsTests(unittest.TestCase):
                 participant_license_usage(connection, 9, 1)
         self.assertNotIn("status", connection.cursor_instance.sql.lower())
 
-    def test_company_has_no_participant_delete_endpoint(self):
+    def test_company_can_edit_and_delete_participants(self):
         source = Path("participants_api.py").read_text(encoding="utf-8")
-        self.assertNotIn('@blueprint.delete("/api/company/participants', source)
+        self.assertIn('@blueprint.put("/api/company/participants/<int:participant_id>")', source)
+        self.assertIn('@blueprint.delete("/api/company/participants/<int:participant_id>")', source)
+        self.assertIn("DELETE FROM company_results", source)
+        self.assertIn("DELETE FROM exam_attempts", source)
         self.assertIn('action not in {"deactivate", "activate", "assign_exam", "resend_invite"}', source)
 
 

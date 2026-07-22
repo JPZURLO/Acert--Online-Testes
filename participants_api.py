@@ -1,6 +1,9 @@
+import os
 import re
 import secrets
+import shutil
 from html import escape
+from pathlib import Path
 from urllib.parse import urlparse
 
 import mysql.connector
@@ -122,6 +125,8 @@ def participant_invite(company_name, participant, password, login_url):
 
 def create_participants_blueprint(open_database, token_payload):
     blueprint = Blueprint("company_participants", __name__)
+    storage_root = Path(os.getenv("PRIVATE_UPLOAD_DIR", Path(__file__).resolve().parent / "private_uploads")).resolve()
+    recording_root = Path(os.getenv("PRIVATE_RECORDING_DIR", storage_root / "recordings")).resolve()
 
     def company_id_or_error():
         payload, error = token_payload("company")
@@ -220,7 +225,7 @@ def create_participants_blueprint(open_database, token_payload):
                 (company_id, participant["email"]),
             )
             if cursor.fetchone():
-                return jsonify({"success": False, "message": "Já existe um participante com esse e-mail. Inative ou reative o cadastro existente."}), 409
+                return jsonify({"success": False, "message": "Já existe um participante com esse e-mail. Edite o cadastro existente ou exclua-o antes de criar outro."}), 409
             try:
                 usage = participant_license_usage(connection, company_id, 1)
             except ValueError as exc:
@@ -279,6 +284,180 @@ def create_participants_blueprint(open_database, token_payload):
         finally:
             cursor.close()
             connection.close()
+
+    @blueprint.put("/api/company/participants/<int:participant_id>")
+    def update_participant(participant_id):
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        try:
+            participant = clean_participant(request.get_json(silent=True) or {})
+        except ValueError as exc:
+            return jsonify({"success": False, "message": str(exc)}), 400
+
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT * FROM company_participants WHERE id=%s AND company_id=%s LIMIT 1",
+                (participant_id, company_id),
+            )
+            current = cursor.fetchone()
+            if not current:
+                return jsonify({"success": False, "message": "Participante não encontrado."}), 404
+            if not company_owns_exam(cursor, company_id, participant["examId"]):
+                return jsonify({"success": False, "message": "O teste selecionado não pertence à empresa."}), 403
+            cursor.execute(
+                "SELECT id FROM company_participants WHERE company_id=%s AND email=%s AND id<>%s LIMIT 1",
+                (company_id, participant["email"], participant_id),
+            )
+            if cursor.fetchone():
+                return jsonify({"success": False, "message": "Já existe outro participante com esse e-mail."}), 409
+
+            old_email = str(current.get("email") or "").lower()
+            new_email = participant["email"]
+            temporary_password = None
+            cursor.execute("SELECT id FROM users WHERE LOWER(email)=LOWER(%s) LIMIT 1", (new_email,))
+            target_user = cursor.fetchone()
+            if not target_user:
+                cursor.execute("SELECT id FROM users WHERE LOWER(email)=LOWER(%s) LIMIT 1", (old_email,))
+                old_user = cursor.fetchone()
+                cursor.execute(
+                    "SELECT COUNT(*) AS total FROM company_participants WHERE LOWER(email)=LOWER(%s) AND id<>%s",
+                    (old_email, participant_id),
+                )
+                old_email_is_shared = int((cursor.fetchone() or {}).get("total") or 0) > 0
+                if old_user and not old_email_is_shared:
+                    password_sql = ", senha=%s" if participant["accessPassword"] else ""
+                    params = [participant["fullName"], new_email]
+                    if participant["accessPassword"]:
+                        params.append(generate_password_hash(participant["accessPassword"], method="pbkdf2:sha256"))
+                    params.append(old_user["id"])
+                    cursor.execute(
+                        f"UPDATE users SET NomeCompleto=%s,email=%s{password_sql} WHERE id=%s",
+                        tuple(params),
+                    )
+                else:
+                    temporary_password = participant["accessPassword"] or secrets.token_urlsafe(10)
+                    cursor.execute(
+                        "INSERT INTO users (NomeCompleto,email,senha) VALUES (%s,%s,%s)",
+                        (participant["fullName"], new_email, generate_password_hash(temporary_password, method="pbkdf2:sha256")),
+                    )
+            else:
+                if participant["accessPassword"]:
+                    cursor.execute(
+                        "UPDATE users SET NomeCompleto=%s,senha=%s WHERE id=%s",
+                        (participant["fullName"], generate_password_hash(participant["accessPassword"], method="pbkdf2:sha256"), target_user["id"]),
+                    )
+                else:
+                    cursor.execute("UPDATE users SET NomeCompleto=%s WHERE id=%s", (participant["fullName"], target_user["id"]))
+
+            cursor.execute(
+                "UPDATE company_participants SET full_name=%s,email=%s,cpf=%s,phone=%s,city=%s,exam_id=%s "
+                "WHERE id=%s AND company_id=%s",
+                (
+                    participant["fullName"], new_email, participant["cpf"], participant["phone"],
+                    participant["city"], participant["examId"], participant_id, company_id,
+                ),
+            )
+            connection.commit()
+            cursor.execute(
+                "SELECT p.*,e.title AS exam_title FROM company_participants p "
+                "LEFT JOIN company_exams e ON e.id=p.exam_id AND e.company_id=p.company_id "
+                "WHERE p.id=%s AND p.company_id=%s",
+                (participant_id, company_id),
+            )
+            updated = participant_from_row(cursor.fetchone())
+            invite_sent = False
+            invite_error = ""
+            password_for_invite = participant["accessPassword"] or temporary_password
+            if participant["sendInvite"] and password_for_invite:
+                cursor.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
+                company_name = (cursor.fetchone() or {}).get("RazaoSocial") or "Empresa"
+                try:
+                    send_email(new_email, *participant_invite(company_name, participant, password_for_invite, participant_login_url()))
+                    invite_sent = True
+                except Exception as exc:
+                    invite_error = str(exc)[:240]
+            return jsonify({
+                "success": True,
+                "participant": updated,
+                "temporaryPassword": password_for_invite,
+                "inviteSent": invite_sent,
+                "inviteError": invite_error,
+            })
+        except mysql.connector.IntegrityError:
+            connection.rollback()
+            return jsonify({"success": False, "message": "O e-mail informado já está em uso."}), 409
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.delete("/api/company/participants/<int:participant_id>")
+    def delete_participant(participant_id):
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        removable_paths = []
+        removable_directories = []
+        try:
+            cursor.execute(
+                "SELECT id,email FROM company_participants WHERE id=%s AND company_id=%s LIMIT 1",
+                (participant_id, company_id),
+            )
+            participant = cursor.fetchone()
+            if not participant:
+                return jsonify({"success": False, "message": "Participante não encontrado."}), 404
+            cursor.execute(
+                "SELECT id FROM exam_attempts WHERE participant_id=%s AND company_id=%s",
+                (participant_id, company_id),
+            )
+            attempt_ids = [int(row["id"]) for row in cursor.fetchall()]
+            if attempt_ids:
+                placeholders = ",".join(["%s"] * len(attempt_ids))
+                cursor.execute(f"SELECT storage_name FROM attempt_identity_files WHERE attempt_id IN ({placeholders})", tuple(attempt_ids))
+                removable_paths.extend((storage_root, row.get("storage_name")) for row in cursor.fetchall())
+                cursor.execute(f"SELECT storage_name FROM attempt_recordings WHERE attempt_id IN ({placeholders})", tuple(attempt_ids))
+                removable_paths.extend((recording_root, row.get("storage_name")) for row in cursor.fetchall())
+                cursor.execute(f"SELECT storage_name FROM attempt_recording_chunks WHERE attempt_id IN ({placeholders})", tuple(attempt_ids))
+                removable_paths.extend((recording_root, row.get("storage_name")) for row in cursor.fetchall())
+                removable_directories.extend((recording_root / str(attempt_id)).resolve() for attempt_id in attempt_ids)
+                for table in ("attempt_chat_messages", "attempt_audit_events", "attempt_recording_chunks", "attempt_recordings", "attempt_identity_files"):
+                    cursor.execute(f"DELETE FROM {table} WHERE attempt_id IN ({placeholders})", tuple(attempt_ids))
+                cursor.execute(f"DELETE FROM company_results WHERE attempt_id IN ({placeholders})", tuple(attempt_ids))
+                cursor.execute(f"DELETE FROM exam_attempts WHERE id IN ({placeholders})", tuple(attempt_ids))
+            cursor.execute("DELETE FROM company_results WHERE participant_id=%s AND company_id=%s", (participant_id, company_id))
+            cursor.execute("DELETE FROM company_participants WHERE id=%s AND company_id=%s", (participant_id, company_id))
+            cursor.execute("SELECT COUNT(*) AS total FROM company_participants WHERE LOWER(email)=LOWER(%s)", (participant["email"],))
+            if int((cursor.fetchone() or {}).get("total") or 0) == 0:
+                cursor.execute("DELETE FROM users WHERE LOWER(email)=LOWER(%s)", (participant["email"],))
+            connection.commit()
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            cursor.close()
+            connection.close()
+
+        for root, storage_name in removable_paths:
+            if not storage_name:
+                continue
+            path = (root / str(storage_name)).resolve()
+            if path != root and root in path.parents and path.is_file():
+                try:
+                    path.unlink(missing_ok=True)
+                except OSError:
+                    pass
+        for directory in removable_directories:
+            if directory.parent == recording_root and directory.is_dir():
+                shutil.rmtree(directory, ignore_errors=True)
+        return jsonify({"success": True, "message": "Participante excluído definitivamente."})
+
     @blueprint.post("/api/company/participants/bulk")
     def bulk_participants():
         company_id, error = company_id_or_error()

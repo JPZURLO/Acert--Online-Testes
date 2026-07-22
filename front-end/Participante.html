@@ -70,6 +70,7 @@
             <button type="button" data-bulk="assign_exam">▣ Atribuir teste</button>
             <button type="button" data-bulk="resend_invite">◇ Reenviar convite</button>
             <button class="danger" type="button" data-bulk="deactivate">♙ Desativar</button>
+            <button class="danger" type="button" data-bulk="delete">♙ Excluir</button>
             <button class="close-bulk" id="clear-selection" type="button" aria-label="Limpar seleção">×</button>
           </div>
 
@@ -94,7 +95,7 @@
 
   <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
   <aside class="participant-drawer" id="participant-drawer" aria-labelledby="drawer-title" aria-hidden="true">
-    <header><div><p class="eyebrow">NOVO ACESSO</p><h2 id="drawer-title">Novo participante</h2><span>Preencha os dados para criar o acesso.</span></div><button id="close-drawer" type="button" aria-label="Fechar">×</button></header>
+    <header><div><p class="eyebrow" id="drawer-eyebrow">NOVO ACESSO</p><h2 id="drawer-title">Novo participante</h2><span id="drawer-description">Preencha os dados para criar o acesso.</span></div><button id="close-drawer" type="button" aria-label="Fechar">×</button></header>
     <form id="participant-form">
       <div class="drawer-fields">
         <label>Nome completo <b>*</b><input id="participant-name" name="fullName" type="text" maxlength="180" required placeholder="Digite o nome completo"></label>
@@ -109,7 +110,7 @@
     </form>
   </aside>
 
-  <div class="action-menu" id="action-menu" hidden><button type="button" data-row-action="resend_invite">Reenviar convite</button><button type="button" data-row-action="activate">Ativar participante</button><button class="danger" type="button" data-row-action="deactivate">Desativar participante</button></div>
+  <div class="action-menu" id="action-menu" hidden><button type="button" data-row-action="edit">Editar participante</button><button type="button" data-row-action="resend_invite">Reenviar convite</button><button type="button" data-row-action="activate">Ativar participante</button><button class="danger" type="button" data-row-action="deactivate">Desativar participante</button><button class="danger" type="button" data-row-action="delete">Excluir definitivamente</button></div>
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
 
   <template id="participant-row-template">
@@ -125,7 +126,7 @@
   </template>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/participants-dashboard.js"></script>
+  <script src="./js/participants-dashboard.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>
