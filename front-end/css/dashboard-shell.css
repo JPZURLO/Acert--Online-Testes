@@ -1,4 +1,14 @@
 /* Estrutura compartilhada entre os módulos da área da empresa. */
+:root {
+  --primary: #66783f;
+  --primary-dark: #526331;
+  --accent: #879d58;
+  --brand-primary: #66783f;
+  --brand-secondary: #0b1f3a;
+  --navy: #0b1f3a;
+  --canvas: #f4f7fb;
+  --font: Inter, "Segoe UI", Arial, sans-serif;
+}
 .app-shell {
   min-height: 100vh;
   display: grid;
@@ -16,7 +26,7 @@
   display: flex;
   flex-direction: column;
   color: #dce8f6;
-  background: linear-gradient(180deg, var(--navy, var(--brand-secondary, #0b1f3a)) 0%, #07172d 100%);
+  background: linear-gradient(180deg, #0b2b50 0%, #07172d 100%);
   box-shadow: 6px 0 24px rgba(5, 20, 42, .12);
   transform: none;
 }
@@ -36,11 +46,14 @@
 }
 
 .brand img {
-  width: 38px;
-  height: 38px;
+  width: 174px;
+  height: auto;
+  max-height: 58px;
   object-fit: contain;
   filter: brightness(0) invert(1);
 }
+
+.brand span { display: none; }
 
 .sidebar-nav {
   padding: 25px 12px;
@@ -72,8 +85,8 @@
 
 .nav-item.active {
   color: #fff;
-  background: linear-gradient(135deg, var(--primary, var(--brand-primary, #2563eb)), #1674ec);
-  box-shadow: 0 8px 18px color-mix(in srgb, var(--primary, var(--brand-primary, #2563eb)) 28%, transparent);
+  background: linear-gradient(135deg, #718448, #5c6f38);
+  box-shadow: 0 8px 18px rgba(82, 99, 49, .28);
 }
 
 .nav-icon {
@@ -172,10 +185,37 @@
 
 .logout-button:hover { color: var(--danger, var(--red, #e5484d)); }
 
+.button.primary,
+.support-primary,
+.operation-button.primary,
+.company-chat button,
+.audit-recording-actions a,
+.branding-save {
+  color: #fff !important;
+  background: #66783f !important;
+  border-color: #66783f !important;
+}
+
+.button.primary:hover,
+.support-primary:hover,
+.operation-button.primary:hover,
+.company-chat button:hover,
+.audit-recording-actions a:hover,
+.branding-save:hover {
+  background: #526331 !important;
+}
+
+.operations-page .eyebrow,
+.operations-page .operation-date-button,
+.operations-page .operation-actions > p {
+  color: #66783f !important;
+}
+
 body.sidebar-collapsed .app-shell { grid-template-columns: 76px minmax(0, 1fr); }
 body.sidebar-collapsed .sidebar { width: auto; }
 body.sidebar-collapsed .workspace { width: auto; margin-left: 0; }
 body.sidebar-collapsed .brand { padding: 0; justify-content: center; }
+body.sidebar-collapsed .brand img { width: 54px; }
 body.sidebar-collapsed .brand span,
 body.sidebar-collapsed .nav-item span:not(.nav-icon) { display: none; }
 body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }

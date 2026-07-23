@@ -126,12 +126,12 @@ function getRadiusValue() {
 }
 
 function applyBranding() {
-  const root = document.documentElement;
-  root.style.setProperty('--primary', state.branding.primaryColor);
-  root.style.setProperty('--accent', state.branding.accentColor);
-  root.style.setProperty('--canvas', state.branding.backgroundColor);
-  root.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
-  root.style.setProperty('--radius', getRadiusValue());
+  const preview = document.querySelector('.candidate-preview');
+  preview.style.setProperty('--primary', state.branding.primaryColor);
+  preview.style.setProperty('--accent', state.branding.accentColor);
+  preview.style.setProperty('--canvas', state.branding.backgroundColor);
+  preview.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
+  preview.style.setProperty('--radius', getRadiusValue());
 
   elements['primary-color'].value = state.branding.primaryColor;
   elements['accent-color'].value = state.branding.accentColor;
@@ -150,7 +150,7 @@ function applyBranding() {
     image.style.filter = 'none';
     elements['remove-logo'].hidden = false;
   } else {
-    image.src = './assets/images/Logo.png';
+    image.src = './assets/images/Logo_com_Slogan (sem fundo).png';
     image.style.filter = 'brightness(0) invert(1)';
     elements['remove-logo'].hidden = true;
   }

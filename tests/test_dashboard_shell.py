@@ -24,6 +24,34 @@ class DashboardShellTests(unittest.TestCase):
         self.assertIn("body.menu-open .sidebar", css)
         self.assertIn(".sidebar.open", css)
 
+    def test_company_sidebar_keeps_online_teste_identity(self):
+        pages = [
+            "login_cliente.html",
+            "Participante.html",
+            "Resultados.html",
+            "VisaoGeral.html",
+            "Monitoramento.html",
+            "SuporteEmpresa.html",
+        ]
+        for page in pages:
+            html = Path("front-end", page).read_text(encoding="utf-8")
+            self.assertIn("Logo_com_Slogan (sem fundo).png", html)
+            self.assertIn('alt="Online Teste"', html)
+
+        operations = Path("front-end/js/company-operations.js").read_text(encoding="utf-8")
+        self.assertNotIn("document.documentElement.style.setProperty", operations)
+        self.assertNotIn("querySelector('.brand img')", operations)
+
+    def test_company_branding_is_scoped_to_candidate_experience(self):
+        dashboard = Path("front-end/js/company-dashboard.js").read_text(encoding="utf-8")
+        candidate = Path("front-end/js/participant-application.js").read_text(encoding="utf-8")
+        candidate_html = Path("front-end/AreaParticipante.html").read_text(encoding="utf-8")
+
+        self.assertIn("document.querySelector('.candidate-preview')", dashboard)
+        self.assertNotIn("const root = document.documentElement", dashboard)
+        self.assertIn("--candidate-primary", candidate)
+        self.assertIn("candidate-branding.css", candidate_html)
+
 
 if __name__ == "__main__":
     unittest.main()

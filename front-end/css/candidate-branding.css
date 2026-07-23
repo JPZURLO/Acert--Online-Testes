@@ -1,0 +1,81 @@
+:root {
+  --candidate-primary: #0f6f73;
+  --candidate-accent: #2a9d8f;
+  --candidate-background: #f3f7f7;
+  --candidate-radius: 14px;
+}
+
+html,
+body {
+  background: var(--candidate-background);
+}
+
+.eyebrow,
+.security-chip,
+.exam-meta span,
+.question-number,
+.timer-card,
+.inline-status,
+.form-message,
+.completion-result strong {
+  color: var(--candidate-primary) !important;
+}
+
+.candidate-button.primary,
+.preflight-steps .active span,
+.question-navigation button.active,
+.account-avatar,
+.candidate-toast,
+.candidate-chat-message.participant,
+.candidate-chat-form button {
+  background: var(--candidate-primary);
+  border-color: var(--candidate-primary);
+}
+
+.assignment-icon,
+.assignment-summary article > i,
+.section-title > span,
+.security-chip,
+.exam-meta span,
+.confirm-icon {
+  color: var(--candidate-primary);
+  background: color-mix(in srgb, var(--candidate-primary) 11%, white);
+}
+
+.candidate-panel,
+.assignment-summary article,
+.exam-header,
+.question-navigation,
+.question-card,
+.answer-option,
+.timer-card,
+.completion-card {
+  border-radius: var(--candidate-radius);
+}
+
+.instructions-copy {
+  border-left-color: var(--candidate-primary);
+}
+
+.upload-field > span i,
+.preflight-steps .active,
+.answer-option:has(input:checked),
+.question-navigation button.answered:not(.active) {
+  color: var(--candidate-primary);
+}
+
+.answer-option:has(input:checked) {
+  background: color-mix(in srgb, var(--candidate-primary) 8%, white);
+  border-color: color-mix(in srgb, var(--candidate-primary) 52%, white);
+}
+
+.answer-option input,
+.consent-field input {
+  accent-color: var(--candidate-primary);
+}
+
+.essay-answer:focus,
+.candidate-chat-form input:focus {
+  border-color: var(--candidate-primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--candidate-primary) 12%, transparent);
+}
