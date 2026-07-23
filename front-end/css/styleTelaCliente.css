@@ -94,11 +94,11 @@ h2 { margin: 0; font-size: 17px; line-height: 1.25; letter-spacing: -.015em; }
 .field + .field { margin-top: 16px; }
 .field label, .metric-field > label, .color-field > span:first-child { color: #344258; font-size: 11px; font-weight: 750; }
 .field label b { color: var(--danger); }
-input, textarea, select { width: 100%; color: var(--text); background: #fff; border: 1px solid #d7dee8; border-radius: var(--radius-small); transition: border .18s, box-shadow .18s; }
-input, select { height: 42px; padding: 0 12px; }
+input:not([type="radio"]):not([type="checkbox"]), textarea, select { width: 100%; color: var(--text); background: #fff; border: 1px solid #d7dee8; border-radius: var(--radius-small); transition: border .18s, box-shadow .18s; }
+input:not([type="radio"]):not([type="checkbox"]), select { height: 42px; padding: 0 12px; }
 textarea { min-height: 76px; padding: 11px 12px; resize: vertical; line-height: 1.5; }
-input:hover, textarea:hover, select:hover { border-color: #b8c3d3; }
-input:focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent); outline: 0; }
+input:not([type="radio"]):not([type="checkbox"]):hover, textarea:hover, select:hover { border-color: #b8c3d3; }
+input:not([type="radio"]):not([type="checkbox"]):focus, textarea:focus, select:focus { border-color: var(--primary); box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 11%, transparent); outline: 0; }
 .input-with-count { position: relative; }
 .input-with-count input { padding-right: 70px; }
 .input-with-count span { position: absolute; right: 12px; top: 50%; color: #9aa4b3; transform: translateY(-50%); font-size: 10px; }
@@ -157,9 +157,12 @@ input:focus, textarea:focus, select:focus { border-color: var(--primary); box-sh
 .icon-button.danger:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
 .question-prompt { margin-top: 8px; min-height: 52px; border-color: transparent; background: var(--surface-soft); font-size: 12px; }
 .question-options { margin-top: 8px; display: grid; gap: 6px; }
-.option-row { display: flex; align-items: center; gap: 8px; }
-.option-marker { width: 16px; height: 16px; flex: 0 0 auto; border: 1px solid #b8c3d3; border-radius: 50%; }
-.option-row input { height: 33px; font-size: 11px; }
+.options-helper-text { margin-bottom: 2px; font-size: 10px; font-weight: 750; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
+.option-row { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border: 1.5px solid transparent; border-radius: 8px; transition: background .15s, border-color .15s; }
+.option-row.is-correct { background: #f0fdf4; border-color: #86efac; }
+.option-correct-radio { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; accent-color: #16a34a; }
+.correct-badge { font-size: 10px; font-weight: 800; color: #16a34a; background: #dcfce7; padding: 2px 7px; border-radius: 12px; white-space: nowrap; flex: 0 0 auto; }
+.option-row input[type="text"] { height: 33px; font-size: 11px; flex: 1; min-width: 0; }
 .remove-option { width: 27px; height: 27px; padding: 0; color: #9aa4b3; background: transparent; border: 0; }
 .add-option { width: fit-content; padding: 5px 0; color: var(--primary); background: transparent; border: 0; font-size: 10px; font-weight: 700; }
 .essay-note { padding: 9px 11px; color: var(--muted); background: #f7f9fc; border-radius: 8px; font-size: 10px; }
@@ -299,3 +302,279 @@ body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }
 .concept-band input { min-width: 0; height: 36px; }
 .grading-note { margin: 0; }
 @media (max-width: 680px) { .grading-heading { grid-template-columns: 1fr; } .concept-labels, .concept-band { grid-template-columns: 70px 1fr 100px; } }
+
+/* ── Seção de envio do acesso ao candidato ─────────────────────────────── */
+.email-send-section {
+  margin-top: 18px;
+  padding: 16px 18px;
+  background: linear-gradient(135deg, #f0f5ff, #f8fafc);
+  border: 1px solid #dce6f7;
+  border-radius: 12px;
+  display: grid;
+  gap: 14px;
+}
+.email-send-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+}
+.email-send-heading .metric-icon {
+  font-size: 20px;
+  margin-top: 2px;
+  color: var(--primary);
+}
+.email-send-heading strong {
+  display: block;
+  font-size: 13px;
+  color: #263544;
+  margin-bottom: 2px;
+}
+.email-send-heading small {
+  color: var(--muted);
+  font-size: 10.5px;
+}
+.email-send-section .field {
+  display: grid;
+  gap: 5px;
+}
+.email-send-section .field > span,
+.email-send-section .field > label {
+  font-size: 11px;
+  font-weight: 750;
+  color: #344258;
+  text-transform: uppercase;
+  letter-spacing: .04em;
+}
+.email-send-section select {
+  min-height: 38px;
+  border: 1.5px solid var(--line);
+  border-radius: var(--radius-small);
+  padding: 0 10px;
+  background: #fff;
+  color: var(--text);
+}
+.email-send-section .input-with-count {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.email-send-section .field > small,
+.email-send-section small {
+  color: var(--muted);
+  font-size: 10px;
+}
+
+/* ── Painel de status do e-mail ────────────────────────────────────────── */
+.email-status-panel {
+  padding: 14px 16px;
+  background: #fff;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  display: grid;
+  gap: 8px;
+}
+.email-status-panel[hidden] { display: none; }
+.email-status-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  font-size: 12px;
+}
+.email-status-label {
+  color: var(--muted);
+  font-weight: 650;
+  font-size: 11px;
+  min-width: 120px;
+}
+.email-status-error {
+  color: var(--danger);
+  font-size: 11px;
+}
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 9px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 750;
+  letter-spacing: .02em;
+}
+.badge-sent { background: #e4fdf1; color: #0e9161; }
+.badge-failed { background: #fdeaea; color: #c93535; }
+.badge-pending { background: #fffae0; color: #92700d; }
+.badge-cancelled { background: #f0f0f0; color: #888; }
+
+/* ── Modal de Prévia Completa do Candidato ─────────────────────────────── */
+.full-preview-backdrop {
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  overflow-y: auto;
+}
+.preview-modal-dialog {
+  width: 100%;
+  max-width: 920px;
+  max-height: 90vh;
+  background: #fff;
+  border-radius: 16px;
+  box-shadow: 0 24px 60px rgba(0,0,0,0.3);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: modalPop .2s ease-out;
+}
+.preview-modal-banner {
+  padding: 12px 20px;
+  background: #0f172a;
+  color: #f8fafc;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+}
+.preview-banner-badge {
+  background: var(--primary, #2563eb);
+  color: #fff;
+  padding: 3px 9px;
+  border-radius: 12px;
+  font-weight: 750;
+  margin-right: 8px;
+}
+.preview-modal-banner .modal-close {
+  color: #94a3b8;
+  border: 0;
+  background: transparent;
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+}
+.preview-modal-banner .modal-close:hover { color: #fff; }
+.candidate-preview-container {
+  flex: 1;
+  overflow-y: auto;
+  padding: 24px;
+  background: var(--canvas, #f4f7fb);
+  font-family: var(--font, Inter, sans-serif);
+}
+.candidate-header {
+  padding: 16px 20px;
+  background: #fff;
+  border-radius: var(--radius, 14px);
+  box-shadow: 0 4px 16px rgba(0,0,0,0.04);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+}
+.candidate-logo-area {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 800;
+  color: var(--primary, #2563eb);
+}
+.candidate-logo-area img {
+  height: 36px;
+  max-width: 140px;
+  object-fit: contain;
+}
+.candidate-timer-mock {
+  font-size: 13px;
+  color: #475569;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.candidate-timer-mock strong { color: var(--primary, #2563eb); }
+.candidate-body {
+  display: grid;
+  gap: 20px;
+}
+.candidate-exam-header {
+  padding: 20px 24px;
+  background: #fff;
+  border-radius: var(--radius, 14px);
+  border-left: 5px solid var(--primary, #2563eb);
+  display: grid;
+  gap: 8px;
+}
+.candidate-exam-header h1 {
+  margin: 0;
+  font-size: 20px;
+  color: #0f172a;
+}
+.candidate-exam-header p {
+  margin: 0;
+  font-size: 13px;
+  color: #64748b;
+}
+.candidate-exam-tags {
+  display: flex;
+  gap: 16px;
+  margin-top: 6px;
+  font-size: 12px;
+  color: #475569;
+}
+.candidate-questions-feed {
+  display: grid;
+  gap: 16px;
+}
+.candidate-question-card {
+  padding: 20px;
+  background: #fff;
+  border-radius: var(--radius, 14px);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.03);
+  display: grid;
+  gap: 12px;
+}
+.question-card-head {
+  display: flex;
+  justify-content: space-between;
+  font-size: 12px;
+  color: #64748b;
+  font-weight: 650;
+}
+.question-card-head b { color: var(--primary, #2563eb); }
+.question-card-prompt {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1e293b;
+  white-space: pre-wrap;
+}
+.question-card-options {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+.candidate-option-label {
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  color: #334155;
+}
+.candidate-textarea-mock {
+  width: 100%;
+  padding: 10px 14px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 13px;
+  color: #64748b;
+  resize: none;
+}
+.preview-modal-footer {
+  padding: 14px 20px;
+  background: #fff;
+  border-top: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}

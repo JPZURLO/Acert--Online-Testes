@@ -54,7 +54,7 @@ def safe_questions(raw_questions):
         questions.append(
             {
                 "id": str(item.get("id") or "")[:80],
-                "type": item.get("type") if item.get("type") in {"multiple_choice", "true_false", "essay"} else "multiple_choice",
+                "type": item.get("type") if item.get("type") in {"multiple_choice", "multiple_select", "true_false", "essay"} else "multiple_choice",
                 "prompt": str(item.get("prompt") or "")[:3000],
                 "points": max(0, min(1000, int(item.get("points") or 0))),
                 "required": bool(item.get("required", True)),
@@ -85,6 +85,40 @@ def score_answers(questions, supplied):
             has_essay = True
             is_correct = None
             earned = 0
+        elif kind == "multiple_select":
+            raw_correct = question.get("correctAnswers") or question.get("correctAnswer") or []
+            if isinstance(raw_correct, str):
+                try:
+                    correct_list = json.loads(raw_correct)
+                    if not isinstance(correct_list, list):
+                        correct_list = [c.strip() for c in raw_correct.split(",") if c.strip()]
+                except (json.JSONDecodeError, ValueError):
+                    correct_list = [c.strip() for c in raw_correct.split(",") if c.strip()]
+            elif isinstance(raw_correct, list):
+                correct_list = raw_correct
+            else:
+                correct_list = []
+
+            raw_user = value or ""
+            if isinstance(raw_user, str):
+                try:
+                    user_list = json.loads(raw_user)
+                    if not isinstance(user_list, list):
+                        user_list = [u.strip() for u in raw_user.split(",") if u.strip()]
+                except (json.JSONDecodeError, ValueError):
+                    user_list = [u.strip() for u in raw_user.split(",") if u.strip()]
+            elif isinstance(raw_user, list):
+                user_list = raw_user
+            else:
+                user_list = []
+
+            norm_correct = {normalize_answer(x) for x in correct_list if normalize_answer(x)}
+            norm_user = {normalize_answer(x) for x in user_list if normalize_answer(x)}
+
+            is_correct = bool(norm_correct) and (norm_user == norm_correct)
+            earned = points if is_correct else 0
+            objective_points += earned
+            correct_answers += int(is_correct)
         else:
             is_correct = bool(value) and normalize_answer(value) == normalize_answer(question.get("correctAnswer"))
             earned = points if is_correct else 0

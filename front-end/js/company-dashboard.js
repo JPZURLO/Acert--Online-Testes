@@ -18,6 +18,8 @@ const state = {
   requireRecording: false,
   allowResume: true,
   showAnswerDetails: false,
+  emailSendOption: 'manual',
+  emailScheduleMinutesBefore: null,
   questions: [],
   exams: [],
   dirty: false,
@@ -99,7 +101,12 @@ function cacheElements() {
     'modal-total-points', 'modal-duration', 'toast-region', 'question-import-file',
     'question-import-mode', 'question-import-errors', 'result-delivery', 'available-from', 'available-until',
     'require-identity', 'require-recording', 'allow-resume', 'show-answer-details', 'grading-scale-type',
-    'grading-preview', 'concept-scale-editor', 'concept-bands'
+    'grading-preview', 'concept-scale-editor', 'concept-bands',
+    'email-send-option', 'email-schedule-minutes', 'email-schedule-minutes-field', 'email-status-panel',
+    'preview-modal', 'close-preview-modal', 'close-preview-btn', 'publish-from-preview-btn', 'preview-exam-btn',
+    'modal-preview-company', 'modal-preview-logo', 'modal-preview-exam-title', 'modal-preview-instructions',
+    'modal-preview-duration-tag', 'modal-preview-questions-tag', 'modal-preview-points-tag', 'modal-preview-questions-feed',
+    'candidate-preview-container', 'modal-preview-timer'
   ];
   ids.forEach(id => { elements[id] = document.getElementById(id); });
 }
@@ -156,38 +163,91 @@ function applyBranding() {
   }
 }
 
-function renderOptions(question, container) {
+function renderOptions(question, container, questionIndex = 0) {
   container.replaceChildren();
   if (question.type === 'essay') {
     const note = document.createElement('div');
     note.className = 'essay-note';
-    note.textContent = 'O candidato responderá em um campo de texto livre.';
+    note.textContent = 'O candidato responderá em um campo de texto livre. Questões dissertativas são corrigidas no painel de Resultados.';
     container.appendChild(note);
     return;
   }
 
+  if (!Array.isArray(question.options) || question.options.length === 0) {
+    question.options = ['Opção A', 'Opção B'];
+  }
+
+  const isMultiSelect = question.type === 'multiple_select';
+  if (isMultiSelect) {
+    if (!Array.isArray(question.correctAnswers)) {
+      if (question.correctAnswer) {
+        try {
+          const parsed = JSON.parse(question.correctAnswer);
+          question.correctAnswers = Array.isArray(parsed) ? parsed : [question.correctAnswer];
+        } catch (_) {
+          question.correctAnswers = [question.correctAnswer];
+        }
+      } else {
+        question.correctAnswers = [question.options[0]];
+      }
+    }
+  } else {
+    if (!question.correctAnswer && question.options.length > 0) {
+      question.correctAnswer = question.options[0];
+    }
+  }
+
+  const helper = document.createElement('div');
+  helper.className = 'options-helper-text';
+  helper.textContent = isMultiSelect
+    ? 'Marque as alternativas corretas (gabarito — múltiplas respostas permitidas):'
+    : 'Marque a alternativa correta (gabarito):';
+  container.appendChild(helper);
+
   question.options.forEach((option, optionIndex) => {
     const row = document.createElement('div');
-    row.className = 'option-row';
-    const marker = document.createElement('span');
-    marker.className = 'option-marker';
+    const isCorrect = isMultiSelect
+      ? (question.correctAnswers || []).includes(option)
+      : ((question.correctAnswer === option) || (!question.correctAnswer && optionIndex === 0));
+
+    row.className = `option-row ${isCorrect ? 'is-correct' : ''}`;
+
+    const markInput = document.createElement('input');
+    markInput.type = isMultiSelect ? 'checkbox' : 'radio';
+    markInput.className = isMultiSelect ? 'option-correct-checkbox' : 'option-correct-radio';
+    if (!isMultiSelect) markInput.name = `correct-option-${questionIndex}`;
+    markInput.checked = isCorrect;
+    markInput.dataset.correctOption = String(optionIndex);
+    markInput.setAttribute('title', isMultiSelect ? 'Marcar/desmarcar como resposta correta' : 'Marcar como resposta correta (gabarito)');
+
     const input = document.createElement('input');
     input.type = 'text';
     input.value = option;
     input.maxLength = 500;
     input.dataset.optionIndex = String(optionIndex);
     input.setAttribute('aria-label', `Opção ${optionIndex + 1}`);
+
+    row.append(markInput, input);
+
+    if (isCorrect) {
+      const badge = document.createElement('span');
+      badge.className = 'correct-badge';
+      badge.textContent = '✓ Gabarito';
+      row.appendChild(badge);
+    }
+
     const remove = document.createElement('button');
     remove.type = 'button';
     remove.className = 'remove-option';
     remove.dataset.removeOption = String(optionIndex);
     remove.setAttribute('aria-label', `Remover opção ${optionIndex + 1}`);
     remove.textContent = '×';
-    row.append(marker, input, remove);
+    row.appendChild(remove);
+
     container.appendChild(row);
   });
 
-  if (question.type === 'multiple_choice' && question.options.length < 10) {
+  if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 10) {
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'add-option';
@@ -209,7 +269,7 @@ function renderQuestions() {
     card.querySelector('.question-points').value = question.points;
     card.querySelector('.question-required').checked = question.required;
     card.querySelector('.question-prompt').value = question.prompt;
-    renderOptions(question, card.querySelector('.question-options'));
+    renderOptions(question, card.querySelector('.question-options'), index);
     elements['questions-list'].appendChild(fragment);
   });
   updateSummary();
@@ -299,6 +359,10 @@ function renderGradingScale(scale = defaultGradingScale()) {
   updateGradingPreview();
 }
 function collectExam() {
+  const sendOption = elements['email-send-option'] ? elements['email-send-option'].value : 'manual';
+  const minutesBefore = elements['email-schedule-minutes'] && sendOption === 'scheduled'
+    ? (parseInt(elements['email-schedule-minutes'].value, 10) || null)
+    : null;
   return {
     title: elements['exam-title'].value.trim(),
     description: elements['exam-description'].value.trim(),
@@ -314,6 +378,8 @@ function collectExam() {
     requireRecording: elements['require-recording'].checked,
     allowResume: elements['allow-resume'].checked,
     showAnswerDetails: elements['show-answer-details'].checked,
+    emailSendOption: sendOption,
+    emailScheduleMinutesBefore: minutesBefore,
     questions: state.questions
   };
 }
@@ -352,11 +418,46 @@ function syncQuestionFromTarget(target) {
   if (target.classList.contains('question-prompt')) question.prompt = target.value;
   if (target.classList.contains('question-points')) question.points = Math.max(0, Number(target.value) || 0);
   if (target.classList.contains('question-required')) question.required = target.checked;
-  if (target.matches('[data-option-index]')) question.options[Number(target.dataset.optionIndex)] = target.value;
+  if (target.matches('[data-option-index]')) {
+    const optIdx = Number(target.dataset.optionIndex);
+    const oldVal = question.options[optIdx];
+    question.options[optIdx] = target.value;
+    if (question.type === 'multiple_select') {
+      if (Array.isArray(question.correctAnswers)) {
+        const cIndex = question.correctAnswers.indexOf(oldVal);
+        if (cIndex >= 0) question.correctAnswers[cIndex] = target.value;
+      }
+      question.correctAnswer = JSON.stringify(question.correctAnswers || []);
+    } else if (question.correctAnswer === oldVal || (!question.correctAnswer && optIdx === 0)) {
+      question.correctAnswer = target.value;
+    }
+  }
+  if (target.matches('[data-correct-option]')) {
+    const optIdx = Number(target.dataset.correctOption);
+    const optVal = question.options[optIdx] || '';
+    if (question.type === 'multiple_select') {
+      if (!Array.isArray(question.correctAnswers)) question.correctAnswers = [];
+      if (target.checked) {
+        if (!question.correctAnswers.includes(optVal)) question.correctAnswers.push(optVal);
+      } else {
+        question.correctAnswers = question.correctAnswers.filter(item => item !== optVal);
+      }
+      question.correctAnswer = JSON.stringify(question.correctAnswers);
+    } else {
+      question.correctAnswer = optVal;
+    }
+    renderQuestions();
+  }
   if (target.classList.contains('question-type')) {
     question.type = target.value;
     if (question.type === 'true_false') question.options = ['Verdadeiro', 'Falso'];
-    if (question.type === 'multiple_choice' && question.options.length < 2) question.options = ['Opção A', 'Opção B'];
+    if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 2) {
+      question.options = ['Opção A', 'Opção B'];
+    }
+    if (question.type === 'multiple_select') {
+      question.correctAnswers = [question.options[0]];
+      question.correctAnswer = JSON.stringify(question.correctAnswers);
+    }
     if (question.type === 'essay') question.options = [];
     renderQuestions();
   }
@@ -459,6 +560,11 @@ function fillExam(exam) {
   elements['require-recording'].checked = Boolean(exam.requireRecording);
   elements['allow-resume'].checked = exam.allowResume !== false;
   elements['show-answer-details'].checked = Boolean(exam.showAnswerDetails);
+  // Opção de envio de e-mail
+  const sendOption = exam.emailSendOption || 'manual';
+  if (elements['email-send-option']) elements['email-send-option'].value = sendOption;
+  if (elements['email-schedule-minutes']) elements['email-schedule-minutes'].value = exam.emailScheduleMinutesBefore || '';
+  updateEmailScheduleVisibility();
   elements['page-title'].textContent = state.examId ? 'Editar teste' : 'Criar novo teste';
   elements['breadcrumb-mode'].textContent = state.examId ? 'Editar teste' : 'Criar teste';
   elements['exam-picker'].value = state.examId ? String(state.examId) : '';
@@ -466,6 +572,16 @@ function fillExam(exam) {
   renderQuestions();
   updatePreview();
   setSaveStatus(state.examId ? 'Alterações salvas' : 'Rascunho local', state.examId ? 'saved' : '');
+}
+
+function updateEmailScheduleVisibility() {
+  const sendOption = elements['email-send-option'] ? elements['email-send-option'].value : 'manual';
+  if (elements['email-schedule-minutes-field']) {
+    elements['email-schedule-minutes-field'].hidden = sendOption !== 'scheduled';
+  }
+  if (elements['email-status-panel']) {
+    elements['email-status-panel'].hidden = sendOption === 'none';
+  }
 }
 
 function resetExam() {
@@ -484,6 +600,8 @@ function resetExam() {
     requireRecording: false,
     allowResume: true,
     showAnswerDetails: false,
+    emailSendOption: 'manual',
+    emailScheduleMinutesBefore: null,
     status: 'draft',
     questions: defaultQuestions()
   });
@@ -522,6 +640,12 @@ async function saveExam(status = 'draft', silent = false) {
     elements['exam-title'].focus();
     return false;
   }
+  // Valida minutos antes para envio agendado
+  if (exam.emailSendOption === 'scheduled' && !(exam.emailScheduleMinutesBefore > 0)) {
+    if (!silent) toast('Informe os minutos antes do início para o envio agendado.', 'error');
+    elements['email-schedule-minutes']?.focus();
+    return false;
+  }
   setSaveStatus('Salvando...', 'saving');
   try {
     const method = state.examId ? 'PUT' : 'POST';
@@ -540,11 +664,69 @@ async function saveExam(status = 'draft', silent = false) {
     elements['breadcrumb-mode'].textContent = 'Editar teste';
     setSaveStatus(status === 'published' ? 'Teste publicado' : 'Alterações salvas', 'saved');
     if (!silent) toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+    // Exibe resultado do envio de e-mail
+    const emailResult = data.emailResult;
+    if (!silent && emailResult && emailResult.option !== 'none' && emailResult.option !== 'manual') {
+      if (emailResult.option === 'scheduled') {
+        const qtd = emailResult.queued || 0;
+        toast(`★ ${qtd} acesso(s) ao exame agendado(s) para envio automático.`);
+      } else if (emailResult.sent > 0) {
+        let msg = `✉ ${emailResult.sent} acesso(s) ao exame enviado(s) com sucesso.`;
+        if (emailResult.failed > 0) msg += ` ${emailResult.failed} falhou.`;
+        toast(msg, emailResult.failed > 0 ? 'error' : 'success');
+      } else if (emailResult.failed > 0) {
+        toast(`⚠ Falha ao enviar acesso ao exame: ${emailResult.error || 'Erro desconhecido.'}`, 'error');
+      }
+    }
+    // Atualiza painel de status do e-mail
+    updateEmailStatusPanel(emailResult);
     return true;
   } catch (error) {
     setSaveStatus('Falha ao salvar');
     if (!silent) toast(error.message, 'error');
     return false;
+  }
+}
+
+function updateEmailStatusPanel(emailResult) {
+  const panel = elements['email-status-panel'];
+  if (!panel || !emailResult) return;
+  const optionLabels = { on_save: 'Ao concluir o cadastro', scheduled: 'Agendado', manual: 'Manual', none: 'Não enviar' };
+  const statusLabels = { sent: 'Enviado', failed: 'Falha', pending: 'Pendente', cancelled: 'Cancelado' };
+  let html = `<div class="email-status-row"><span class="email-status-label">Forma de envio</span><span>${optionLabels[emailResult.option] || emailResult.option}</span></div>`;
+  if (emailResult.option === 'scheduled') {
+    html += `<div class="email-status-row"><span class="email-status-label">Status</span><span class="badge badge-pending">Agendado — ${emailResult.queued || 0} participante(s)</span></div>`;
+  } else if (emailResult.option === 'on_save') {
+    const status = emailResult.failed > 0 && emailResult.sent === 0 ? 'failed' : emailResult.sent > 0 ? 'sent' : 'pending';
+    html += `<div class="email-status-row"><span class="email-status-label">Status</span><span class="badge badge-${status}">${statusLabels[status]} (${emailResult.sent} enviado${emailResult.sent !== 1 ? 's' : ''})</span></div>`;
+    if (emailResult.failed > 0) html += `<div class="email-status-row email-status-error"><span class="email-status-label">Última falha</span><span>${emailResult.error || ''}</span></div>`;
+  } else if (emailResult.option === 'manual') {
+    html += `<div class="email-status-row"><span class="email-status-label">Status</span><span class="badge badge-pending">Aguardando envio manual</span></div>`;
+    html += `<button class="button secondary" id="manual-send-access-btn" type="button">✉ Enviar acesso ao exame agora</button>`;
+  }
+  panel.innerHTML = html;
+  panel.hidden = !emailResult || emailResult.option === 'none';
+  // Bind no botão de envio manual
+  const btn = document.getElementById('manual-send-access-btn');
+  if (btn) {
+    btn.addEventListener('click', sendManualAccess);
+  }
+}
+
+async function sendManualAccess() {
+  const btn = document.getElementById('manual-send-access-btn');
+  if (!state.examId) { toast('Salve o teste antes de enviar.', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  try {
+    const data = await api(`/api/company/exams/${state.examId}/send-access`, { method: 'POST', body: JSON.stringify({}) });
+    let msg = `✉ ${data.sent} acesso(s) enviado(s) com sucesso.`;
+    if (data.failed > 0) msg += ` ${data.failed} falhou.`;
+    toast(msg, data.failed > 0 ? 'error' : 'success');
+    updateEmailStatusPanel({ option: 'manual', sent: data.sent, failed: data.failed, error: data.failedDetails?.[0] || '' });
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✉ Enviar acesso ao exame agora'; }
   }
 }
 
@@ -724,6 +906,102 @@ function navigateToStep(button) {
   document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+function openCandidatePreviewModal() {
+  const exam = collectExam();
+  const count = state.questions.length;
+  const total = state.questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
+  const duration = Number(elements['exam-duration'].value) || 60;
+
+  const container = elements['candidate-preview-container'];
+  if (container) {
+    container.style.setProperty('--primary', state.branding.primaryColor);
+    container.style.setProperty('--accent', state.branding.accentColor);
+    container.style.setProperty('--canvas', state.branding.backgroundColor);
+    container.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
+    container.style.setProperty('--radius', getRadiusValue());
+  }
+
+  const companyName = (state.company?.name || 'SUA EMPRESA').toUpperCase();
+  if (elements['modal-preview-company']) elements['modal-preview-company'].textContent = companyName;
+  if (elements['modal-preview-exam-title']) elements['modal-preview-exam-title'].textContent = exam.title || 'Seu novo teste';
+  if (elements['modal-preview-instructions']) elements['modal-preview-instructions'].textContent = state.branding.candidateInstructions || 'Leia as instruções com atenção antes de iniciar a avaliação.';
+  if (elements['modal-preview-duration-tag']) elements['modal-preview-duration-tag'].textContent = `${duration} min`;
+  if (elements['modal-preview-questions-tag']) elements['modal-preview-questions-tag'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
+  if (elements['modal-preview-points-tag']) elements['modal-preview-points-tag'].textContent = `${total} pontos`;
+  if (elements['modal-preview-timer']) elements['modal-preview-timer'].textContent = `${duration}:00`;
+
+  const logoImg = elements['modal-preview-logo'];
+  if (logoImg) {
+    if (state.branding.logoData) {
+      logoImg.src = state.branding.logoData;
+      logoImg.style.filter = 'none';
+    } else {
+      logoImg.src = './assets/images/Logo_com_Slogan (sem fundo).png';
+      logoImg.style.filter = 'brightness(0) invert(1)';
+    }
+  }
+
+  const feed = elements['modal-preview-questions-feed'];
+  if (feed) {
+    feed.replaceChildren();
+    if (!state.questions.length) {
+      const empty = document.createElement('p');
+      empty.className = 'preview-empty-questions';
+      empty.textContent = 'Nenhuma questão cadastrada até o momento.';
+      feed.appendChild(empty);
+    } else {
+      state.questions.forEach((q, index) => {
+        const card = document.createElement('div');
+        card.className = 'candidate-question-card';
+
+        const head = document.createElement('div');
+        head.className = 'question-card-head';
+        head.innerHTML = `<span>Questão ${index + 1} de ${count}</span><b>${q.points || 0} pt${(q.points || 0) === 1 ? '' : 's'}</b>`;
+
+        const prompt = document.createElement('div');
+        prompt.className = 'question-card-prompt';
+        prompt.textContent = q.prompt || '(Sem enunciado)';
+
+        const optionsDiv = document.createElement('div');
+        optionsDiv.className = 'question-card-options';
+
+        if (q.type === 'essay') {
+          const area = document.createElement('textarea');
+          area.className = 'candidate-textarea-mock';
+          area.placeholder = 'O candidato digitará a resposta neste campo de texto livre...';
+          area.rows = 4;
+          area.readOnly = true;
+          optionsDiv.appendChild(area);
+        } else {
+          const isMulti = q.type === 'multiple_select';
+          const opts = Array.isArray(q.options) && q.options.length ? q.options : ['Opção A', 'Opção B'];
+          opts.forEach((optText) => {
+            const optLabel = document.createElement('label');
+            optLabel.className = 'candidate-option-label';
+            const input = document.createElement('input');
+            input.type = isMulti ? 'checkbox' : 'radio';
+            input.name = `preview-q-${index}`;
+            input.disabled = true;
+            const span = document.createElement('span');
+            span.textContent = optText;
+            optLabel.append(input, span);
+            optionsDiv.appendChild(optLabel);
+          });
+        }
+
+        card.append(head, prompt, optionsDiv);
+        feed.appendChild(card);
+      });
+    }
+  }
+
+  elements['preview-modal'].hidden = false;
+}
+
+function closeCandidatePreviewModal() {
+  elements['preview-modal'].hidden = true;
+}
+
 function openPublishModal() {
   updatePreview();
   elements['publish-modal'].hidden = false;
@@ -741,6 +1019,16 @@ function bindEvents() {
     document.getElementById(id).addEventListener('input', () => { updatePreview(); markDirty(); });
     document.getElementById(id).addEventListener('change', () => { updatePreview(); markDirty(); });
   });
+  // Evento para o campo de opção de envio de e-mail
+  if (elements['email-send-option']) {
+    elements['email-send-option'].addEventListener('change', () => {
+      updateEmailScheduleVisibility();
+      markDirty();
+    });
+  }
+  if (elements['email-schedule-minutes']) {
+    elements['email-schedule-minutes'].addEventListener('input', markDirty);
+  }
   elements['grading-scale-type'].addEventListener('change', () => {
     const scale = collectGradingScale();
     renderGradingScale(scale);
@@ -761,6 +1049,12 @@ function bindEvents() {
   document.getElementById('import-questions').addEventListener('click', () => elements['question-import-file'].click());
   elements['question-import-file'].addEventListener('change', importQuestionsFromFile);
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
+  if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
+  if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
+  if (elements['close-preview-modal']) elements['close-preview-modal'].addEventListener('click', closeCandidatePreviewModal);
+  if (elements['close-preview-btn']) elements['close-preview-btn'].addEventListener('click', closeCandidatePreviewModal);
+  if (elements['publish-from-preview-btn']) elements['publish-from-preview-btn'].addEventListener('click', () => { closeCandidatePreviewModal(); openPublishModal(); });
+  elements['preview-modal'].addEventListener('click', event => { if (event.target === elements['preview-modal']) closeCandidatePreviewModal(); });
   document.getElementById('publish-exam').addEventListener('click', openPublishModal);
   document.querySelector('[data-action="publish"]').addEventListener('click', openPublishModal);
   document.getElementById('confirm-publish').addEventListener('click', async () => { if (await saveExam('published')) closePublishModal(); });

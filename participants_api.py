@@ -2,16 +2,20 @@ import os
 import re
 import secrets
 import shutil
-from html import escape
 from pathlib import Path
-from urllib.parse import urlparse
 
 import mysql.connector
 from flask import Blueprint, jsonify, request
 from werkzeug.security import generate_password_hash
 
 from license_service import company_license_snapshot, license_block_message
-from recording_retention import mail_settings, send_email
+from exam_email_service import (
+    send_exam_access_email,
+    enqueue_exam_email,
+    exam_login_url,
+    build_exam_access_email,
+)
+from recording_retention import mail_settings
 
 
 EMAIL_PATTERN = re.compile(r"^[^\s@]+@[^\s@]+\.[^\s@]+$")
@@ -99,29 +103,8 @@ def participant_license_usage(connection, company_id, requested=0):
     return {"used": used, "limit": limit, "remaining": None if limit is None else max(0, limit - used)}
 
 
-def participant_login_url():
-    base_url = mail_settings()["base_url"]
-    hostname = (urlparse(base_url).hostname or "").lower()
-    if not hostname or hostname in {"localhost", "127.0.0.1"} or hostname.endswith(".trycloudflare.com"):
-        return ""
-    return base_url.rstrip("/") + "/login.html"
-
-def participant_invite(company_name, participant, password, login_url):
-    subject = f"Seu acesso ao Online Teste — {company_name}"
-    text = (
-        f"Olá, {participant['fullName']}.\n\n"
-        f"A empresa {company_name} criou seu acesso ao Online Teste.\n"
-        f"Login: {participant['email']}\nSenha temporária: {password}\n"
-        + (f"Acesse: {login_url}\n" if login_url else "Acesse pelo endereço oficial informado pela empresa.\n")
-        + "\nGuarde esses dados em local seguro e altere a senha após o primeiro acesso."
-    )
-    html_body = (
-        f"<h2>Seu acesso foi criado</h2><p>Olá, <strong>{escape(participant['fullName'])}</strong>.</p>"
-        f"<p>A empresa <strong>{escape(company_name)}</strong> criou seu acesso ao Online Teste.</p>"
-        f"<p><strong>Login:</strong> {escape(participant['email'])}<br><strong>Senha temporária:</strong> {escape(password)}</p>"
-        + (f"<p><a href=\"{escape(login_url)}\">Acessar o sistema</a></p>" if login_url else "<p>Acesse pelo endereço oficial informado pela empresa.</p>")
-    )
-    return subject, text, html_body
+# participant_login_url e participant_invite foram movidos para exam_email_service.py
+# Use exam_login_url() e build_exam_access_email() do módulo central.
 
 def create_participants_blueprint(open_database, token_payload):
     blueprint = Blueprint("company_participants", __name__)
@@ -258,15 +241,10 @@ def create_participants_blueprint(open_database, token_payload):
             except mysql.connector.IntegrityError:
                 connection.rollback()
                 return jsonify({"success": False, "message": "Já existe um participante com esse e-mail."}), 409
-            invite_sent = False
-            invite_error = ""
-            if participant["sendInvite"] and temporary_password:
-                try:
-                    login_url = participant_login_url()
-                    send_email(participant["email"], *participant_invite(company_name, participant, temporary_password, login_url))
-                    invite_sent = True
-                except Exception as exc:
-                    invite_error = str(exc)[:240]
+            # O envio de e-mail de acesso ao exame ocorre agora somente através
+            # da opção escolhida no cadastro do exame (exam_email_service.py).
+            # O campo sendInvite foi preservado para compatibilidade de API,
+            # mas não dispara envio automático de e-mail neste endpoint.
             cursor.execute(
                 "SELECT p.*, e.title AS exam_title FROM company_participants p "
                 "LEFT JOIN company_exams e ON e.id = p.exam_id AND e.company_id = p.company_id "
@@ -277,8 +255,8 @@ def create_participants_blueprint(open_database, token_payload):
                 "success": True,
                 "participant": participant_from_row(cursor.fetchone()),
                 "temporaryPassword": temporary_password,
-                "inviteSent": invite_sent,
-                "inviteError": invite_error,
+                "inviteSent": False,
+                "inviteError": "",
                 "licenseUsage": {**usage, "used": usage["used"] + 1, "remaining": None if usage["limit"] is None else max(0, usage["remaining"] - 1)},
             }), 201
         finally:
@@ -368,23 +346,15 @@ def create_participants_blueprint(open_database, token_payload):
                 (participant_id, company_id),
             )
             updated = participant_from_row(cursor.fetchone())
-            invite_sent = False
-            invite_error = ""
-            password_for_invite = participant["accessPassword"] or temporary_password
-            if participant["sendInvite"] and password_for_invite:
-                cursor.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
-                company_name = (cursor.fetchone() or {}).get("RazaoSocial") or "Empresa"
-                try:
-                    send_email(new_email, *participant_invite(company_name, participant, password_for_invite, participant_login_url()))
-                    invite_sent = True
-                except Exception as exc:
-                    invite_error = str(exc)[:240]
+            # O envio de e-mail de acesso ocorre somente através da opção
+            # definida no cadastro do exame (exam_email_service.py).
+            # Para reenvio individual explícito, use o endpoint /api/company/participants/<id>/resend-access.
             return jsonify({
                 "success": True,
                 "participant": updated,
-                "temporaryPassword": password_for_invite,
-                "inviteSent": invite_sent,
-                "inviteError": invite_error,
+                "temporaryPassword": None,
+                "inviteSent": False,
+                "inviteError": "",
             })
         except mysql.connector.IntegrityError:
             connection.rollback()
@@ -490,16 +460,99 @@ def create_participants_blueprint(open_database, token_payload):
                 sql = f"UPDATE company_participants SET exam_id = %s, status = 'not_started', progress = 0 WHERE company_id = %s AND id IN ({placeholders})"
                 params = [exam_id, company_id, *ids]
             elif action == "resend_invite":
-                sql = f"UPDATE company_participants SET status = 'pending', invited_at = CURRENT_TIMESTAMP WHERE company_id = %s AND id IN ({placeholders})"
-                params = [company_id, *ids]
+                # CORREÇÃO DO BUG: anteriormente esta ação apenas atualizava
+                # o status para 'pending' sem enviar nem agendar nenhum e-mail.
+                # Agora envia o e-mail de acesso ao exame individualmente para
+                # cada participante selecionado usando o serviço central.
+                cursor.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
+                company_row = cursor.fetchone() or {}
+                company_name = company_row.get("RazaoSocial") or "Empresa"
+                login_url = exam_login_url()
+                sent_count = 0
+                failed_count = 0
+                failed_details = []
+
+                # Busca dados dos participantes selecionados
+                cursor.execute(
+                    f"SELECT p.id, p.full_name, p.email, p.exam_id "
+                    f"FROM company_participants p "
+                    f"WHERE p.company_id = %s AND p.id IN ({placeholders})",
+                    (company_id, *ids),
+                )
+                participants_to_send = cursor.fetchall()
+
+                for part_row in participants_to_send:
+                    part_id = part_row["id"]
+                    part_email = part_row["email"]
+                    participant = {
+                        "id": part_id,
+                        "fullName": part_row["full_name"],
+                        "email": part_email,
+                    }
+                    # Busca o exame vinculado (para título e horário)
+                    exam_info = None
+                    if part_row.get("exam_id"):
+                        cursor.execute(
+                            "SELECT title, available_from FROM company_exams WHERE id=%s AND company_id=%s",
+                            (part_row["exam_id"], company_id),
+                        )
+                        exam_row = cursor.fetchone()
+                        if exam_row:
+                            exam_info = {
+                                "title": exam_row["title"],
+                                "availableFrom": exam_row["available_from"],
+                            }
+                    # Enfileira o reenvio (registra na fila e envia imediatamente)
+                    queue_id = enqueue_exam_email(
+                        connection, company_id,
+                        part_row.get("exam_id") or 0,
+                        part_id, "resend",
+                    )
+                    # Busca a senha do usuário (não existe em texto plano;
+                    # o e-mail instrui o participante a usar a senha cadastrada)
+                    success, error = send_exam_access_email(
+                        connection=connection,
+                        company_name=company_name,
+                        participant=participant,
+                        password="[Use a senha cadastrada ou solicite redefinição]",
+                        login_url=login_url,
+                        exam=exam_info,
+                        queue_id=queue_id,
+                    )
+                    if success:
+                        # Atualiza status do participante
+                        cursor.execute(
+                            "UPDATE company_participants "
+                            "SET status='pending', invited_at=CURRENT_TIMESTAMP "
+                            "WHERE id=%s AND company_id=%s",
+                            (part_id, company_id),
+                        )
+                        connection.commit()
+                        sent_count += 1
+                    else:
+                        failed_count += 1
+                        failed_details.append(f"{part_email[:4]}***: {error}")
+
+                summary = f"{sent_count} acesso(s) ao exame enviado(s) com sucesso"
+                if failed_count:
+                    summary += f" e {failed_count} envio(s) falharam"
+                return jsonify({
+                    "success": True,
+                    "affected": sent_count,
+                    "sent": sent_count,
+                    "failed": failed_count,
+                    "failedDetails": failed_details[:10],
+                    "message": summary,
+                })
             else:
                 new_status = "inactive" if action == "deactivate" else "active"
                 sql = f"UPDATE company_participants SET status = %s WHERE company_id = %s AND id IN ({placeholders})"
                 params = [new_status, company_id, *ids]
-            cursor.execute(sql, tuple(params))
-            affected = cursor.rowcount
-            connection.commit()
-            return jsonify({"success": True, "affected": affected})
+                cursor.execute(sql, tuple(params))
+                affected = cursor.rowcount
+                connection.commit()
+                return jsonify({"success": True, "affected": affected})
+            # (resend_invite retorna acima; este ponto não é atingido para resend)
         finally:
             cursor.close()
             connection.close()
@@ -526,8 +579,8 @@ def create_participants_blueprint(open_database, token_payload):
             return jsonify({"success": False, "message": errors[0] if errors else "Nenhum registro válido."}), 400
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
-        invitations = []
         credentials = []
+        errors = []
         try:
             emails = [item["email"] for item in cleaned]
             placeholders = ",".join(["%s"] * len(emails))
@@ -564,23 +617,16 @@ def create_participants_blueprint(open_database, token_payload):
                     )
                     existing_user_emails.add(item["email"])
                     credentials.append({"name": item["fullName"], "email": item["email"], "password": password})
-                    if item["sendInvite"]:
-                        invitations.append((item, password))
+                    # Nota: o envio de e-mail de acesso não ocorre na importação.
+                    # É controlado pela opção de envio definida no cadastro do exame.
             connection.commit()
-            invite_errors = []
-            login_url = participant_login_url()
-            for item, password in invitations:
-                try:
-                    send_email(item["email"], *participant_invite(company_name, item, password, login_url))
-                except Exception as exc:
-                    invite_errors.append(f"{item['email']}: {str(exc)[:120]}")
             return jsonify({
                 "success": True,
                 "imported": len(cleaned),
                 "created": created,
                 "credentials": credentials,
-                "invitationsSent": len(invitations) - len(invite_errors),
-                "errors": (errors + invite_errors)[:20],
+                "invitationsSent": 0,
+                "errors": errors[:20],
                 "licenseUsage": {**usage, "used": usage["used"] + created, "remaining": None if usage["limit"] is None else max(0, usage["remaining"] - created)},
             })
         except Exception:

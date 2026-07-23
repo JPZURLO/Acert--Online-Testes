@@ -1,20 +1,31 @@
 import json
 import re
+import secrets
 from datetime import datetime
 
 from flask import Blueprint, jsonify, request
+from werkzeug.security import generate_password_hash
 
 from gift_import import parse_gift_questions
 from question_import import QuestionImportError, parse_question_workbook
 from grading import grading_scale_json, normalize_grading_scale
+from exam_email_service import (
+    enqueue_exam_email,
+    cancel_exam_email_queue,
+    send_exam_access_email,
+    exam_login_url,
+    calculate_scheduled_for,
+)
 
 
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 ALLOWED_FONTS = {"Inter", "Manrope", "Montserrat", "Poppins", "Roboto"}
 ALLOWED_RADII = {"small", "medium", "large"}
-ALLOWED_QUESTION_TYPES = {"multiple_choice", "true_false", "essay"}
+ALLOWED_QUESTION_TYPES = {"multiple_choice", "multiple_select", "true_false", "essay"}
 ALLOWED_STATUSES = {"draft", "published"}
 ALLOWED_RESULT_DELIVERY = {"automatic", "manual"}
+# on_save: envia ao concluir o cadastro | scheduled: envia X min antes | manual: não envia (botão manual) | none: não envia
+ALLOWED_EMAIL_SEND_OPTIONS = {"on_save", "scheduled", "manual", "none"}
 MAX_QUESTIONS = 200
 MAX_LOGO_DATA_LENGTH = 2_800_000
 
@@ -89,10 +100,29 @@ def clean_question(question, index):
     options = [clean_text(option, 500) for option in raw_options[:10] if clean_text(option, 500)]
     if question_type == "true_false":
         options = ["Verdadeiro", "Falso"]
-    elif question_type == "multiple_choice" and len(options) < 2:
+    elif question_type in {"multiple_choice", "multiple_select"} and len(options) < 2:
         options = ["Opção A", "Opção B"]
     elif question_type == "essay":
         options = []
+
+    raw_correct_answers = question.get("correctAnswers")
+    if isinstance(raw_correct_answers, list):
+        correct_answers = [clean_text(ans, 500) for ans in raw_correct_answers if clean_text(ans, 500)]
+    else:
+        correct_answers = []
+
+    correct_answer = clean_text(question.get("correctAnswer"), 500)
+    if question_type == "multiple_select":
+        if not correct_answers and correct_answer:
+            try:
+                parsed = json.loads(correct_answer)
+                if isinstance(parsed, list):
+                    correct_answers = [clean_text(ans, 500) for ans in parsed if clean_text(ans, 500)]
+            except (json.JSONDecodeError, TypeError):
+                correct_answers = [ans.strip() for ans in correct_answer.split(",") if ans.strip()]
+        if not correct_answers and options:
+            correct_answers = [options[0]]
+        correct_answer = json.dumps(correct_answers, ensure_ascii=False)
 
     return {
         "id": clean_text(question.get("id"), 80, f"question-{index + 1}"),
@@ -101,7 +131,8 @@ def clean_question(question, index):
         "points": clamp_integer(question.get("points"), 0, 1000, 10),
         "required": bool(question.get("required", True)),
         "options": options,
-        "correctAnswer": clean_text(question.get("correctAnswer"), 500),
+        "correctAnswer": correct_answer,
+        "correctAnswers": correct_answers if question_type == "multiple_select" else None,
     }
 
 
@@ -121,6 +152,18 @@ def clean_exam(data):
     available_until = clean_datetime(data.get("availableUntil"))
     if available_from and available_until and available_until <= available_from:
         raise ValueError("A data final deve ser posterior à data inicial.")
+    email_send_option = clean_text(data.get("emailSendOption"), 16, "manual")
+    email_schedule_minutes = data.get("emailScheduleMinutesBefore")
+    try:
+        email_schedule_minutes = int(email_schedule_minutes) if email_schedule_minutes not in (None, "") else None
+        if email_schedule_minutes is not None and email_schedule_minutes <= 0:
+            raise ValueError("Os minutos antes devem ser um número inteiro positivo.")
+    except (TypeError, ValueError) as exc:
+        if "minutos" in str(exc):
+            raise
+        email_schedule_minutes = None
+    if email_send_option == "scheduled" and email_schedule_minutes is None:
+        raise ValueError("Informe os minutos antes do início para o envio agendado.")
     return {
         "title": title,
         "description": clean_text(data.get("description"), 3000),
@@ -136,6 +179,8 @@ def clean_exam(data):
         "requireRecording": bool(data.get("requireRecording", False)),
         "allowResume": bool(data.get("allowResume", True)),
         "showAnswerDetails": bool(data.get("showAnswerDetails", False)),
+        "emailSendOption": email_send_option if email_send_option in ALLOWED_EMAIL_SEND_OPTIONS else "manual",
+        "emailScheduleMinutesBefore": email_schedule_minutes,
         "questions": questions,
         "totalPoints": sum(question["points"] for question in questions),
     }
@@ -173,6 +218,8 @@ def exam_from_row(row, include_questions=False):
         "requireRecording": bool(row.get("require_recording")),
         "allowResume": bool(row.get("allow_resume", True)),
         "showAnswerDetails": bool(row.get("show_answer_details")),
+        "emailSendOption": row.get("email_send_option") or "manual",
+        "emailScheduleMinutesBefore": row.get("email_schedule_minutes_before"),
         "updatedAt": row.get("updated_at").isoformat() if row.get("updated_at") else None,
     }
     if include_questions:
@@ -271,30 +318,33 @@ def create_company_blueprint(open_database, token_payload):
             cursor.execute(
                 "INSERT INTO company_exams "
                 "(company_id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, shuffle_questions, status, "
-                "result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, questions_json) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
+                "result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, "
+                "email_send_option, email_schedule_minutes_before, questions_json) "
+                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
                 (
-                    company_id,
-                    exam["title"],
-                    exam["description"],
-                    exam["durationMinutes"],
-                    exam["totalPoints"],
-                    exam["passingScore"],
-                    grading_scale_json(exam["gradingScale"]),
-                    exam["shuffleQuestions"],
-                    exam["status"],
-                    exam["resultDelivery"],
-                    exam["availableFrom"],
-                    exam["availableUntil"],
-                    exam["requireIdentity"],
-                    exam["requireRecording"],
-                    exam["allowResume"],
-                    exam["showAnswerDetails"],
+                    company_id, exam["title"], exam["description"], exam["durationMinutes"],
+                    exam["totalPoints"], exam["passingScore"], grading_scale_json(exam["gradingScale"]),
+                    exam["shuffleQuestions"], exam["status"], exam["resultDelivery"],
+                    exam["availableFrom"], exam["availableUntil"],
+                    exam["requireIdentity"], exam["requireRecording"], exam["allowResume"],
+                    exam["showAnswerDetails"], exam["emailSendOption"],
+                    exam["emailScheduleMinutesBefore"],
                     json.dumps(exam["questions"], ensure_ascii=False),
                 ),
             )
+            exam_id = cursor.lastrowid
             connection.commit()
-            return jsonify({"success": True, "exam": {**exam, "id": cursor.lastrowid}}), 201
+
+            # Processa opção de envio de e-mail após salvar o exame com sucesso
+            email_result = _process_exam_email(
+                connection, cursor, company_id, exam_id, exam, action="create"
+            )
+
+            return jsonify({
+                "success": True,
+                "exam": {**exam, "id": exam_id},
+                "emailResult": email_result,
+            }), 201
         finally:
             cursor.close()
             connection.close()
@@ -363,35 +413,244 @@ def create_company_blueprint(open_database, token_payload):
                 "UPDATE company_exams SET title = %s, description = %s, duration_minutes = %s, "
                 "total_points = %s, passing_score = %s, grading_scale_json = %s, shuffle_questions = %s, status = %s, result_delivery = %s, "
                 "available_from = %s, available_until = %s, require_identity = %s, require_recording = %s, "
-                "allow_resume = %s, show_answer_details = %s, questions_json = %s "
+                "allow_resume = %s, show_answer_details = %s, "
+                "email_send_option = %s, email_schedule_minutes_before = %s, "
+                "questions_json = %s "
                 "WHERE id = %s AND company_id = %s",
                 (
-                    exam["title"],
-                    exam["description"],
-                    exam["durationMinutes"],
-                    exam["totalPoints"],
-                    exam["passingScore"],
-                    grading_scale_json(exam["gradingScale"]),
-                    exam["shuffleQuestions"],
-                    exam["status"],
-                    exam["resultDelivery"],
-                    exam["availableFrom"],
-                    exam["availableUntil"],
-                    exam["requireIdentity"],
-                    exam["requireRecording"],
-                    exam["allowResume"],
-                    exam["showAnswerDetails"],
+                    exam["title"], exam["description"], exam["durationMinutes"],
+                    exam["totalPoints"], exam["passingScore"], grading_scale_json(exam["gradingScale"]),
+                    exam["shuffleQuestions"], exam["status"], exam["resultDelivery"],
+                    exam["availableFrom"], exam["availableUntil"],
+                    exam["requireIdentity"], exam["requireRecording"],
+                    exam["allowResume"], exam["showAnswerDetails"],
+                    exam["emailSendOption"], exam["emailScheduleMinutesBefore"],
                     json.dumps(exam["questions"], ensure_ascii=False),
-                    exam_id,
-                    company_id,
+                    exam_id, company_id,
                 ),
             )
             if cursor.rowcount == 0:
                 return jsonify({"success": False, "message": "Teste não encontrado."}), 404
             connection.commit()
-            return jsonify({"success": True, "exam": {**exam, "id": exam_id}})
+
+            # Reprocessa opção de envio ao editar
+            email_result = _process_exam_email(
+                connection, cursor, company_id, exam_id, exam, action="update"
+            )
+
+            return jsonify({
+                "success": True,
+                "exam": {**exam, "id": exam_id},
+                "emailResult": email_result,
+            })
         finally:
             cursor.close()
             connection.close()
+
+    @blueprint.delete("/api/company/exams/<int:exam_id>")
+    def delete_exam(exam_id):
+        """Exclui um exame e cancela todos os e-mails pendentes da fila."""
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT id FROM company_exams WHERE id = %s AND company_id = %s",
+                (exam_id, company_id),
+            )
+            if not cursor.fetchone():
+                return jsonify({"success": False, "message": "Teste não encontrado."}), 404
+            # Cancela e-mails pendentes antes de excluir
+            cancel_exam_email_queue(connection, exam_id)
+            cursor.execute(
+                "DELETE FROM company_exams WHERE id = %s AND company_id = %s",
+                (exam_id, company_id),
+            )
+            connection.commit()
+            return jsonify({"success": True, "message": "Teste excluído."})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/company/exams/<int:exam_id>/send-access")
+    def send_exam_access(exam_id):
+        """
+        Envio manual do acesso ao exame para todos os participantes vinculados.
+        Usado pela opção 'Enviar e-mail agora' (opção manual ou reenvio).
+        Proteção contra duplo clique: um segundo clique recebe 409 se já há envio em processamento.
+        """
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT e.id, e.title, e.available_from, e.email_send_option, "
+                "c.RazaoSocial AS company_name "
+                "FROM company_exams e JOIN empresas c ON c.id = e.company_id "
+                "WHERE e.id = %s AND e.company_id = %s",
+                (exam_id, company_id),
+            )
+            exam_row = cursor.fetchone()
+            if not exam_row:
+                return jsonify({"success": False, "message": "Teste não encontrado."}), 404
+
+            company_name = exam_row["company_name"]
+            exam_info = {
+                "title": exam_row["title"],
+                "availableFrom": exam_row["available_from"],
+            }
+            login_url = exam_login_url()
+
+            # Busca participantes vinculados a este exame
+            cursor.execute(
+                "SELECT p.id, p.full_name, p.email "
+                "FROM company_participants p "
+                "WHERE p.exam_id = %s AND p.company_id = %s",
+                (exam_id, company_id),
+            )
+            participants = cursor.fetchall()
+            if not participants:
+                return jsonify({"success": False, "message": "Nenhum participante vinculado a este exame."}), 400
+
+            sent = 0
+            failed = 0
+            failed_details = []
+
+            for part_row in participants:
+                participant = {
+                    "id": part_row["id"],
+                    "fullName": part_row["full_name"],
+                    "email": part_row["email"],
+                }
+                queue_id = enqueue_exam_email(
+                    connection, company_id, exam_id, part_row["id"], "manual"
+                )
+                success, error_msg = send_exam_access_email(
+                    connection=connection,
+                    company_name=company_name,
+                    participant=participant,
+                    password="[Use a senha cadastrada ou solicite redefinição]",
+                    login_url=login_url,
+                    exam=exam_info,
+                    queue_id=queue_id,
+                )
+                if success:
+                    sent += 1
+                else:
+                    failed += 1
+                    failed_details.append(f"{part_row['email'][:4]}***: {error_msg}")
+
+            summary = f"{sent} acesso(s) enviado(s) com sucesso"
+            if failed:
+                summary += f" e {failed} falhou(aram)"
+            return jsonify({
+                "success": sent > 0 or failed == 0,
+                "sent": sent,
+                "failed": failed,
+                "failedDetails": failed_details[:10],
+                "message": summary,
+            })
+        finally:
+            cursor.close()
+            connection.close()
+
+    def _process_exam_email(connection, cursor, company_id, exam_id, exam, action="create"):
+        """
+        Processa a opção de envio de e-mail após salvar um exame.
+        Retorna um dict com resultado (usado no response JSON).
+        """
+        send_option = exam.get("emailSendOption", "manual")
+        minutes_before = exam.get("emailScheduleMinutesBefore")
+        result = {"option": send_option, "sent": 0, "failed": 0, "queued": 0, "error": None}
+
+        # Ao editar, cancela agendamentos pendentes anteriores
+        if action == "update":
+            cancel_exam_email_queue(connection, exam_id)
+
+        if send_option == "none":
+            return result
+
+        # Busca participantes vinculados
+        cursor_dict = connection.cursor(dictionary=True)
+        try:
+            cursor_dict.execute(
+                "SELECT p.id, p.full_name, p.email "
+                "FROM company_participants p "
+                "WHERE p.exam_id = %s AND p.company_id = %s",
+                (exam_id, company_id),
+            )
+            participants = cursor_dict.fetchall()
+            if not participants:
+                return result
+
+            cursor_dict.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
+            company_row = cursor_dict.fetchone() or {}
+            company_name = company_row.get("RazaoSocial") or "Empresa"
+
+            if send_option == "on_save":
+                # Envia imediatamente
+                login_url = exam_login_url()
+                exam_info = {
+                    "title": exam.get("title"),
+                    "availableFrom": None,  # Data não é necesssária para envio imediato
+                }
+                for part_row in participants:
+                    participant = {
+                        "id": part_row["id"],
+                        "fullName": part_row["full_name"],
+                        "email": part_row["email"],
+                    }
+                    queue_id = enqueue_exam_email(
+                        connection, company_id, exam_id, part_row["id"], "on_save"
+                    )
+                    success, error_msg = send_exam_access_email(
+                        connection=connection,
+                        company_name=company_name,
+                        participant=participant,
+                        password="[Use a senha cadastrada ou solicite redefinição]",
+                        login_url=login_url,
+                        exam=exam_info,
+                        queue_id=queue_id,
+                    )
+                    if success:
+                        result["sent"] += 1
+                    else:
+                        result["failed"] += 1
+                        result["error"] = error_msg
+
+            elif send_option == "scheduled":
+                # Calcula horário e enfileira para processamento pelo cron
+                from datetime import datetime, timezone
+                import re as _re
+                available_from_str = exam.get("availableFrom")
+                available_from_dt = None
+                if available_from_str:
+                    try:
+                        available_from_dt = datetime.fromisoformat(
+                            str(available_from_str).replace("Z", "+00:00")
+                        )
+                    except ValueError:
+                        pass
+
+                if available_from_dt is None:
+                    result["error"] = "Data de início não definida. O agendamento não foi criado."
+                    return result
+
+                scheduled_for = calculate_scheduled_for(available_from_dt, minutes_before)
+                for part_row in participants:
+                    enqueue_exam_email(
+                        connection, company_id, exam_id, part_row["id"],
+                        "scheduled", scheduled_for=scheduled_for
+                    )
+                    result["queued"] += 1
+
+        finally:
+            cursor_dict.close()
+
+        return result
 
     return blueprint
