@@ -1,9 +1,9 @@
 /* Estrutura compartilhada entre os módulos da área da empresa. */
 :root {
-  --primary: #66783f;
-  --primary-dark: #526331;
-  --accent: #879d58;
-  --brand-primary: #66783f;
+  --primary: #137879;
+  --primary-dark: #0f6364;
+  --accent: #1f9292;
+  --brand-primary: #137879;
   --brand-secondary: #0b1f3a;
   --navy: #0b1f3a;
   --canvas: #f4f7fb;
@@ -85,8 +85,8 @@
 
 .nav-item.active {
   color: #fff;
-  background: linear-gradient(135deg, #718448, #5c6f38);
-  box-shadow: 0 8px 18px rgba(82, 99, 49, .28);
+  background: linear-gradient(135deg, #168485, #0f6364);
+  box-shadow: 0 8px 18px rgba(19, 120, 121, .28);
 }
 
 .nav-icon {
@@ -192,8 +192,8 @@
 .audit-recording-actions a,
 .branding-save {
   color: #fff !important;
-  background: #66783f !important;
-  border-color: #66783f !important;
+  background: #137879 !important;
+  border-color: #137879 !important;
 }
 
 .button.primary:hover,
@@ -202,13 +202,13 @@
 .company-chat button:hover,
 .audit-recording-actions a:hover,
 .branding-save:hover {
-  background: #526331 !important;
+  background: #0f6364 !important;
 }
 
 .operations-page .eyebrow,
 .operations-page .operation-date-button,
 .operations-page .operation-actions > p {
-  color: #66783f !important;
+  color: #137879 !important;
 }
 
 body.sidebar-collapsed .app-shell { grid-template-columns: 76px minmax(0, 1fr); }
