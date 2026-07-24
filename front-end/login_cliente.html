@@ -6,10 +6,10 @@
   <meta name="description" content="Área da empresa para criação e personalização de testes ACERT.">
   <title>Online Teste | Estúdio de Testes</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
-  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=5">
+  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=6">
   <link rel="stylesheet" href="./css/dashboard-shell.css?v=2">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
-  <link rel="stylesheet" href="./css/question-import-prototype.css?v=1">
+  <link rel="stylesheet" href="./css/question-import-prototype.css?v=2">
 </head>
 <body>
   <div class="app-shell">
@@ -64,21 +64,8 @@
             <button class="button secondary" id="save-draft" type="button">Salvar rascunho</button>
             <button class="button secondary" id="btn-assign-participants" type="button"><span>♙</span> Participantes</button>
             <button class="button secondary" id="preview-exam-btn" type="button"><span>👁</span> Visualizar prévia</button>
-            <button class="button primary" id="btn-test-new-import-top" type="button" style="background: linear-gradient(135deg, #2563eb, #1d4ed8); color: #fff; font-weight: 700; border: 0;">✨ Testar Nova Importação</button>
             <button class="button primary" id="publish-exam" type="button"><span>◉</span> Publicar teste</button>
           </div>
-        </div>
-
-        <!-- Banner de Destaque do Protótipo de Importação -->
-        <div class="prototype-banner" style="margin: 18px 0; padding: 14px 20px; background: #eff6ff; border: 1.5px solid #60a5fa; border-radius: 12px; display: flex; align-items: center; justify-content: space-between; gap: 16px; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.08);">
-          <div style="display: flex; align-items: center; gap: 12px;">
-            <span style="font-size: 24px;">✨</span>
-            <div>
-              <strong style="color: #1e40af; font-size: 14px; display: block; margin-bottom: 2px;">Novo Protótipo de Importação de Questões (3 Etapas com Pré-Visualização Editável)</strong>
-              <span style="color: #3b82f6; font-size: 12px;">Testar o novo fluxo: Escolha de 1 ou 2 arquivos (Perguntas + Gabarito), pré-visualização editável e confirmação.</span>
-            </div>
-          </div>
-          <button class="button primary" id="btn-test-new-import-banner" type="button" style="white-space: nowrap; background: #2563eb; color: #fff; font-weight: 700; flex-shrink: 0; box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);">Abrir Protótipo de Importação →</button>
         </div>
 
         <ol class="stepper" aria-label="Etapas de criação">
@@ -140,8 +127,8 @@
               <div class="question-import-card">
                 <span class="question-import-icon" aria-hidden="true">⇩</span>
                 <div class="question-import-copy">
-                  <strong>Importar questões por Excel ou GIFT</strong>
-                  <span>Use o modelo Excel ou envie um arquivo GIFT exportado do Moodle. Revise as questões antes de publicar.</span>
+                  <strong>Importar questões</strong>
+                  <span>Importe questões utilizando Excel, Word, CSV, GIFT ou outros formatos suportados.</span>
                 </div>
                 <label class="question-import-mode" for="question-import-mode">
                   <span>Ao importar</span>
@@ -151,10 +138,8 @@
                   </select>
                 </label>
                 <div class="question-import-actions">
-                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.xlsx" download>Modelo Excel</a>
-                  <a class="button secondary" href="./assets/templates/modelo-importacao-questoes.gift" download>Exemplo GIFT</a>
-                  <button class="button secondary" id="btn-test-new-import" type="button" style="border-color: var(--primary); color: var(--primary); font-weight: 700;">✨ Testar nova importação (Protótipo)</button>
-                  <button class="button primary" id="import-questions" type="button">Importar arquivo</button>
+                  <button class="button secondary" id="btn-show-models" type="button">Modelos</button>
+                  <button class="button primary" id="import-questions" type="button">Importar questões</button>
                   <input id="question-import-file" type="file" accept=".xlsx,.gift,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain" hidden>
                 </div>
               </div>
@@ -456,6 +441,63 @@
     </section>
   </div>
 
+  <!-- Modal de Modelos de Importação de Questões -->
+  <div class="modal-backdrop" id="models-modal" hidden>
+    <section class="publish-modal" role="dialog" aria-modal="true" aria-labelledby="models-modal-title" style="max-width: 640px; text-align: left;">
+      <button class="modal-close" id="close-models-modal" type="button" aria-label="Fechar">×</button>
+      <span class="modal-icon" style="background: var(--primary);">⇩</span>
+      <p class="eyebrow">MODELOS E FORMATOS SUPORTADOS</p>
+      <h2 id="models-modal-title">Modelos para Importação de Questões</h2>
+      <p style="margin-bottom: 1rem;">Baixe os modelos ou veja exemplos de estrutura para importar suas questões em poucos segundos.</p>
+      
+      <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.2rem;">
+        <a href="./assets/templates/modelo-importacao-questoes.xlsx" download class="button secondary" style="justify-content: flex-start; gap: 10px; padding: 12px 14px; height: auto;">
+          <span style="font-size: 20px;">📊</span>
+          <div style="display: flex; flex-direction: column; text-align: left;">
+            <strong style="font-size: 13px;">Modelo Excel (.xlsx)</strong>
+            <small style="color: var(--muted); font-size: 10px;">Planilha pré-formatada</small>
+          </div>
+        </a>
+
+        <a href="./assets/templates/modelo-importacao-questoes.gift" download class="button secondary" style="justify-content: flex-start; gap: 10px; padding: 12px 14px; height: auto;">
+          <span style="font-size: 20px;">🎁</span>
+          <div style="display: flex; flex-direction: column; text-align: left;">
+            <strong style="font-size: 13px;">Modelo GIFT (.gift)</strong>
+            <small style="color: var(--muted); font-size: 10px;">Padrão Moodle LMS</small>
+          </div>
+        </a>
+
+        <a href="#" id="btn-download-word-spec" class="button secondary" style="justify-content: flex-start; gap: 10px; padding: 12px 14px; height: auto;" onclick="event.preventDefault(); document.getElementById('btn-help-modal-trigger')?.click();">
+          <span style="font-size: 20px;">📝</span>
+          <div style="display: flex; flex-direction: column; text-align: left;">
+            <strong style="font-size: 13px;">Formato Word (.docx)</strong>
+            <small style="color: var(--muted); font-size: 10px;">Ver estrutura e regras</small>
+          </div>
+        </a>
+
+        <a href="#" id="btn-download-csv-spec" class="button secondary" style="justify-content: flex-start; gap: 10px; padding: 12px 14px; height: auto;" onclick="event.preventDefault(); document.getElementById('btn-help-modal-trigger')?.click();">
+          <span style="font-size: 20px;">📋</span>
+          <div style="display: flex; flex-direction: column; text-align: left;">
+            <strong style="font-size: 13px;">Formato CSV (.csv)</strong>
+            <small style="color: var(--muted); font-size: 10px;">Separado por vírgula</small>
+          </div>
+        </a>
+      </div>
+
+      <div style="background: var(--surface-soft, #F8FAFC); padding: 14px; border-radius: 10px; border: 1px solid #E2E8F0; margin-bottom: 1.2rem;">
+        <strong style="font-size: 12px; color: #1E293B; display: block; margin-bottom: 6px;">Exemplo de Gabarito (Múltiplas Respostas Corretas):</strong>
+        <pre style="margin: 0; background: #0F172A; color: #38BDF8; padding: 10px; border-radius: 6px; font-size: 11px; overflow-x: auto; font-family: monospace;">Questão 1: A, C, E
+Questão 2: B
+Questão 3: Verdadeiro
+Questão 4: Caixa branca</pre>
+      </div>
+
+      <div class="modal-actions" style="margin-top: 0.5rem; justify-content: flex-end;">
+        <button class="button secondary" id="close-models-modal-btn" type="button">Fechar</button>
+      </div>
+    </section>
+  </div>
+
   <template id="question-template">
     <article class="question-card" draggable="true">
       <button class="drag-handle" type="button" aria-label="Arrastar questão">⠿</button>
@@ -485,8 +527,8 @@
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/company-dashboard.js?v=14"></script>
-  <script src="./js/question-import-prototype.js?v=1"></script>
+  <script src="./js/company-dashboard.js?v=15"></script>
+  <script src="./js/question-import-prototype.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>

@@ -1230,8 +1230,19 @@ function bindEvents() {
   elements['questions-list'].addEventListener('drop', handleDrop);
   elements['questions-list'].addEventListener('dragend', handleDragEnd);
   document.getElementById('add-question').addEventListener('click', addQuestion);
-  document.getElementById('import-questions').addEventListener('click', () => elements['question-import-file'].click());
-  elements['question-import-file'].addEventListener('change', importQuestionsFromFile);
+  
+  // Modal de Modelos de Importação
+  const btnModels = document.getElementById('btn-show-models');
+  const modelsModal = document.getElementById('models-modal');
+  if (btnModels && modelsModal) {
+    btnModels.addEventListener('click', () => { modelsModal.hidden = false; });
+    const closeModelsBtn = document.getElementById('close-models-modal');
+    const closeModelsBtnFooter = document.getElementById('close-models-modal-btn');
+    if (closeModelsBtn) closeModelsBtn.addEventListener('click', () => { modelsModal.hidden = true; });
+    if (closeModelsBtnFooter) closeModelsBtnFooter.addEventListener('click', () => { modelsModal.hidden = true; });
+    modelsModal.addEventListener('click', (e) => { if (e.target === modelsModal) modelsModal.hidden = true; });
+  }
+
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
   if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
@@ -1593,9 +1604,38 @@ document.addEventListener('DOMContentLoaded', async () => {
   state.questions = defaultQuestions();
   bindEvents();
   initDocumentManagerUI();
-  renderQuestions();
-  applyBranding();
-  updatePreview();
-  await loadWorkspace();
+  updateEmailScheduleVisibility();
+  await loadState();
+  observeScrollSpy();
 });
 
+window.importQuestionsToExam = function(importedQuestions, importMode = 'replace') {
+  if (!Array.isArray(importedQuestions) || importedQuestions.length === 0) return;
+
+  const formatted = importedQuestions.map(q => ({
+    id: q.id || newId(),
+    type: q.type || 'multiple_choice',
+    prompt: q.prompt || 'Questão sem enunciado',
+    points: typeof q.points === 'number' ? q.points : 10,
+    required: q.required !== false,
+    options: Array.isArray(q.options) && q.options.length > 0 ? q.options : ['Opção A', 'Opção B'],
+    correctAnswer: q.correctAnswer || (q.options && q.options[0]) || 'Opção A',
+    correctAnswers: Array.isArray(q.correctAnswers) ? q.correctAnswers : [],
+    explanation: q.explanation || ''
+  }));
+
+  if (importMode === 'append') {
+    state.questions.push(...formatted);
+  } else {
+    state.questions = formatted;
+  }
+
+  renderQuestions();
+  updatePreview();
+  markDirty();
+
+  const count = formatted.length;
+  if (typeof toast === 'function') {
+    toast(`Sucesso: ${count} questão(ões) importada(s) com sucesso para o teste!`, 'success');
+  }
+};

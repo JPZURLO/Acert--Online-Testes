@@ -240,12 +240,11 @@
           <!-- Cabeçalho -->
           <header class="qimp-header">
             <div class="qimp-header-title-group">
-              <p class="eyebrow">NOVA IMPORTAÇÃO DE QUESTÕES</p>
+              <p class="eyebrow">ASSISTENTE DE IMPORTAÇÃO</p>
               <h2 id="qimp-title">
                 <span>Importar questões</span>
-                <span class="prototype-badge">Protótipo de Validação</span>
               </h2>
-              <p id="qimp-subtitle">Selecione o formato dos arquivos para análise prévia.</p>
+              <p id="qimp-subtitle">Selecione o formato dos arquivos e revise as questões antes de incluir no teste.</p>
             </div>
             <div class="qimp-header-actions">
               <button class="qimp-btn-help" id="qimp-btn-help" type="button" title="Ajuda sobre o formato de arquivos">?</button>
@@ -428,7 +427,7 @@ Questão 4: Verdadeiro</div>
           <p>Deseja importar estas questões revisadas para a avaliação atual?</p>
 
           <div class="qimp-confirm-summary">
-            <strong>Resumo da Importação (Simulada):</strong>
+            <strong>Resumo da Importação:</strong>
             <ul id="qimp-confirm-summary-list">
               <li><b>7 questões</b> prontas para inserção.</li>
               <li><b>100 pontos</b> no valor total acumulado.</li>
@@ -437,7 +436,7 @@ Questão 4: Verdadeiro</div>
           </div>
 
           <div class="qimp-confirm-notice">
-            ℹ️ <b>Protótipo Frontend:</b> Nenhuma alteração foi realizada na API de produção ou no banco de dados. Os dados simulados serão apresentados na tela.
+            ℹ️ As questões revisadas serão adicionadas ao construtor de testes.
           </div>
 
           <div class="qimp-confirm-actions">
@@ -458,18 +457,13 @@ Questão 4: Verdadeiro</div>
 
   // --- Event Bindings ---
   function bindEvents() {
-    // Abrir Modal por qualquer um dos botões da página
-    ['btn-test-new-import', 'btn-test-new-import-top', 'btn-test-new-import-banner'].forEach(id => {
+    // Abrir Modal pelo botão principal de importação
+    ['import-questions', 'btn-open-import-assistant'].forEach(id => {
       const btn = document.getElementById(id);
       if (btn) btn.addEventListener('click', openModal);
     });
 
     document.querySelectorAll('[data-open-qimp]').forEach(btn => btn.addEventListener('click', openModal));
-
-    // Se o hash da URL for #import-proto, abre automaticamente
-    if (window.location.hash === '#import-proto' || window.location.search.includes('proto=1')) {
-      setTimeout(openModal, 200);
-    }
 
     // Fechar Modal
     document.getElementById('qimp-btn-close').addEventListener('click', closeModal);
@@ -1012,12 +1006,12 @@ Questão 4: Verdadeiro</div>
     closeModal();
 
     const activeQuestions = state.questions.filter(q => !q.isExcluded);
+    const mode = document.getElementById('question-import-mode')?.value || 'replace';
 
-    // Exibe notificação de sucesso
-    if (typeof window.toast === 'function') {
-      window.toast(`✨ Protótipo: ${activeQuestions.length} questões foram preparadas para importação com sucesso!`, 'success');
-    } else {
-      alert(`✨ Protótipo: ${activeQuestions.length} questões foram preparadas para importação com sucesso!`);
+    if (typeof window.importQuestionsToExam === 'function') {
+      window.importQuestionsToExam(activeQuestions, mode);
+    } else if (typeof window.toast === 'function') {
+      window.toast(`Sucesso: ${activeQuestions.length} questão(ões) importada(s) com sucesso!`, 'success');
     }
   }
 

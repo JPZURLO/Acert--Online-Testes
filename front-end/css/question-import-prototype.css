@@ -75,17 +75,7 @@
   gap: 10px;
 }
 
-.qimp-header-title-group h2 .prototype-badge {
-  font-size: 10px;
-  padding: 3px 8px;
-  background: #eff6ff;
-  color: var(--primary, #2563eb);
-  border: 1px solid #bfdbfe;
-  border-radius: 99px;
-  font-weight: 700;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
+
 
 .qimp-header-title-group p {
   margin: 4px 0 0;
