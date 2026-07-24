@@ -591,10 +591,31 @@
   }
 
   function checkURLHashRoute() {
-    const hash = window.location.hash.replace('#', '');
-    if (hash.startsWith('artigo-')) {
-      const articleId = hash.replace('artigo-', '');
-      showArticle(articleId);
+    const rawHash = window.location.hash; // ex: #artigo-como-criar-participante&edit=true
+    // Detecta modo edição — suporta & e %26 (encoding do browser)
+    const isEditMode = rawHash.includes('&edit=true') || rawHash.includes('%26edit=true');
+    // Remove o sufixo de edição para obter o hash limpo
+    const cleanHash = rawHash.replace('&edit=true', '').replace('%26edit=true', '').replace('#', '');
+
+    if (cleanHash === 'novo-artigo') {
+      const newArt = {
+        id: 'novo-artigo-' + Date.now(),
+        slug: 'novo-artigo',
+        title: 'Novo Artigo',
+        category: 'Primeiros passos',
+        audience: 'company',
+        readTime: '3 min de leitura',
+        updatedAt: new Date().toLocaleDateString('pt-BR'),
+        lead: 'Escreva aqui o resumo do artigo...',
+        summary: 'Escreva aqui o resumo do artigo...',
+        status: 'draft',
+        steps: [],
+        blocks: []
+      };
+      showArticle(newArt.id, newArt, true);
+    } else if (cleanHash.startsWith('artigo-')) {
+      const articleId = cleanHash.replace('artigo-', '');
+      showArticle(articleId, null, isEditMode);
     } else {
       showCatalog();
     }
