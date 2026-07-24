@@ -397,104 +397,22 @@
   margin: 0;
 }
 
-.kb-article-meta-info {
-  display: flex;
-  align-items: center;
-  gap: 16px;
-  margin-top: 18px;
-  font-size: 12px;
-  color: #64748b;
-  flex-wrap: wrap;
-}
-
-/* ── Sumário NAVEGÁVEL DO ARTIGO ────────────────────────────────────── */
-.kb-toc-card {
-  background: #f8fafc;
-  border: 1px solid #e2e8f0;
-  border-radius: 14px;
-  padding: 18px 20px;
-  margin-bottom: 32px;
-}
-
-.kb-toc-title {
-  font-size: 13px;
-  font-weight: 800;
-  color: #1e293b;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  margin: 0 0 10px;
-}
-
-.kb-toc-list {
-  margin: 0;
-  padding-left: 20px;
-  display: flex;
-  flex-direction: column;
-  gap: 6px;
-  font-size: 13px;
-}
-
-.kb-toc-list a {
-  color: #2563eb;
-  text-decoration: none;
-  font-weight: 600;
-}
-
-.kb-toc-list a:hover {
-  text-decoration: underline;
-}
-
-/* ── Corpo do Artigo ────────────────────────────────────────────────── */
-.kb-article-body {
-  font-size: 15px;
-  line-height: 1.7;
-  color: #334155;
-}
-
-.kb-article-body h2 {
-  font-size: 22px;
-  font-weight: 800;
-  color: #0f172a;
-  margin: 36px 0 16px;
-  scroll-margin-top: 100px;
-}
-
-.kb-article-body h3 {
-  font-size: 18px;
-  font-weight: 750;
-  color: #1e293b;
-  margin: 24px 0 12px;
-}
-
-.kb-article-body p {
-  margin: 0 0 16px;
-}
-
-.kb-article-body ul, .kb-article-body ol {
-  margin: 0 0 20px;
-  padding-left: 24px;
-}
-
-.kb-article-body li {
-  margin-bottom: 8px;
-}
-
-/* ── Passo a Passo Numérico ────────────────────────────────────────── */
+/* ── Passo a Passo e Figuras com Screenshot Real ───────────────────── */
 .kb-step-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
   border-left: 4px solid #2563eb;
-  border-radius: 12px;
-  padding: 20px;
-  margin-bottom: 24px;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.02);
+  border-radius: 14px;
+  padding: 22px;
+  margin-bottom: 28px;
+  box-shadow: 0 4px 16px rgba(15, 23, 42, 0.03);
 }
 
 .kb-step-header {
   display: flex;
   align-items: center;
   gap: 12px;
-  margin-bottom: 10px;
+  margin-bottom: 12px;
 }
 
 .kb-step-num {
@@ -517,41 +435,117 @@
   margin: 0;
 }
 
-/* ── Placeholder da Imagem/Print conforme pedido pelo usuário ──────── */
-.kb-image-placeholder-box {
-  background: #0f172a;
-  border: 1.5px dashed #38bdf8;
+.kb-step-figure {
+  margin: 16px 0 8px;
+  background: #f8fafc;
+  border: 1px solid #cbd5e1;
   border-radius: 12px;
-  padding: 24px 20px;
-  margin: 16px 0;
-  color: #e2e8f0;
-  text-align: center;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
+}
+
+.kb-image-zoom-btn {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  cursor: zoom-in;
+  position: relative;
+}
+
+.kb-image-zoom-btn img {
+  width: 100%;
+  height: auto;
+  display: block;
+  object-fit: contain;
+  max-height: 520px;
+  background: #ffffff;
+}
+
+.kb-step-figure figcaption {
+  padding: 10px 16px;
+  font-size: 12px;
+  color: #475569;
+  background: #f1f5f9;
+  border-top: 1px solid #e2e8f0;
   display: flex;
-  flex-direction: column;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
 }
 
-.kb-image-placeholder-icon {
-  font-size: 28px;
-  color: #38bdf8;
+.kb-zoom-badge {
+  font-size: 11px;
+  font-weight: 700;
+  color: #2563eb;
+  background: #eff6ff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  border: 1px solid #bfdbfe;
 }
 
-.kb-image-placeholder-text {
-  font-size: 13px;
-  font-weight: 750;
-  font-family: monospace;
-  color: #38bdf8;
-  background: rgba(56, 189, 248, 0.12);
-  padding: 8px 16px;
-  border-radius: 8px;
-  display: inline-block;
+/* ── Modal Lightbox Zoom de Imagem ──────────────────────────────────── */
+.kb-zoom-backdrop {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: rgba(15, 23, 42, 0.85);
+  backdrop-filter: blur(4px);
+  z-index: 99999;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  box-sizing: border-box;
 }
 
-.kb-image-placeholder-caption {
-  font-size: 12px;
-  color: #94a3b8;
-  font-style: italic;
+.kb-zoom-container {
+  max-width: 92vw;
+  max-height: 92vh;
+  background: #0f172a;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+.kb-zoom-container img {
+  max-width: 100%;
+  max-height: 80vh;
+  object-fit: contain;
+  display: block;
+}
+
+.kb-zoom-caption {
+  padding: 14px 20px;
+  color: #f8fafc;
+  font-size: 14px;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.kb-zoom-close {
+  position: absolute;
+  top: 12px;
+  right: 12px;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background: rgba(0,0,0,0.6);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.3);
+  font-size: 20px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
 }
 
 /* ── Alertas e Dicas no Artigo ───────────────────────────────────────── */
@@ -566,10 +560,6 @@
 }
 
 .kb-alert-tip { background: #f0fdf4; border: 1px solid #bbf7d0; color: #166534; }
-.kb-alert-warning { background: #fffbebfb; border: 1px solid #fef3c7; color: #92400e; }
-.kb-alert-info { background: #eff6ff; border: 1px solid #bfdbfe; color: #1e40af; }
-
-.kb-alert-icon { font-size: 18px; flex-shrink: 0; margin-top: 2px; }
 
 /* ── Bloco Comercial CTA nos Artigos ─────────────────────────────────── */
 .kb-commercial-cta {
@@ -583,7 +573,6 @@
   justify-content: space-between;
   gap: 20px;
   flex-wrap: wrap;
-  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.15);
 }
 
 .kb-commercial-cta h4 {
@@ -605,7 +594,7 @@
   flex-wrap: wrap;
 }
 
-/* ── Barra Lateral de Ações e Artigos Relacionados ───────────────────── */
+/* ── Barra Lateral ───────────────────────────────────────────────────── */
 .kb-sidebar-card {
   background: #ffffff;
   border: 1px solid #e2e8f0;
@@ -652,7 +641,6 @@
 
 .kb-btn-action.secondary:hover {
   background: #f1f5f9;
-  border-color: #94a3b8;
 }
 
 .kb-btn-action.primary {
@@ -661,11 +649,7 @@
   color: #ffffff;
 }
 
-.kb-btn-action.primary:hover {
-  background: #1d4ed8;
-}
-
-/* ── Widget de Feedback ("Este conteúdo foi útil?") ────────────────── */
+/* ── Widget de Feedback ─────────────────────────────────────────────── */
 .kb-feedback-box {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
@@ -682,12 +666,6 @@
   margin-bottom: 14px;
 }
 
-.kb-feedback-buttons {
-  display: flex;
-  justify-content: center;
-  gap: 12px;
-}
-
 .kb-btn-feedback {
   min-width: 100px;
   height: 40px;
@@ -698,17 +676,10 @@
   font-weight: 750;
   color: #334155;
   cursor: pointer;
-  transition: all 0.18s ease;
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: 6px;
-}
-
-.kb-btn-feedback:hover {
-  border-color: #2563eb;
-  color: #2563eb;
-  background: #eff6ff;
 }
 
 .kb-feedback-thanks {
@@ -721,29 +692,7 @@
   display: inline-block;
 }
 
-/* ── Estilos de Sem Resultados ──────────────────────────────────────── */
-.kb-no-results {
-  text-align: center;
-  padding: 60px 20px;
-  background: #ffffff;
-  border: 1px dashed #cbd5e1;
-  border-radius: 16px;
-  margin: 30px 0;
-}
-
-.kb-no-results h3 {
-  font-size: 18px;
-  color: #0f172a;
-  margin: 10px 0 6px;
-}
-
-.kb-no-results p {
-  color: #64748b;
-  font-size: 14px;
-  margin: 0;
-}
-
-/* ── Animações Suaves ───────────────────────────────────────────────── */
+/* ── Animações ──────────────────────────────────────────────────────── */
 @keyframes kbFadeIn {
   from { opacity: 0; transform: translateY(8px); }
   to { opacity: 1; transform: translateY(0); }

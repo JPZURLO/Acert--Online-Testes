@@ -1,13 +1,16 @@
 /**
- * Base de Conhecimento Pública — Módulo de Dados e Interatividade (Online Teste)
- * Suporta busca rápida, filtros por categoria/público, visualização completa de artigos
- * com passo a passo, caixa de imagem placeholder [Imagem: Tela de ...], compartilhamento e feedback.
+ * Base de Conhecimento Pública — Módulo Oficial com Prints Reais e Zoom (Online Teste)
+ * Suporta busca em tempo real, filtros por categoria/público, leitor de artigos
+ * com imagens reais da plataforma, lightbox zoom, compartilhamento e feedback.
  */
 
 (function () {
   'use strict';
 
-  // --- 1. Banco de Dados Fictício dos 14 Artigos Oficiais ---
+  // Base path para as imagens integradas
+  const IMG_BASE_PATH = './assets/images/base-conhecimento/';
+
+  // --- 1. Banco de Dados Oficial dos 14 Artigos com Imagens Reais ---
   const KNOWLEDGE_ARTICLES = [
     {
       id: 'como-criar-um-novo-participante',
@@ -28,25 +31,25 @@
           num: 1,
           title: 'Acesse o menu Participantes',
           desc: 'No painel da empresa, clique na opção "Participantes" na barra de navegação lateral para visualizar a lista completa.',
-          imagePlaceholder: 'colocar imagem tela de Participantes - menu lateral'
+          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
+          alt: 'Tela de Gestão de Participantes com a lista de inscritos',
+          caption: 'Tela principal de Gestão de Participantes da empresa'
         },
         {
           num: 2,
           title: 'Clique em "Novo Participante"',
-          desc: 'Localize o botão azul "+ Novo Participante" no canto superior direito da tela. Um modal centralizado será aberto.',
-          imagePlaceholder: 'colocar imagem tela de Participantes - botão Novo Participante'
+          desc: 'Localize o botão azul "+ Novo Participante" no canto superior direito da tela. O modal centralizado de cadastro será aberto.',
+          image: IMG_BASE_PATH + '13-empresa-participantes-novo-modal.png',
+          alt: 'Modal centralizado de cadastro de novo participante',
+          caption: 'Formulário de cadastro individual do novo participante'
         },
         {
           num: 3,
-          title: 'Preencha os dados cadastrais',
-          desc: 'Informe o Nome Completo, E-mail oficial, CPF/Documento, Cargo/Turma e selecione o exame ao qual o participante terá acesso.',
-          imagePlaceholder: 'colocar imagem tela do Modal de Cadastro de Participante'
-        },
-        {
-          num: 4,
-          title: 'Confirme o salvamento',
-          desc: 'Clique em "Criar Participante". O sistema enviará automaticamente as instruções ou gerará o login direto.',
-          imagePlaceholder: 'colocar imagem tela de Confirmação de Cadastro do Participante'
+          title: 'Preencha os dados e confirme o cadastro',
+          desc: 'Informe o Nome Completo, E-mail oficial, Documento e selecione o exame ao qual o participante terá acesso.',
+          image: IMG_BASE_PATH + '06-site-login-empresa.png',
+          alt: 'Confirmação e credenciais do participante',
+          caption: 'Credenciais de acesso prontas para o participante'
         }
       ],
       alertTip: 'Você também pode importar centenas de participantes de uma só vez utilizando a importação em lote via arquivo CSV.',
@@ -56,7 +59,7 @@
     {
       id: 'como-importar-participantes-por-csv',
       title: 'Como importar participantes por CSV',
-      summary: 'Cadastre turmas inteiras ou listas de candidatos de forma rápida e automatizada enviando uma planilha CSV.',
+      summary: 'Cadastre turmas inteiras ou listas de candidatos de forma rápida enviando uma planilha CSV.',
       category: 'Participantes',
       audience: 'company',
       readTime: '4 min de leitura',
@@ -64,30 +67,27 @@
       lead: 'Saiba como estruturar sua planilha no formato CSV e importar múltiplos participantes em lote.',
       toc: [
         { id: 'sec-modelo', title: '1. Baixando o modelo CSV' },
-        { id: 'sec-preenchimento', title: '2. Preenchendo os cabeçalhos' },
-        { id: 'sec-envio', title: '3. Envio e validação da lista' }
+        { id: 'sec-envio', title: '2. Envio e validação da lista' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Baixe o modelo CSV padrão',
-          desc: 'Na tela de Participantes, clique em "Importar CSV" e faça o download do modelo padrão formatado.',
-          imagePlaceholder: 'colocar imagem tela da área de Importação CSV de Participantes'
+          title: 'Abra a opção Importar CSV',
+          desc: 'Na tela de Participantes, clique em "Importar CSV" para abrir o assistente em lote.',
+          image: IMG_BASE_PATH + '14-empresa-participantes-importar-csv-modal.png',
+          alt: 'Modal de importação de participantes via arquivo CSV',
+          caption: 'Modal para envio do arquivo CSV formatado'
         },
         {
           num: 2,
-          title: 'Insira os dados na planilha',
-          desc: 'Abra o arquivo no Excel ou Google Sheets e preencha as colunas: Nome, Email, Documento e Grupo.',
-          imagePlaceholder: 'colocar imagem da planilha CSV com dados preenchidos'
-        },
-        {
-          num: 3,
-          title: 'Faça o upload do arquivo',
-          desc: 'Selecione o arquivo `.csv` salvo e clique em "Validar e Importar". O sistema exibirá o resumo prévio.',
-          imagePlaceholder: 'colocar imagem da tela de pré-visualização da importação CSV'
+          title: 'Valide e confirme a lista',
+          desc: 'Selecione o arquivo `.csv` preenchido e clique em "Validar e Importar" para incluir os participantes no sistema.',
+          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
+          alt: 'Lista atualizada após a importação via CSV',
+          caption: 'Participantes cadastrados com sucesso'
         }
       ],
-      alertTip: 'Certifique-se de salvar o arquivo com a codificação UTF-8 para evitar problemas em nomes com acentos.',
+      alertTip: 'Certifique-se de salvar a planilha com a codificação UTF-8 para evitar problemas com acentos.',
       relatedIds: ['como-criar-um-novo-participante', 'como-configurar-envio-acesso']
     },
 
@@ -109,13 +109,17 @@
           num: 1,
           title: 'Edite as informações do exame',
           desc: 'Qualquer alteração no título, instruções ou questões atualiza o indicador "Rascunho local" no cabeçalho.',
-          imagePlaceholder: 'colocar imagem do indicador de Rascunho no cabeçalho do Estúdio de Testes'
+          image: IMG_BASE_PATH + '15-empresa-exames-rascunho-indicador.png',
+          alt: 'Indicador de Rascunho no cabeçalho do Estúdio de Testes',
+          caption: 'Cabeçalho do Estúdio com status de Rascunho ativo'
         },
         {
           num: 2,
-          title: 'Clique em "Salvar rascunho"',
-          desc: 'Utilize o botão "Salvar rascunho" a qualquer momento para persistir a versão em andamento na sua conta.',
-          imagePlaceholder: 'colocar imagem do botão Salvar Rascunho no Estúdio de Testes'
+          title: 'Salvar rascunho manualmente',
+          desc: 'Utilize o botão "Salvar rascunho" a qualquer momento para persistir a versão em andamento.',
+          image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
+          alt: 'Visão geral do painel da empresa com botão de rascunho',
+          caption: 'Estúdio de Testes da empresa'
         }
       ],
       alertTip: 'O exame em rascunho não fica visível para os candidatos até que você clique no botão "Publicar teste".',
@@ -141,25 +145,33 @@
           num: 1,
           title: 'Clique em "Importar questões"',
           desc: 'No construtor do exame, clique no botão azul "Importar questões" para abrir o assistente em 3 etapas.',
-          imagePlaceholder: 'colocar imagem da seção de Construtor de Questões - Botão Importar Questões'
+          image: IMG_BASE_PATH + '19-empresa-construtor-questoes.png',
+          alt: 'Botão de Importar Questões no Construtor do Exame',
+          caption: 'Seção do Construtor com opções de importação'
         },
         {
           num: 2,
-          title: 'Escolha o modo e selecione o arquivo',
+          title: 'Selecione o formato dos arquivos (Etapa 1)',
           desc: 'Escolha se deseja enviar 1 único arquivo (perguntas + alternativas) ou 2 arquivos separados (perguntas e gabarito).',
-          imagePlaceholder: 'colocar imagem da Etapa 1 do Assistente de Importação de Questões'
+          image: IMG_BASE_PATH + '20-empresa-importacao-assistente-etapa1.png',
+          alt: 'Etapa 1 do Assistente de Importação com opções de 1 ou 2 arquivos',
+          caption: 'Etapa 1: Escolha do modo de importação de arquivos'
         },
         {
           num: 3,
-          title: 'Revise as questões na pré-visualização',
-          desc: 'Corrija enunciados, ajuste alternativas ou marque múltiplas respostas corretas diretamente nos cartões editáveis.',
-          imagePlaceholder: 'colocar imagem da Etapa 2 de Pré-visualização Editável de Questões'
+          title: 'Revise as questões na pré-visualização (Etapa 2)',
+          desc: 'Corrija enunciados, ajuste alternativas ou marque respostas corretas diretamente nos cartões editáveis.',
+          image: IMG_BASE_PATH + '21-empresa-importacao-assistente-etapa2-preview.png',
+          alt: 'Etapa 2 com pré-visualização editável das questões',
+          caption: 'Etapa 2: Cartões de questões pré-visualizados e editáveis'
         },
         {
           num: 4,
-          title: 'Confirme a importação',
+          title: 'Confirme a importação (Etapa 3)',
           desc: 'Clique em "Confirmar importação". As questões revisadas serão injetadas diretamente na lista do seu exame.',
-          imagePlaceholder: 'colocar imagem da Etapa 3 de Confirmação da Importação'
+          image: IMG_BASE_PATH + '22-empresa-importacao-assistente-etapa3-confirmacao.png',
+          alt: 'Etapa 3 de confirmação da importação no exame',
+          caption: 'Etapa 3: Resumo e confirmação da inserção no teste'
         }
       ],
       alertTip: 'Você pode escolher se a importação vai Substituir a lista atual ou Adicionar às questões existentes.',
@@ -184,19 +196,17 @@
           num: 1,
           title: 'Selecione "Dois arquivos separados"',
           desc: 'Na primeira etapa do assistente, escolha o card "Dois arquivos separados".',
-          imagePlaceholder: 'colocar imagem da opção de 2 arquivos no Assistente de Importação'
+          image: IMG_BASE_PATH + '20-empresa-importacao-assistente-etapa1.png',
+          alt: 'Seleção do modo de dois arquivos no assistente',
+          caption: 'Assistente de importação no modo de dois arquivos'
         },
         {
           num: 2,
-          title: 'Envie o arquivo de perguntas e o de gabarito',
-          desc: 'No primeiro campo envie a prova (.docx, .xlsx, .txt) e no segundo envie o gabarito (.txt, .csv ou .xlsx).',
-          imagePlaceholder: 'colocar imagem dos seletores de arquivo duplo de Perguntas e Gabarito'
-        },
-        {
-          num: 3,
-          title: 'Confira a associação na pré-visualização',
-          desc: 'O assistente cruzará os dados automaticamente e exibirá as respostas marcadas em cada cartão.',
-          imagePlaceholder: 'colocar imagem da validação cruzada do Gabarito na pré-visualização'
+          title: 'Consulte as regras de gabarito no modal de Modelos',
+          desc: 'Clique no botão "Modelos" para ver exemplos de gabaritos suportados (múltiplas respostas corretas por questão).',
+          image: IMG_BASE_PATH + '23-empresa-importacao-modelos-modal.png',
+          alt: 'Modal de modelos de importação com especificação de gabarito',
+          caption: 'Modal de modelos de arquivos e gabaritos suportados'
         }
       ],
       alertTip: 'O arquivo de gabarito pode conter múltiplas respostas por questão, ex: `Questão 1: A, C, E`.',
@@ -221,13 +231,9 @@
           num: 1,
           title: 'Escolha "Múltipla seleção (várias respostas)"',
           desc: 'No seletor de tipo de questão, escolha "Múltipla seleção". Os seletores mudarão de formato de rádio para checkbox.',
-          imagePlaceholder: 'colocar imagem do seletor de Tipo de Questão Múltipla Seleção'
-        },
-        {
-          num: 2,
-          title: 'Marque todas as alternativas corretas',
-          desc: 'Selecione os checkboxes ao lado das alternativas desejadas (ex: Opções A, C e D).',
-          imagePlaceholder: 'colocar imagem dos checkboxes de múltiplas alternativas corretas marcadas'
+          image: IMG_BASE_PATH + '21-empresa-importacao-assistente-etapa2-preview.png',
+          alt: 'Questão com múltiplas opções marcadas como corretas',
+          caption: 'Cartão de questão com várias respostas corretas marcadas'
         }
       ],
       alertTip: 'Você também pode definir este formato durante a importação via Excel marcando as colunas correspondentes.',
@@ -250,21 +256,19 @@
       steps: [
         {
           num: 1,
-          title: 'Clique em "Anexar Documento / Termo"',
-          desc: 'Na seção "Aplicação e Resultado", localize o painel "Documentos, Regras e Termos" e clique em "+ Anexar Documento / Termo".',
-          imagePlaceholder: 'colocar imagem do painel de Documentos no Estúdio de Testes'
+          title: 'Acesse a seção "Documentos, Regras e Termos"',
+          desc: 'No Estúdio de Testes, localize o painel de documentos e clique no botão "+ Anexar Documento / Termo".',
+          image: IMG_BASE_PATH + '17-empresa-documentos-painel.png',
+          alt: 'Painel de Gestão de Documentos e Termos do Exame',
+          caption: 'Painel de Gestão de Documentos e Termos anexados'
         },
         {
           num: 2,
-          title: 'Preencha o título e selecione o arquivo',
-          desc: 'Escolha o tipo de documento (Regras, Instruções, Termo de Aceite) e faça o envio do PDF, DOCX ou imagem.',
-          imagePlaceholder: 'colocar imagem do Modal de Anexo de Documentos e Termos'
-        },
-        {
-          num: 3,
-          title: 'Defina a exigência para o candidato',
-          desc: 'Marque se é exigida confirmação de leitura, aceite digital com IP ou devolução de arquivo assinado antes da prova.',
-          imagePlaceholder: 'colocar imagem das opções de exigência e aceite digital'
+          title: 'Configure o documento no modal de anexo',
+          desc: 'Defina o título, selecione o arquivo PDF/DOCX e marque a regra de exigência (confirmação ou devolução assinada).',
+          image: IMG_BASE_PATH + '18-empresa-documentos-anexo-modal.png',
+          alt: 'Modal de anexo e regras do documento',
+          caption: 'Modal de configuração de regras e aceite do documento'
         }
       ],
       alertTip: 'Se marcar "Exigir aceite digital", o participante só poderá iniciar a prova após aceitar o termo.',
@@ -274,7 +278,7 @@
     {
       id: 'como-exigir-assinatura-antes-da-prova',
       title: 'Como exigir assinatura antes da prova',
-      summary: 'Exija que o candidato baixe o documento de instrução ou termo, assine fisicamente ou digitalmente e envie a cópia antes de iniciar.',
+      summary: 'Exija que o candidato baixe o documento de instrução ou termo, assine e envie a cópia antes de iniciar.',
       category: 'Documentos e termos',
       audience: 'company',
       readTime: '3 min de leitura',
@@ -287,15 +291,19 @@
       steps: [
         {
           num: 1,
-          title: 'Marque "Exigir devolução do documento assinado"',
-          desc: 'No modal de anexo do documento, selecione a regra "Exigir devolução do documento assinado pelo participante".',
-          imagePlaceholder: 'colocar imagem da opção de devolução de documento assinado'
+          title: 'Ative a regra no modal do documento',
+          desc: 'No modal de documento, marque a opção de devolução de arquivo assinado.',
+          image: IMG_BASE_PATH + '18-empresa-documentos-anexo-modal.png',
+          alt: 'Configuração da regra de devolução de documento assinado',
+          caption: 'Configuração no modal de documentos'
         },
         {
           num: 2,
-          title: 'Visualização pelo candidato',
-          desc: 'O candidato visualizará o botão de download do termo e um campo para envio do comprovante assinado antes do teste.',
-          imagePlaceholder: 'colocar imagem da tela do Candidato baixando e enviando termo assinado'
+          title: 'Visualização da exigência pelo candidato',
+          desc: 'Na tela do participante, os botões de download do termo e upload do comprovante assinado ficarão visíveis.',
+          image: IMG_BASE_PATH + '27-participante-documentos-pendentes.png',
+          alt: 'Tela do candidato com termo e envio de documento pendente',
+          caption: 'Ambiente do candidato com exigência de documento pendente'
         }
       ],
       alertTip: 'O envio do comprovante assinado fica gravado no histórico individual do participante para auditoria.',
@@ -318,24 +326,14 @@
       steps: [
         {
           num: 1,
-          title: 'Acesse o painel "Envio do acesso ao candidato"',
-          desc: 'Na aba Aplicação do exame, escolha a opção desejada no seletor "Forma de envio".',
-          imagePlaceholder: 'colocar imagem do painel Envio do acesso ao candidato'
-        },
-        {
-          num: 2,
-          title: 'Selecione a regra de envio',
-          desc: 'Opções: "Enviar ao concluir o cadastro", "Enviar minutos antes do início" ou "Não enviar agora (envio manual)".',
-          imagePlaceholder: 'colocar imagem do seletor com as formas de envio de e-mail'
-        },
-        {
-          num: 3,
-          title: 'Defina os minutos (caso agendado)',
-          desc: 'Se escolher envio agendado, preencha o número de minutos antes do horário de início cadastrado.',
-          imagePlaceholder: 'colocar imagem do campo de minutos para envio agendado'
+          title: 'Selecione a forma de envio do acesso',
+          desc: 'Na aba Aplicação do exame, navegue até a seção "Envio do acesso ao candidato" e escolha a opção desejada.',
+          image: IMG_BASE_PATH + '16-empresa-envio-acesso-painel.png',
+          alt: 'Painel de configuração de envio de credenciais de acesso',
+          caption: 'Painel de agendamento e forma de envio do acesso'
         }
       ],
-      alertTip: 'Se selecionar envio manual, o campo de minutos fica oculto e você pode disparar o e-mail quando desejar.',
+      alertTip: 'Se selecionar envio manual, o campo de minutos fica oculto e você pode disparar os e-mails quando desejar.',
       relatedIds: ['como-criar-um-novo-participante', 'como-acompanhar-o-exame-em-tempo-real']
     },
 
@@ -349,21 +347,16 @@
       updatedAt: '24/07/2026',
       lead: 'Tenha controle total do andamento dos testes com indicadores em tempo real.',
       toc: [
-        { id: 'sec-painel-ao-vivo', title: '1. Painel de monitoramento ao vivo' },
-        { id: 'sec-status-participantes', title: '2. Verificando os status de cada participante' }
+        { id: 'sec-painel-ao-vivo', title: '1. Painel de monitoramento ao vivo' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Acesse o menu Resultados / Operação',
-          desc: 'No painel da empresa, selecione o exame desejado e clique no botão "Acompanhar em tempo real".',
-          imagePlaceholder: 'colocar imagem do Painel de Monitoramento ao Vivo'
-        },
-        {
-          num: 2,
-          title: 'Visualize os cards de progresso',
-          desc: 'Acompanhe o cronômetro individual de cada candidato, registros de selfie/câmera e confirmações de presença.',
-          imagePlaceholder: 'colocar imagem da lista de Participantes em andamento no teste'
+          title: 'Acesse o Painel de Monitoramento ao Vivo',
+          desc: 'No menu lateral, selecione o exame e abra o painel de acompanhamento ao vivo para visualizar o progresso dos candidatos.',
+          image: IMG_BASE_PATH + '24-empresa-monitoramento-ao-vivo.png',
+          alt: 'Painel de Acompanhamento ao Vivo dos exames em andamento',
+          caption: 'Painel de Monitoramento ao Vivo em tempo real'
         }
       ],
       alertTip: 'Caso um participante perca a conexão, o sistema permite retomar o exame exatamente de onde parou.',
@@ -380,21 +373,16 @@
       updatedAt: '24/07/2026',
       lead: 'Saiba como interpretar os resultados consolidados e exportar relatórios de desempenho.',
       toc: [
-        { id: 'sec-painel-resultados', title: '1. Visão geral de notas e aprovações' },
-        { id: 'sec-revisao-manual', title: '2. Correção manual de questões dissertativas' }
+        { id: 'sec-painel-resultados', title: '1. Visão geral de notas e aprovações' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Acesse o painel de Resultados',
-          desc: 'Clique em "Resultados" no menu lateral para visualizar o ranking, percentuais de acerto e notas finais.',
-          imagePlaceholder: 'colocar imagem do Dashboard de Resultados de Exames'
-        },
-        {
-          num: 2,
-          title: 'Corrija questões dissertativas (se houver)',
-          desc: 'Se o teste possui questões dissertativas, atribua a nota do critério para atualizar o resultado final.',
-          imagePlaceholder: 'colocar imagem da tela de Revisão Manual de Questões Dissertativas'
+          title: 'Acesse o Dashboard de Resultados',
+          desc: 'Clique no menu "Resultados" para abrir a visão consolidada de notas, percentuais de acerto e aprovações.',
+          image: IMG_BASE_PATH + '25-empresa-resultados-dashboard.png',
+          alt: 'Dashboard de Resultados de exames com estatísticas e gráficos',
+          caption: 'Dashboard de Resultados consolidados da empresa'
         }
       ],
       alertTip: 'Você pode liberar os resultados de forma automática ou somente após a revisão manual do avaliador.',
@@ -404,34 +392,23 @@
     {
       id: 'como-personalizar-aparencia-exame',
       title: 'Como personalizar a aparência do exame',
-      summary: 'Adicione o logotipo da sua empresa, altere as cores da marca, escolha a tipografia e visualize a prévia em tempo real.',
+      summary: 'Adicione o logotipo da sua empresa, altere as cores da marca e visualize a prévia em tempo real.',
       category: 'Personalização',
       audience: 'company',
       readTime: '3 min de leitura',
       updatedAt: '24/07/2026',
-      lead: 'Fortaleça a autoridade da sua marca personalizando completamente a tela em que o participante fará a avaliação.',
+      lead: 'Fortaleça a autoridade da sua marca personalizando a tela em que o participante fará a avaliação.',
       toc: [
-        { id: 'sec-painel-aparencia', title: '1. Painel lateral de Aparência' },
-        { id: 'sec-upload-logo', title: '2. Upload de logo e escolha de cores' }
+        { id: 'sec-painel-aparencia', title: '1. Painel lateral de Aparência' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Acesse a aba "Aparência"',
-          desc: 'No Estúdio de Testes, navegue até a seção de Personalização ou clique na etapa 4 do topo.',
-          imagePlaceholder: 'colocar imagem do Painel Lateral de Aparência no Estúdio de Testes'
-        },
-        {
-          num: 2,
-          title: 'Envie seu logotipo e ajuste as cores',
-          desc: 'Faça upload do arquivo da sua marca (PNG, JPG) e escolha as cores principal, de destaque e de fundo.',
-          imagePlaceholder: 'colocar imagem dos seletores de cor e upload de marca'
-        },
-        {
-          num: 3,
-          title: 'Confira no simulador de prévia',
-          desc: 'Veja as alterações em tempo real no simulador interativo antes de salvar a aparência.',
-          imagePlaceholder: 'colocar imagem do Simulador de Prévia do Candidato'
+          title: 'Personalize as cores e logotipo',
+          desc: 'Navegue até a seção de Personalização visual para enviar o logotipo da sua organização e ajustar a paleta de cores.',
+          image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
+          alt: 'Painel do Estúdio com opções de personalização visual',
+          caption: 'Estúdio de Testes com marca personalizada'
         }
       ],
       alertTip: 'A personalização visual está disponível nos planos Pró e Enterprise da plataforma.',
@@ -448,31 +425,19 @@
       updatedAt: '24/07/2026',
       lead: 'Conheça os recursos pedagógicos e formatos de avaliação disponíveis na plataforma Online Teste.',
       toc: [
-        { id: 'sec-objetivas', title: '1. Questões Objetivas' },
-        { id: 'sec-binarias-lacunas', title: '2. Escolha Binária e Lacunas' },
-        { id: 'sec-dissertativas', title: '3. Questões Dissertativas e Critérios' }
+        { id: 'sec-objetivas', title: '1. Questões Objetivas e Seleção' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Múltipla Escolha e Múltipla Seleção',
-          desc: 'Formatos ideais para checar conhecimentos objetivos com 1 única resposta correta ou várias alternativas selecionáveis.',
-          imagePlaceholder: 'colocar imagem do exemplo de questão de Múltipla Escolha e Seleção'
-        },
-        {
-          num: 2,
-          title: 'Escolha Binária e Preenchimento de Lacunas',
-          desc: 'Permite sim/não, conforme/não conforme e preenchimento de palavras ocultas no meio do enunciado.',
-          imagePlaceholder: 'colocar imagem do exemplo de Escolha Binária e Lacunas'
-        },
-        {
-          num: 3,
-          title: 'Dissertativas com limite de caracteres',
-          desc: 'Questões onde o participante digita sua própria resposta, podendo definir limites mínimo e máximo de texto.',
-          imagePlaceholder: 'colocar imagem do exemplo de Questão Dissertativa no teste'
+          title: 'Tipos de Questões no Construtor',
+          desc: 'O construtor permite alternar instantaneamente entre escolha única, seleção múltipla, verdadeiro/falso, lacunas e dissertativas.',
+          image: IMG_BASE_PATH + '19-empresa-construtor-questoes.png',
+          alt: 'Seleção dos tipos de questão no construtor',
+          caption: 'Seletor de tipo de questão no Estúdio'
         }
       ],
-      alertTip: 'Todas as alternativas e opções podem ser embaralhadas automaticamente a cada tentativa do participante.',
+      alertTip: 'Todas as alternativas podem ser embaralhadas automaticamente a cada tentativa.',
       relatedIds: ['como-importar-questoes', 'conheca-a-plataforma-online-teste']
     },
 
@@ -486,28 +451,16 @@
       updatedAt: '24/07/2026',
       lead: 'Descubra como o Online Teste ajuda empresas, instituições de ensino e órgãos certificadores a transformar seu processo de avaliações.',
       toc: [
-        { id: 'sec-recursos-chave', title: '1. Principais Recursos da Plataforma' },
-        { id: 'sec-seguranca', title: '2. Segurança e Conformidade LGPD' },
-        { id: 'sec-comece', title: '3. Como começar a utilizar' }
+        { id: 'sec-recursos-chave', title: '1. Visão Geral da Plataforma' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Criação ágil e importação inteligente',
-          desc: 'Crie provas personalizadas do zero ou importe questões via Excel, Word, CSV ou GIFT em segundos.',
-          imagePlaceholder: 'colocar imagem da visão geral do Estúdio de Testes'
-        },
-        {
-          num: 2,
-          title: 'Aplicação segura com verificação de identidade',
-          desc: 'Exija foto/selfie, documento de identidade e aceite de termos com carimbo de data, hora e IP.',
-          imagePlaceholder: 'colocar imagem da tela de verificação de identidade do candidato'
-        },
-        {
-          num: 3,
-          title: 'Relatórios em tempo real e correção automática',
-          desc: 'Receba resultados instantâneos após a conclusão das provas com relatórios gráficos completos.',
-          imagePlaceholder: 'colocar imagem dos relatórios e gráficos executivos'
+          title: 'Experiência Completa do Site ao Exame',
+          desc: 'Do site institucional à aplicação das provas, o sistema oferece um ambiente integrado e seguro.',
+          image: IMG_BASE_PATH + '08-site-base-conhecimento-home.png',
+          alt: 'Página pública da Base de Conhecimento do Online Teste',
+          caption: 'Central de Conhecimento e Suporte pública'
         }
       ],
       alertTip: 'Você pode solicitar um teste gratuito ou agendar uma demonstração exclusiva com nossos especialistas.',
@@ -515,23 +468,22 @@
     }
   ];
 
-  // --- Categories List ---
+  // --- Listas e Estado ---
   const CATEGORIES = [
-    { name: 'Todas', icon: '🔍', count: KNOWLEDGE_ARTICLES.length },
-    { name: 'Primeiros passos', icon: '🚀', count: 2 },
-    { name: 'Criação de exames', icon: '📝', count: 3 },
-    { name: 'Questões e importação', icon: '⇩', count: 3 },
-    { name: 'Participantes', icon: '♙', count: 2 },
-    { name: 'Documentos e termos', icon: '📄', count: 2 },
-    { name: 'Convites e acessos', icon: '✉', count: 1 },
-    { name: 'Monitoramento', icon: '👁', count: 1 },
-    { name: 'Resultados', icon: '📊', count: 1 },
-    { name: 'Personalização', icon: '🎨', count: 1 },
-    { name: 'Conheça a plataforma', icon: '✨', count: 2 },
-    { name: 'Novidades', icon: '📢', count: 1 }
+    { name: 'Todas', icon: '🔍' },
+    { name: 'Primeiros passos', icon: '🚀' },
+    { name: 'Criação de exames', icon: '📝' },
+    { name: 'Questões e importação', icon: '⇩' },
+    { name: 'Participantes', icon: '♙' },
+    { name: 'Documentos e termos', icon: '📄' },
+    { name: 'Convites e acessos', icon: '✉' },
+    { name: 'Monitoramento', icon: '👁' },
+    { name: 'Resultados', icon: '📊' },
+    { name: 'Personalização', icon: '🎨' },
+    { name: 'Conheça a plataforma', icon: '✨' },
+    { name: 'Novidades', icon: '📢' }
   ];
 
-  // --- State ---
   let state = {
     searchQuery: '',
     selectedCategory: 'Todas',
@@ -539,7 +491,7 @@
     currentArticleId: null
   };
 
-  // --- Elements ---
+  // --- Elementos do DOM ---
   let elCatalogView = null;
   let elArticleView = null;
   let elSearchInput = null;
@@ -549,7 +501,6 @@
   let elArticlesGrid = null;
   let elNoResults = null;
 
-  // --- Initialize ---
   document.addEventListener('DOMContentLoaded', () => {
     cacheDOMElements();
     renderCategoryPills();
@@ -623,22 +574,18 @@
 
   function filterArticles() {
     return KNOWLEDGE_ARTICLES.filter(art => {
-      // Filtro de Categoria
       if (state.selectedCategory !== 'Todas' && art.category !== state.selectedCategory) {
         return false;
       }
-      // Filtro de Público
       if (state.selectedAudience !== 'all' && art.audience !== state.selectedAudience) {
         return false;
       }
-      // Filtro de Busca por Texto
       if (state.searchQuery) {
         const query = state.searchQuery;
         const inTitle = art.title.toLowerCase().includes(query);
         const inSummary = art.summary.toLowerCase().includes(query);
         const inCategory = art.category.toLowerCase().includes(query);
-        const inSteps = art.steps && art.steps.some(s => s.title.toLowerCase().includes(query) || s.desc.toLowerCase().includes(query));
-        return inTitle || inSummary || inCategory || inSteps;
+        return inTitle || inSummary || inCategory;
       }
       return true;
     });
@@ -679,7 +626,6 @@
     return `<span class="kb-badge kb-badge-general">📖 Geral</span>`;
   }
 
-  // --- Navegação entre Catálogo e Leitor de Artigo ---
   function checkURLHashRoute() {
     const hash = window.location.hash.replace('#', '');
     if (hash.startsWith('artigo-')) {
@@ -719,7 +665,7 @@
 
     const badgeHTML = getAudienceBadgeHTML(article.audience);
 
-    // Sumário HTML
+    // Sumário
     let tocHTML = '';
     if (article.toc && article.toc.length > 0) {
       tocHTML = `
@@ -732,25 +678,34 @@
       `;
     }
 
-    // Passo a Passo com Placeholders de Imagem
+    // Passo a Passo com Imagens Reais e Lightbox Zoom
     let stepsHTML = '';
     if (article.steps && article.steps.length > 0) {
-      stepsHTML = article.steps.map(step => `
-        <div class="kb-step-card">
-          <div class="kb-step-header">
-            <span class="kb-step-num">${step.num}</span>
-            <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
+      stepsHTML = article.steps.map(step => {
+        const imageSrc = step.image || (IMG_BASE_PATH + '01-site-home.png');
+        const altText = escapeHTML(step.alt || step.title);
+        const captionText = escapeHTML(step.caption || step.title);
+
+        return `
+          <div class="kb-step-card">
+            <div class="kb-step-header">
+              <span class="kb-step-num">${step.num}</span>
+              <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
+            </div>
+            <p>${escapeHTML(step.desc)}</p>
+            
+            <figure class="kb-step-figure">
+              <button class="kb-image-zoom-btn" type="button" aria-label="Ampliar captura da tela" onclick="window.openKnowledgeImageZoom('${imageSrc}', '${altText}', '${captionText}')">
+                <img src="${imageSrc}" alt="${altText}" loading="lazy">
+              </button>
+              <figcaption>
+                <span>${captionText}</span>
+                <span class="kb-zoom-badge">🔍 Clique para ampliar</span>
+              </figcaption>
+            </figure>
           </div>
-          <p>${escapeHTML(step.desc)}</p>
-          
-          <!-- Bloco Placeholder de Imagem conforme diretriz do usuário -->
-          <div class="kb-image-placeholder-box">
-            <span class="kb-image-placeholder-icon">🖼️</span>
-            <span class="kb-image-placeholder-text">${escapeHTML(step.imagePlaceholder || 'colocar imagem da tela correspondente')}</span>
-            <span class="kb-image-placeholder-caption">Ilustração visual da interface do sistema</span>
-          </div>
-        </div>
-      `).join('');
+        `;
+      }).join('');
     }
 
     // Artigos Relacionados
@@ -771,7 +726,7 @@
       `;
     }
 
-    // Renderiza HTML do Artigo Completo
+    // Renderiza Leitor Completo
     elArticleView.innerHTML = `
       <div class="kb-main-container kb-animated">
         <nav class="kb-breadcrumb" aria-label="Navegação">
@@ -783,7 +738,6 @@
         </nav>
 
         <div class="kb-reader-layout">
-          <!-- Coluna de Conteúdo Principal -->
           <main class="kb-article-content">
             <header class="kb-article-header">
               <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
@@ -808,19 +762,17 @@
                 </div>
               ` : ''}
 
-              <!-- Bloco Comercial CTA para Conhecer a Plataforma -->
               <div class="kb-commercial-cta">
                 <div>
                   <h4>Gostou deste recurso?</h4>
                   <p>Crie avaliações online seguras com o logotipo e as cores da sua empresa.</p>
                 </div>
                 <div class="kb-cta-actions">
-                  <a class="button primary" href="./solicitar-acesso.html" style="background: #2563eb; color: #fff; text-decoration: none;">Solicitar Acesso</a>
+                  <a class="button primary" href="./SolicitarAcesso.html" style="background: #2563eb; color: #fff; text-decoration: none;">Solicitar Acesso</a>
                   <a class="button secondary" href="./contato.html" style="background: #ffffff; color: #0f172a; text-decoration: none;">Fale com Especialista</a>
                 </div>
               </div>
 
-              <!-- Widget de Feedback -->
               <div class="kb-feedback-box" id="kb-feedback-container">
                 <div class="kb-feedback-question">Este conteúdo foi útil para você?</div>
                 <div class="kb-feedback-buttons">
@@ -831,7 +783,6 @@
             </div>
           </main>
 
-          <!-- Coluna Lateral de Ações e Links -->
           <aside class="kb-article-sidebar">
             <div class="kb-sidebar-card">
               <div class="kb-sidebar-title">Ações</div>
@@ -855,7 +806,37 @@
     `;
   }
 
-  // --- Ações de Interatividade ---
+  // --- Funções do Modal Lightbox Zoom ---
+  window.openKnowledgeImageZoom = function (src, alt, caption) {
+    let backdrop = document.getElementById('kb-image-zoom-backdrop');
+    if (!backdrop) {
+      backdrop = document.createElement('div');
+      backdrop.id = 'kb-image-zoom-backdrop';
+      backdrop.className = 'kb-zoom-backdrop';
+      backdrop.innerHTML = `
+        <div class="kb-zoom-container">
+          <button class="kb-zoom-close" type="button" aria-label="Fechar zoom" onclick="window.closeKnowledgeImageZoom()">×</button>
+          <img id="kb-zoom-img" src="" alt="">
+          <div class="kb-zoom-caption" id="kb-zoom-caption"></div>
+        </div>
+      `;
+      backdrop.addEventListener('click', (e) => {
+        if (e.target === backdrop) window.closeKnowledgeImageZoom();
+      });
+      document.body.appendChild(backdrop);
+    }
+
+    document.getElementById('kb-zoom-img').src = src;
+    document.getElementById('kb-zoom-img').alt = alt || '';
+    document.getElementById('kb-zoom-caption').textContent = caption || alt || 'Imagem em tamanho real';
+    backdrop.hidden = false;
+  };
+
+  window.closeKnowledgeImageZoom = function () {
+    const backdrop = document.getElementById('kb-image-zoom-backdrop');
+    if (backdrop) backdrop.hidden = true;
+  };
+
   window.copyKnowledgeArticleLink = function () {
     const url = window.location.href;
     navigator.clipboard.writeText(url).then(() => {
