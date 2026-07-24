@@ -1,16 +1,12 @@
 /**
- * Base de Conhecimento Pública — Módulo Oficial com Prints Reais e Zoom (Online Teste)
- * Suporta busca em tempo real, filtros por categoria/público, leitor de artigos
- * com imagens reais da plataforma, lightbox zoom, compartilhamento e feedback.
+ * Base de Conhecimento da Empresa — Módulo Oficial (Online Teste)
+ * Restrito ao painel da empresa para consulta de tutoriais, orientações e guias de uso.
  */
 
 (function () {
   'use strict';
 
-  // Base path para as imagens integradas
-  const IMG_BASE_PATH = './assets/images/base-conhecimento/';
-
-  // --- 1. Banco de Dados Oficial dos 14 Artigos com Imagens Reais ---
+  // --- 1. Banco de Dados Oficial dos 14 Artigos ---
   const KNOWLEDGE_ARTICLES = [
     {
       id: 'como-criar-um-novo-participante',
@@ -29,27 +25,23 @@
       steps: [
         {
           num: 1,
-          title: 'Acesse o menu Participantes',
-          desc: 'No painel da empresa, clique na opção "Participantes" na barra de navegação lateral para visualizar a lista completa.',
-          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
-          alt: 'Tela de Gestão de Participantes com a lista de inscritos',
-          caption: 'Tela principal de Gestão de Participantes da empresa'
+          title: 'Acesse a área de Participantes',
+          desc: 'No painel da empresa, clique na opção "Participantes" na barra superior de ações ou no menu para abrir a lista completa.'
         },
         {
           num: 2,
-          title: 'Clique em "Novo Participante"',
-          desc: 'Localize o botão azul "+ Novo Participante" no canto superior direito da tela. O modal centralizado de cadastro será aberto.',
-          image: IMG_BASE_PATH + '13-empresa-participantes-novo-modal.png',
-          alt: 'Modal centralizado de cadastro de novo participante',
-          caption: 'Formulário de cadastro individual do novo participante'
+          title: 'Clique no botão "Novo Participante"',
+          desc: 'Localize o botão "+ Novo Participante". Um modal centralizado e responsivo será aberto na tela.'
         },
         {
           num: 3,
-          title: 'Preencha os dados e confirme o cadastro',
-          desc: 'Informe o Nome Completo, E-mail oficial, Documento e selecione o exame ao qual o participante terá acesso.',
-          image: IMG_BASE_PATH + '06-site-login-empresa.png',
-          alt: 'Confirmação e credenciais do participante',
-          caption: 'Credenciais de acesso prontas para o participante'
+          title: 'Preencha os dados cadastrais',
+          desc: 'Informe Nome Completo, E-mail oficial, CPF/Documento e selecione o exame ao qual o participante terá acesso.'
+        },
+        {
+          num: 4,
+          title: 'Confirme o cadastro',
+          desc: 'Clique em "Criar Participante". As credenciais de acesso serão geradas e disponibilizadas para o candidato.'
         }
       ],
       alertTip: 'Você também pode importar centenas de participantes de uma só vez utilizando a importação em lote via arquivo CSV.',
@@ -59,7 +51,7 @@
     {
       id: 'como-importar-participantes-por-csv',
       title: 'Como importar participantes por CSV',
-      summary: 'Cadastre turmas inteiras ou listas de candidatos de forma rápida enviando uma planilha CSV.',
+      summary: 'Cadastre turmas inteiras ou listas de candidatos de forma rápida enviando uma planilha no formato CSV.',
       category: 'Participantes',
       audience: 'company',
       readTime: '4 min de leitura',
@@ -72,19 +64,18 @@
       steps: [
         {
           num: 1,
-          title: 'Abra a opção Importar CSV',
-          desc: 'Na tela de Participantes, clique em "Importar CSV" para abrir o assistente em lote.',
-          image: IMG_BASE_PATH + '14-empresa-participantes-importar-csv-modal.png',
-          alt: 'Modal de importação de participantes via arquivo CSV',
-          caption: 'Modal para envio do arquivo CSV formatado'
+          title: 'Abra a opção "Importar CSV"',
+          desc: 'Na tela de Gestão de Participantes, clique em "Importar CSV" para abrir o assistente em lote.'
         },
         {
           num: 2,
-          title: 'Valide e confirme a lista',
-          desc: 'Selecione o arquivo `.csv` preenchido e clique em "Validar e Importar" para incluir os participantes no sistema.',
-          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
-          alt: 'Lista atualizada após a importação via CSV',
-          caption: 'Participantes cadastrados com sucesso'
+          title: 'Preencha a planilha e envie o arquivo',
+          desc: 'Abra o modelo no Excel ou Google Sheets, preencha os campos (Nome, E-mail, Documento) e faça o envio do arquivo `.csv`.'
+        },
+        {
+          num: 3,
+          title: 'Valide e confirme a importação',
+          desc: 'O sistema exibirá a pré-visualização das linhas. Clique em "Validar e Importar" para incluir os participantes.'
         }
       ],
       alertTip: 'Certifique-se de salvar a planilha com a codificação UTF-8 para evitar problemas com acentos.',
@@ -94,32 +85,26 @@
     {
       id: 'como-salvar-um-exame-como-rascunho',
       title: 'Como salvar um exame como rascunho',
-      summary: 'Entenda como o salvamento automático e local de rascunhos protege suas alterações antes da publicação final.',
+      summary: 'Entenda como o salvamento de rascunhos protege suas alterações antes da publicação final do teste.',
       category: 'Criação de exames',
       audience: 'company',
       readTime: '2 min de leitura',
       updatedAt: '24/07/2026',
-      lead: 'Evite a perda de dados durante a montagem das suas avaliações com o recurso de rascunho.',
+      lead: 'Evite a perda de dados durante a montagem das suas avaliações salvando rascunhos da edição.',
       toc: [
         { id: 'sec-salvamento', title: '1. Funcionamento do rascunho local' },
-        { id: 'sec-recuperacao', title: '2. Recuperando edições não publicadas' }
+        { id: 'sec-recuperacao', title: '2. Salvar rascunho manualmente' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Edite as informações do exame',
-          desc: 'Qualquer alteração no título, instruções ou questões atualiza o indicador "Rascunho local" no cabeçalho.',
-          image: IMG_BASE_PATH + '15-empresa-exames-rascunho-indicador.png',
-          alt: 'Indicador de Rascunho no cabeçalho do Estúdio de Testes',
-          caption: 'Cabeçalho do Estúdio com status de Rascunho ativo'
+          title: 'Edite o conteúdo do teste',
+          desc: 'Qualquer alteração no título, instruções, tempo ou questões atualiza a indicação "Rascunho local" no topo.'
         },
         {
           num: 2,
-          title: 'Salvar rascunho manualmente',
-          desc: 'Utilize o botão "Salvar rascunho" a qualquer momento para persistir a versão em andamento.',
-          image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
-          alt: 'Visão geral do painel da empresa com botão de rascunho',
-          caption: 'Estúdio de Testes da empresa'
+          title: 'Clique em "Salvar rascunho"',
+          desc: 'Utilize o botão "Salvar rascunho" no canto superior direito para persistir a versão atual no banco.'
         }
       ],
       alertTip: 'O exame em rascunho não fica visível para os candidatos até que você clique no botão "Publicar teste".',
@@ -144,34 +129,22 @@
         {
           num: 1,
           title: 'Clique em "Importar questões"',
-          desc: 'No construtor do exame, clique no botão azul "Importar questões" para abrir o assistente em 3 etapas.',
-          image: IMG_BASE_PATH + '19-empresa-construtor-questoes.png',
-          alt: 'Botão de Importar Questões no Construtor do Exame',
-          caption: 'Seção do Construtor com opções de importação'
+          desc: 'No construtor do exame, clique no botão azul "Importar questões" para abrir o assistente em 3 etapas.'
         },
         {
           num: 2,
-          title: 'Selecione o formato dos arquivos (Etapa 1)',
-          desc: 'Escolha se deseja enviar 1 único arquivo (perguntas + alternativas) ou 2 arquivos separados (perguntas e gabarito).',
-          image: IMG_BASE_PATH + '20-empresa-importacao-assistente-etapa1.png',
-          alt: 'Etapa 1 do Assistente de Importação com opções de 1 ou 2 arquivos',
-          caption: 'Etapa 1: Escolha do modo de importação de arquivos'
+          title: 'Escolha o modo de importação (Etapa 1)',
+          desc: 'Selecione se deseja enviar 1 único arquivo (perguntas + alternativas) ou 2 arquivos separados (perguntas e gabarito).'
         },
         {
           num: 3,
           title: 'Revise as questões na pré-visualização (Etapa 2)',
-          desc: 'Corrija enunciados, ajuste alternativas ou marque respostas corretas diretamente nos cartões editáveis.',
-          image: IMG_BASE_PATH + '21-empresa-importacao-assistente-etapa2-preview.png',
-          alt: 'Etapa 2 com pré-visualização editável das questões',
-          caption: 'Etapa 2: Cartões de questões pré-visualizados e editáveis'
+          desc: 'Corrija enunciados, ajuste alternativas ou marque respostas corretas diretamente nos cartões editáveis.'
         },
         {
           num: 4,
           title: 'Confirme a importação (Etapa 3)',
-          desc: 'Clique em "Confirmar importação". As questões revisadas serão injetadas diretamente na lista do seu exame.',
-          image: IMG_BASE_PATH + '22-empresa-importacao-assistente-etapa3-confirmacao.png',
-          alt: 'Etapa 3 de confirmação da importação no exame',
-          caption: 'Etapa 3: Resumo e confirmação da inserção no teste'
+          desc: 'Clique em "Confirmar importação". As questões revisadas serão injetadas diretamente na lista do seu exame.'
         }
       ],
       alertTip: 'Você pode escolher se a importação vai Substituir a lista atual ou Adicionar às questões existentes.',
@@ -195,18 +168,12 @@
         {
           num: 1,
           title: 'Selecione "Dois arquivos separados"',
-          desc: 'Na primeira etapa do assistente, escolha o card "Dois arquivos separados".',
-          image: IMG_BASE_PATH + '20-empresa-importacao-assistente-etapa1.png',
-          alt: 'Seleção do modo de dois arquivos no assistente',
-          caption: 'Assistente de importação no modo de dois arquivos'
+          desc: 'Na primeira etapa do assistente, escolha o card "Dois arquivos separados".'
         },
         {
           num: 2,
-          title: 'Consulte as regras de gabarito no modal de Modelos',
-          desc: 'Clique no botão "Modelos" para ver exemplos de gabaritos suportados (múltiplas respostas corretas por questão).',
-          image: IMG_BASE_PATH + '23-empresa-importacao-modelos-modal.png',
-          alt: 'Modal de modelos de importação com especificação de gabarito',
-          caption: 'Modal de modelos de arquivos e gabaritos suportados'
+          title: 'Consulte os modelos de gabarito no botão "Modelos"',
+          desc: 'Clique no botão "Modelos" para ver exemplos de gabaritos suportados (inclusive com múltiplas respostas corretas por questão).'
         }
       ],
       alertTip: 'O arquivo de gabarito pode conter múltiplas respostas por questão, ex: `Questão 1: A, C, E`.',
@@ -230,10 +197,12 @@
         {
           num: 1,
           title: 'Escolha "Múltipla seleção (várias respostas)"',
-          desc: 'No seletor de tipo de questão, escolha "Múltipla seleção". Os seletores mudarão de formato de rádio para checkbox.',
-          image: IMG_BASE_PATH + '21-empresa-importacao-assistente-etapa2-preview.png',
-          alt: 'Questão com múltiplas opções marcadas como corretas',
-          caption: 'Cartão de questão com várias respostas corretas marcadas'
+          desc: 'No seletor de tipo de questão, escolha "Múltipla seleção". Os seletores mudarão de formato de rádio para checkbox.'
+        },
+        {
+          num: 2,
+          title: 'Marque todas as alternativas corretas',
+          desc: 'Selecione os checkboxes ao lado de cada opção correta (ex: Alternativas A, C e E).'
         }
       ],
       alertTip: 'Você também pode definir este formato durante a importação via Excel marcando as colunas correspondentes.',
@@ -257,18 +226,12 @@
         {
           num: 1,
           title: 'Acesse a seção "Documentos, Regras e Termos"',
-          desc: 'No Estúdio de Testes, localize o painel de documentos e clique no botão "+ Anexar Documento / Termo".',
-          image: IMG_BASE_PATH + '17-empresa-documentos-painel.png',
-          alt: 'Painel de Gestão de Documentos e Termos do Exame',
-          caption: 'Painel de Gestão de Documentos e Termos anexados'
+          desc: 'No Estúdio de Testes, na aba Aplicação, localize o painel de documentos e clique em "+ Anexar Documento / Termo".'
         },
         {
           num: 2,
           title: 'Configure o documento no modal de anexo',
-          desc: 'Defina o título, selecione o arquivo PDF/DOCX e marque a regra de exigência (confirmação ou devolução assinada).',
-          image: IMG_BASE_PATH + '18-empresa-documentos-anexo-modal.png',
-          alt: 'Modal de anexo e regras do documento',
-          caption: 'Modal de configuração de regras e aceite do documento'
+          desc: 'Defina o título, selecione o arquivo PDF/DOCX e marque a regra de exigência (confirmação ou devolução assinada).'
         }
       ],
       alertTip: 'Se marcar "Exigir aceite digital", o participante só poderá iniciar a prova após aceitar o termo.',
@@ -292,18 +255,12 @@
         {
           num: 1,
           title: 'Ative a regra no modal do documento',
-          desc: 'No modal de documento, marque a opção de devolução de arquivo assinado.',
-          image: IMG_BASE_PATH + '18-empresa-documentos-anexo-modal.png',
-          alt: 'Configuração da regra de devolução de documento assinado',
-          caption: 'Configuração no modal de documentos'
+          desc: 'No modal de anexo do documento, selecione a regra "Exigir devolução do documento assinado pelo participante".'
         },
         {
           num: 2,
-          title: 'Visualização da exigência pelo candidato',
-          desc: 'Na tela do participante, os botões de download do termo e upload do comprovante assinado ficarão visíveis.',
-          image: IMG_BASE_PATH + '27-participante-documentos-pendentes.png',
-          alt: 'Tela do candidato com termo e envio de documento pendente',
-          caption: 'Ambiente do candidato com exigência de documento pendente'
+          title: 'Acompanhamento do envio',
+          desc: 'Na área do candidato, os botões de download e upload do termo assinado ficarão bloqueando o início até a conclusão.'
         }
       ],
       alertTip: 'O envio do comprovante assinado fica gravado no histórico individual do participante para auditoria.',
@@ -320,20 +277,16 @@
       updatedAt: '24/07/2026',
       lead: 'Configure as opções de notificação por e-mail para disponibilizar credenciais de acesso no momento exato.',
       toc: [
-        { id: 'sec-formas-envio', title: '1. Formas de envio disponíveis' },
-        { id: 'sec-agendamento-minutos', title: '2. Configurando o envio agendado em minutos' }
+        { id: 'sec-formas-envio', title: '1. Formas de envio disponíveis' }
       ],
       steps: [
         {
           num: 1,
           title: 'Selecione a forma de envio do acesso',
-          desc: 'Na aba Aplicação do exame, navegue até a seção "Envio do acesso ao candidato" e escolha a opção desejada.',
-          image: IMG_BASE_PATH + '16-empresa-envio-acesso-painel.png',
-          alt: 'Painel de configuração de envio de credenciais de acesso',
-          caption: 'Painel de agendamento e forma de envio do acesso'
+          desc: 'Na aba Aplicação do exame, navegue até o painel "Envio do acesso ao candidato" e escolha a opção desejada.'
         }
       ],
-      alertTip: 'Se selecionar envio manual, o campo de minutos fica oculto e você pode disparar os e-mails quando desejar.',
+      alertTip: 'Se selecionar envio manual, você pode disparar os e-mails quando desejar através da lista de participantes.',
       relatedIds: ['como-criar-um-novo-participante', 'como-acompanhar-o-exame-em-tempo-real']
     },
 
@@ -352,11 +305,8 @@
       steps: [
         {
           num: 1,
-          title: 'Acesse o Painel de Monitoramento ao Vivo',
-          desc: 'No menu lateral, selecione o exame e abra o painel de acompanhamento ao vivo para visualizar o progresso dos candidatos.',
-          image: IMG_BASE_PATH + '24-empresa-monitoramento-ao-vivo.png',
-          alt: 'Painel de Acompanhamento ao Vivo dos exames em andamento',
-          caption: 'Painel de Monitoramento ao Vivo em tempo real'
+          title: 'Acesse o Painel de Acompanhamento ao Vivo',
+          desc: 'Clique em "Resultados" ou "Monitoramento" para abrir o acompanhamento em tempo real dos participantes em prova.'
         }
       ],
       alertTip: 'Caso um participante perca a conexão, o sistema permite retomar o exame exatamente de onde parou.',
@@ -379,10 +329,7 @@
         {
           num: 1,
           title: 'Acesse o Dashboard de Resultados',
-          desc: 'Clique no menu "Resultados" para abrir a visão consolidada de notas, percentuais de acerto e aprovações.',
-          image: IMG_BASE_PATH + '25-empresa-resultados-dashboard.png',
-          alt: 'Dashboard de Resultados de exames com estatísticas e gráficos',
-          caption: 'Dashboard de Resultados consolidados da empresa'
+          desc: 'Clique no menu "Resultados" para abrir a visão consolidada de notas, percentuais de acerto e aprovações.'
         }
       ],
       alertTip: 'Você pode liberar os resultados de forma automática ou somente após a revisão manual do avaliador.',
@@ -399,16 +346,13 @@
       updatedAt: '24/07/2026',
       lead: 'Fortaleça a autoridade da sua marca personalizando a tela em que o participante fará a avaliação.',
       toc: [
-        { id: 'sec-painel-aparencia', title: '1. Painel lateral de Aparência' }
+        { id: 'sec-painel-aparencia', title: '1. Painel de Aparência' }
       ],
       steps: [
         {
           num: 1,
-          title: 'Personalize as cores e logotipo',
-          desc: 'Navegue até a seção de Personalização visual para enviar o logotipo da sua organização e ajustar a paleta de cores.',
-          image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
-          alt: 'Painel do Estúdio com opções de personalização visual',
-          caption: 'Estúdio de Testes com marca personalizada'
+          title: 'Personalize as cores e o logotipo da empresa',
+          desc: 'Navegue até a seção 4 (Aparência) para fazer upload da sua marca (PNG/JPG) e escolher a paleta de cores.'
         }
       ],
       alertTip: 'A personalização visual está disponível nos planos Pró e Enterprise da plataforma.',
@@ -431,10 +375,7 @@
         {
           num: 1,
           title: 'Tipos de Questões no Construtor',
-          desc: 'O construtor permite alternar instantaneamente entre escolha única, seleção múltipla, verdadeiro/falso, lacunas e dissertativas.',
-          image: IMG_BASE_PATH + '19-empresa-construtor-questoes.png',
-          alt: 'Seleção dos tipos de questão no construtor',
-          caption: 'Seletor de tipo de questão no Estúdio'
+          desc: 'O construtor permite alternar instantaneamente entre escolha única, seleção múltipla, verdadeiro/falso, lacunas e dissertativas.'
         }
       ],
       alertTip: 'Todas as alternativas podem ser embaralhadas automaticamente a cada tentativa.',
@@ -456,11 +397,8 @@
       steps: [
         {
           num: 1,
-          title: 'Experiência Completa do Site ao Exame',
-          desc: 'Do site institucional à aplicação das provas, o sistema oferece um ambiente integrado e seguro.',
-          image: IMG_BASE_PATH + '08-site-base-conhecimento-home.png',
-          alt: 'Página pública da Base de Conhecimento do Online Teste',
-          caption: 'Central de Conhecimento e Suporte pública'
+          title: 'Experiência Completa para a Empresa',
+          desc: 'Do cadastro de exames ao acompanhamento em tempo real, o sistema oferece um ambiente integrado e seguro.'
         }
       ],
       alertTip: 'Você pode solicitar um teste gratuito ou agendar uma demonstração exclusiva com nossos especialistas.',
@@ -480,14 +418,12 @@
     { name: 'Monitoramento', icon: '👁' },
     { name: 'Resultados', icon: '📊' },
     { name: 'Personalização', icon: '🎨' },
-    { name: 'Conheça a plataforma', icon: '✨' },
-    { name: 'Novidades', icon: '📢' }
+    { name: 'Conheça a plataforma', icon: '✨' }
   ];
 
   let state = {
     searchQuery: '',
     selectedCategory: 'Todas',
-    selectedAudience: 'all',
     currentArticleId: null
   };
 
@@ -497,7 +433,6 @@
   let elSearchInput = null;
   let elSearchClear = null;
   let elCategoryPills = null;
-  let elAudiencePills = null;
   let elArticlesGrid = null;
   let elNoResults = null;
 
@@ -505,7 +440,7 @@
     cacheDOMElements();
     renderCategoryPills();
     bindEvents();
-    checkURLHashRoute();
+    bindModalControls();
   });
 
   function cacheDOMElements() {
@@ -514,7 +449,6 @@
     elSearchInput = document.getElementById('kb-search-input');
     elSearchClear = document.getElementById('kb-search-clear');
     elCategoryPills = document.getElementById('kb-category-pills');
-    elAudiencePills = document.getElementById('kb-audience-pills');
     elArticlesGrid = document.getElementById('kb-articles-grid');
     elNoResults = document.getElementById('kb-no-results');
   }
@@ -536,20 +470,29 @@
         renderArticlesList();
       });
     }
+  }
 
-    if (elAudiencePills) {
-      elAudiencePills.querySelectorAll('.kb-pill').forEach(btn => {
-        btn.addEventListener('click', (e) => {
-          elAudiencePills.querySelectorAll('.kb-pill').forEach(b => b.classList.remove('active'));
-          const target = e.target.closest('.kb-pill');
-          target.classList.add('active');
-          state.selectedAudience = target.dataset.audience;
-          renderArticlesList();
-        });
-      });
+  function bindModalControls() {
+    // Botão de Ajuda na barra da Empresa
+    document.querySelectorAll('.help-button, #btn-open-help-kb, [data-open-kb]').forEach(btn => {
+      btn.addEventListener('click', openKBModal);
+    });
+
+    const closeBtn = document.getElementById('close-kb-company-modal');
+    if (closeBtn) closeBtn.addEventListener('click', closeKBModal);
+  }
+
+  function openKBModal() {
+    const modal = document.getElementById('kb-company-modal');
+    if (modal) {
+      modal.hidden = false;
+      showCatalog();
     }
+  }
 
-    window.addEventListener('hashchange', checkURLHashRoute);
+  function closeKBModal() {
+    const modal = document.getElementById('kb-company-modal');
+    if (modal) modal.hidden = true;
   }
 
   function renderCategoryPills() {
@@ -577,9 +520,6 @@
       if (state.selectedCategory !== 'Todas' && art.category !== state.selectedCategory) {
         return false;
       }
-      if (state.selectedAudience !== 'all' && art.audience !== state.selectedAudience) {
-        return false;
-      }
       if (state.searchQuery) {
         const query = state.searchQuery;
         const inTitle = art.title.toLowerCase().includes(query);
@@ -604,73 +544,39 @@
     if (elNoResults) elNoResults.hidden = true;
 
     elArticlesGrid.innerHTML = filtered.map(art => {
-      const badgeHTML = getAudienceBadgeHTML(art.audience);
       return `
-        <article class="kb-article-card kb-animated" onclick="window.openKnowledgeArticle('${art.id}')">
+        <article class="kb-article-card kb-animated" onclick="window.showKnowledgeArticle('${art.id}')">
           <div class="kb-article-meta-row">
-            ${badgeHTML}
+            <span class="kb-badge kb-badge-company">🏢 Para Empresas</span>
             <span class="kb-read-time">${art.readTime}</span>
           </div>
           <h3 class="kb-article-title">${escapeHTML(art.title)}</h3>
           <p class="kb-article-summary">${escapeHTML(art.summary)}</p>
-          <span class="kb-article-link">Ler artigo completo →</span>
+          <span class="kb-article-link">Ver tutorial completo →</span>
         </article>
       `;
     }).join('');
   }
 
-  function getAudienceBadgeHTML(audience) {
-    if (audience === 'company') return `<span class="kb-badge kb-badge-company">🏢 Para Empresas</span>`;
-    if (audience === 'participant') return `<span class="kb-badge kb-badge-participant">👤 Para Participantes</span>`;
-    if (audience === 'platform') return `<span class="kb-badge kb-badge-platform">✨ Conheça a Plataforma</span>`;
-    return `<span class="kb-badge kb-badge-general">📖 Geral</span>`;
-  }
-
-  function checkURLHashRoute() {
-    const hash = window.location.hash.replace('#', '');
-    if (hash.startsWith('artigo-')) {
-      const articleId = hash.replace('artigo-', '');
-      showArticle(articleId);
-    } else {
-      showCatalog();
-    }
-  }
-
-  window.openKnowledgeArticle = function (id) {
-    window.location.hash = `artigo-${id}`;
-  };
-
-  window.backToCatalog = function () {
-    window.location.hash = '';
-  };
-
   function showCatalog() {
     if (elCatalogView) elCatalogView.hidden = false;
     if (elArticleView) elArticleView.hidden = true;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
     renderArticlesList();
   }
 
-  function showArticle(articleId) {
+  window.showKnowledgeArticle = function (articleId) {
     const article = KNOWLEDGE_ARTICLES.find(a => a.id === articleId);
-    if (!article) {
-      showCatalog();
-      return;
-    }
+    if (!article) return;
 
     state.currentArticleId = articleId;
     if (elCatalogView) elCatalogView.hidden = true;
     if (elArticleView) elArticleView.hidden = false;
-    window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    const badgeHTML = getAudienceBadgeHTML(article.audience);
-
-    // Sumário
     let tocHTML = '';
     if (article.toc && article.toc.length > 0) {
       tocHTML = `
         <div class="kb-toc-card">
-          <div class="kb-toc-title">Sumário do Artigo</div>
+          <div class="kb-toc-title">Sumário do Guia</div>
           <ol class="kb-toc-list">
             ${article.toc.map(item => `<li><a href="#${item.id}">${escapeHTML(item.title)}</a></li>`).join('')}
           </ol>
@@ -678,186 +584,54 @@
       `;
     }
 
-    // Passo a Passo com Imagens Reais e Lightbox Zoom
     let stepsHTML = '';
     if (article.steps && article.steps.length > 0) {
-      stepsHTML = article.steps.map(step => {
-        const imageSrc = step.image || (IMG_BASE_PATH + '01-site-home.png');
-        const altText = escapeHTML(step.alt || step.title);
-        const captionText = escapeHTML(step.caption || step.title);
-
-        return `
-          <div class="kb-step-card">
-            <div class="kb-step-header">
-              <span class="kb-step-num">${step.num}</span>
-              <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
-            </div>
-            <p>${escapeHTML(step.desc)}</p>
-            
-            <figure class="kb-step-figure">
-              <button class="kb-image-zoom-btn" type="button" aria-label="Ampliar captura da tela" onclick="window.openKnowledgeImageZoom('${imageSrc}', '${altText}', '${captionText}')">
-                <img src="${imageSrc}" alt="${altText}" loading="lazy">
-              </button>
-              <figcaption>
-                <span>${captionText}</span>
-                <span class="kb-zoom-badge">🔍 Clique para ampliar</span>
-              </figcaption>
-            </figure>
+      stepsHTML = article.steps.map(step => `
+        <div class="kb-step-card">
+          <div class="kb-step-header">
+            <span class="kb-step-num">${step.num}</span>
+            <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
           </div>
-        `;
-      }).join('');
-    }
-
-    // Artigos Relacionados
-    let relatedHTML = '';
-    if (article.relatedIds && article.relatedIds.length > 0) {
-      const relArticles = KNOWLEDGE_ARTICLES.filter(a => article.relatedIds.includes(a.id));
-      relatedHTML = `
-        <div class="kb-sidebar-card">
-          <div class="kb-sidebar-title">Artigos Relacionados</div>
-          <div style="display: flex; flex-direction: column; gap: 12px;">
-            ${relArticles.map(rel => `
-              <a href="#artigo-${rel.id}" style="color: #2563eb; text-decoration: none; font-size: 13px; font-weight: 700; line-height: 1.35;">
-                • ${escapeHTML(rel.title)}
-              </a>
-            `).join('')}
-          </div>
+          <p style="margin: 0;">${escapeHTML(step.desc)}</p>
         </div>
-      `;
+      `).join('');
     }
 
-    // Renderiza Leitor Completo
     elArticleView.innerHTML = `
-      <div class="kb-main-container kb-animated">
-        <nav class="kb-breadcrumb" aria-label="Navegação">
-          <a href="./index.html">Home</a>
-          <span>/</span>
-          <a href="#" onclick="event.preventDefault(); window.backToCatalog();">Base de Conhecimento</a>
-          <span>/</span>
-          <span>${escapeHTML(article.category)}</span>
-        </nav>
+      <div class="kb-animated">
+        <button class="button secondary" type="button" style="margin-bottom: 16px;" onclick="window.backToKnowledgeCatalog()">
+          ← Voltar para a lista de artigos
+        </button>
 
-        <div class="kb-reader-layout">
-          <main class="kb-article-content">
-            <header class="kb-article-header">
-              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                ${badgeHTML}
-                <span class="kb-read-time">⏱️ ${article.readTime}</span>
-                <span class="kb-read-time">📅 Atualizado em ${article.updatedAt}</span>
-              </div>
-              <h1>${escapeHTML(article.title)}</h1>
-              <p class="kb-article-lead">${escapeHTML(article.lead || article.summary)}</p>
-            </header>
+        <header class="kb-article-header">
+          <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="kb-badge kb-badge-company">🏢 Para Empresas</span>
+            <span class="kb-read-time">⏱️ ${article.readTime}</span>
+            <span class="kb-read-time">📅 Atualizado em ${article.updatedAt}</span>
+          </div>
+          <h1 style="font-size: 24px; font-weight: 800; margin: 10px 0;">${escapeHTML(article.title)}</h1>
+          <p class="kb-article-lead">${escapeHTML(article.lead || article.summary)}</p>
+        </header>
 
-            ${tocHTML}
+        ${tocHTML}
 
-            <div class="kb-article-body">
-              <h2 id="sec-passos">Passo a Passo Guiado</h2>
-              ${stepsHTML}
+        <div class="kb-article-body">
+          <h2 style="font-size: 18px; font-weight: 800; margin: 20px 0 14px;">Passo a Passo Guiado</h2>
+          ${stepsHTML}
 
-              ${article.alertTip ? `
-                <div class="kb-alert kb-alert-tip">
-                  <span class="kb-alert-icon">💡</span>
-                  <div><strong>Dica Útil:</strong> ${escapeHTML(article.alertTip)}</div>
-                </div>
-              ` : ''}
-
-              <div class="kb-commercial-cta">
-                <div>
-                  <h4>Gostou deste recurso?</h4>
-                  <p>Crie avaliações online seguras com o logotipo e as cores da sua empresa.</p>
-                </div>
-                <div class="kb-cta-actions">
-                  <a class="button primary" href="./SolicitarAcesso.html" style="background: #2563eb; color: #fff; text-decoration: none;">Solicitar Acesso</a>
-                  <a class="button secondary" href="./contato.html" style="background: #ffffff; color: #0f172a; text-decoration: none;">Fale com Especialista</a>
-                </div>
-              </div>
-
-              <div class="kb-feedback-box" id="kb-feedback-container">
-                <div class="kb-feedback-question">Este conteúdo foi útil para você?</div>
-                <div class="kb-feedback-buttons">
-                  <button class="kb-btn-feedback" type="button" onclick="window.sendKnowledgeFeedback(true)">👍 Sim</button>
-                  <button class="kb-btn-feedback" type="button" onclick="window.sendKnowledgeFeedback(false)">👎 Não</button>
-                </div>
-              </div>
+          ${article.alertTip ? `
+            <div class="kb-alert kb-alert-tip">
+              <span class="kb-alert-icon">💡</span>
+              <div><strong>Dica Útil:</strong> ${escapeHTML(article.alertTip)}</div>
             </div>
-          </main>
-
-          <aside class="kb-article-sidebar">
-            <div class="kb-sidebar-card">
-              <div class="kb-sidebar-title">Ações</div>
-              <div class="kb-share-buttons">
-                <button class="kb-btn-action secondary" type="button" onclick="window.copyKnowledgeArticleLink()">
-                  <span>🔗</span> Copiar Link do Artigo
-                </button>
-                <button class="kb-btn-action secondary" type="button" onclick="window.printKnowledgeArticle()">
-                  <span>🖨️</span> Imprimir Artigo
-                </button>
-                <button class="kb-btn-action primary" type="button" onclick="window.backToCatalog()">
-                  <span>←</span> Voltar para a Base
-                </button>
-              </div>
-            </div>
-
-            ${relatedHTML}
-          </aside>
+          ` : ''}
         </div>
       </div>
     `;
-  }
-
-  // --- Funções do Modal Lightbox Zoom ---
-  window.openKnowledgeImageZoom = function (src, alt, caption) {
-    let backdrop = document.getElementById('kb-image-zoom-backdrop');
-    if (!backdrop) {
-      backdrop = document.createElement('div');
-      backdrop.id = 'kb-image-zoom-backdrop';
-      backdrop.className = 'kb-zoom-backdrop';
-      backdrop.innerHTML = `
-        <div class="kb-zoom-container">
-          <button class="kb-zoom-close" type="button" aria-label="Fechar zoom" onclick="window.closeKnowledgeImageZoom()">×</button>
-          <img id="kb-zoom-img" src="" alt="">
-          <div class="kb-zoom-caption" id="kb-zoom-caption"></div>
-        </div>
-      `;
-      backdrop.addEventListener('click', (e) => {
-        if (e.target === backdrop) window.closeKnowledgeImageZoom();
-      });
-      document.body.appendChild(backdrop);
-    }
-
-    document.getElementById('kb-zoom-img').src = src;
-    document.getElementById('kb-zoom-img').alt = alt || '';
-    document.getElementById('kb-zoom-caption').textContent = caption || alt || 'Imagem em tamanho real';
-    backdrop.hidden = false;
   };
 
-  window.closeKnowledgeImageZoom = function () {
-    const backdrop = document.getElementById('kb-image-zoom-backdrop');
-    if (backdrop) backdrop.hidden = true;
-  };
-
-  window.copyKnowledgeArticleLink = function () {
-    const url = window.location.href;
-    navigator.clipboard.writeText(url).then(() => {
-      alert('Link do artigo copiado para a área de transferência!');
-    }).catch(() => {
-      alert('Link: ' + url);
-    });
-  };
-
-  window.printKnowledgeArticle = function () {
-    window.print();
-  };
-
-  window.sendKnowledgeFeedback = function (isPositive) {
-    const container = document.getElementById('kb-feedback-container');
-    if (!container) return;
-    container.innerHTML = `
-      <div class="kb-feedback-thanks">
-        ✓ Obrigado pelo seu feedback! Isso nos ajuda a melhorar nossos guias constantemente.
-      </div>
-    `;
+  window.backToKnowledgeCatalog = function () {
+    showCatalog();
   };
 
   function escapeHTML(str) {
