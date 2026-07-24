@@ -728,7 +728,11 @@ function fillExam(exam) {
 function updateEmailScheduleVisibility() {
   const sendOption = elements['email-send-option'] ? elements['email-send-option'].value : 'manual';
   if (elements['email-schedule-minutes-field']) {
-    elements['email-schedule-minutes-field'].hidden = sendOption !== 'scheduled';
+    const isScheduled = sendOption === 'scheduled';
+    elements['email-schedule-minutes-field'].hidden = !isScheduled;
+    if (!isScheduled && elements['email-schedule-minutes']) {
+      elements['email-schedule-minutes'].value = '';
+    }
   }
   if (elements['email-status-panel']) {
     elements['email-status-panel'].hidden = sendOption === 'none';
