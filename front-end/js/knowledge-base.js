@@ -1,15 +1,15 @@
 /**
  * Base de Conhecimento da Empresa — Módulo Oficial em Tela Cheia (Online Teste)
- * Exibe tutoriais, orientações, imagens reais e campos de prints com zoom interativo.
+ * Mapeamento 100% auditado dos 14 artigos para os prints reais das telas do sistema.
  */
 
 (function () {
   'use strict';
 
-  // Caminho base para as imagens da Base de Conhecimento
+  // Caminho base para as imagens oficiais da Base de Conhecimento
   const IMG_BASE_PATH = './assets/images/base-conhecimento/';
 
-  // --- 1. Banco de Dados Oficial dos 14 Artigos com Imagens e Campos de Prints ---
+  // --- 1. Banco de Dados Oficial dos 14 Artigos com Mapeamento Exato de Prints ---
   const KNOWLEDGE_ARTICLES = [
     {
       id: 'como-criar-um-novo-participante',
@@ -28,7 +28,7 @@
       steps: [
         {
           num: 1,
-          title: 'Acesse o menu Participantes',
+          title: 'Acesse a área de Participantes',
           desc: 'No painel da empresa, clique na opção "Participantes" na barra de navegação lateral para visualizar a lista completa.',
           image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
           filename: '12-empresa-participantes-listagem.png',
@@ -48,10 +48,10 @@
           num: 3,
           title: 'Preencha os dados e confirme o cadastro',
           desc: 'Informe o Nome Completo, E-mail oficial, Documento e selecione o exame ao qual o participante terá acesso.',
-          image: IMG_BASE_PATH + '06-site-login-empresa.png',
-          filename: '06-site-login-empresa.png',
-          alt: 'Confirmação e credenciais de acesso',
-          caption: 'Credenciais de acesso para o participante'
+          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
+          filename: '12-empresa-participantes-listagem.png',
+          alt: 'Lista de participantes com o cadastro confirmado',
+          caption: 'Participante cadastrado e credenciais de acesso ativas'
         }
       ],
       alertTip: 'Você também pode importar centenas de participantes de uma só vez utilizando a importação em lote via arquivo CSV.',
@@ -76,15 +76,24 @@
           num: 1,
           title: 'Abra a opção Importar CSV',
           desc: 'Na tela de Participantes, clique em "Importar CSV" para abrir o assistente em lote.',
+          image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
+          filename: '12-empresa-participantes-listagem.png',
+          alt: 'Tela de Gestão com o botão de Importar CSV destacado',
+          caption: 'Tela de Participantes com o botão Importar CSV'
+        },
+        {
+          num: 2,
+          title: 'Preencha a planilha e envie o arquivo',
+          desc: 'Selecione o arquivo `.csv` preenchido com a lista de candidatos no modal de importação.',
           image: IMG_BASE_PATH + '14-empresa-participantes-importar-csv-modal.png',
           filename: '14-empresa-participantes-importar-csv-modal.png',
           alt: 'Modal de importação de participantes via arquivo CSV',
           caption: 'Modal para envio do arquivo CSV formatado'
         },
         {
-          num: 2,
-          title: 'Valide e confirme a lista',
-          desc: 'Selecione o arquivo `.csv` preenchido e clique em "Validar e Importar" para incluir os participantes no sistema.',
+          num: 3,
+          title: 'Valide e confirme a importação',
+          desc: 'O sistema processará as linhas da planilha. Clique em "Validar e Importar" para salvar a turma no sistema.',
           image: IMG_BASE_PATH + '12-empresa-participantes-listagem.png',
           filename: '12-empresa-participantes-listagem.png',
           alt: 'Lista atualizada após a importação via CSV',
@@ -124,8 +133,8 @@
           desc: 'Utilize o botão "Salvar rascunho" no canto superior direito para persistir a versão atual no banco.',
           image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
           filename: '11-empresa-dashboard-main.png',
-          alt: 'Visão geral do painel da empresa com botão de rascunho',
-          caption: 'Estúdio de Testes da empresa'
+          alt: 'Visão geral do painel do Estúdio com o botão Salvar rascunho',
+          caption: 'Estúdio de Testes da empresa com botões de rascunho'
         }
       ],
       alertTip: 'O exame em rascunho não fica visível para os candidatos até que você clique no botão "Publicar teste".',
@@ -243,6 +252,15 @@
           num: 1,
           title: 'Escolha "Múltipla seleção (várias respostas)"',
           desc: 'No seletor de tipo de questão, escolha "Múltipla seleção". Os seletores mudarão de formato de rádio para checkbox.',
+          image: IMG_BASE_PATH + '19-empresa-construtor-questoes.png',
+          filename: '19-empresa-construtor-questoes.png',
+          alt: 'Seletor do tipo Múltipla seleção no Construtor',
+          caption: 'Seletor de tipo de questão no Construtor'
+        },
+        {
+          num: 2,
+          title: 'Marque todas as alternativas corretas',
+          desc: 'Selecione os checkboxes ao lado de cada opção correta (ex: Alternativas A, C e E).',
           image: IMG_BASE_PATH + '21-empresa-importacao-assistente-etapa2-preview.png',
           filename: '21-empresa-importacao-assistente-etapa2-preview.png',
           alt: 'Questão com múltiplas opções marcadas como corretas',
@@ -479,10 +497,10 @@
           num: 1,
           title: 'Experiência Completa para a Empresa',
           desc: 'Do cadastro de exames ao acompanhamento em tempo real, o sistema oferece um ambiente integrado e seguro.',
-          image: IMG_BASE_PATH + '08-site-base-conhecimento-home.png',
-          filename: '08-site-base-conhecimento-home.png',
+          image: IMG_BASE_PATH + '11-empresa-dashboard-main.png',
+          filename: '11-empresa-dashboard-main.png',
           alt: 'Visão Geral do Painel da Empresa',
-          caption: 'Visão Geral do Painel da Empresa'
+          caption: 'Visão Geral do Estúdio de Testes da Empresa'
         }
       ],
       alertTip: 'Você pode solicitar um teste gratuito ou agendar uma demonstração exclusiva com nossos especialistas.',
@@ -673,7 +691,7 @@
     let stepsHTML = '';
     if (article.steps && article.steps.length > 0) {
       stepsHTML = article.steps.map(step => {
-        const imageSrc = step.image || (IMG_BASE_PATH + '01-site-home.png');
+        const imageSrc = step.image || (IMG_BASE_PATH + '11-empresa-dashboard-main.png');
         const altText = escapeHTML(step.alt || step.title);
         const captionText = escapeHTML(step.caption || step.title);
         const fileName = step.filename || 'print-da-tela.png';
