@@ -54,7 +54,7 @@ def safe_questions(raw_questions):
         questions.append(
             {
                 "id": str(item.get("id") or "")[:80],
-                "type": item.get("type") if item.get("type") in {"multiple_choice", "multiple_select", "true_false", "essay"} else "multiple_choice",
+                "type": item.get("type") if item.get("type") in {"single_choice", "multiple_choice", "true_false", "short_answer", "long_answer", "essay", "multiple_select"} else "single_choice",
                 "prompt": str(item.get("prompt") or "")[:3000],
                 "points": max(0, min(1000, int(item.get("points") or 0))),
                 "required": bool(item.get("required", True)),
@@ -81,11 +81,27 @@ def score_answers(questions, supplied):
         points = max(0, min(1000, int(question.get("points") or 0)))
         value = str(supplied.get(question_id, ""))[:10000]
         total_points += points
-        if kind == "essay":
+        if kind in {"long_answer", "essay"}:
             has_essay = True
             is_correct = None
             earned = 0
-        elif kind == "multiple_select":
+            correction_status = "aguardando_correcao"
+        elif kind == "short_answer":
+            raw_accepted = question.get("acceptedAnswers") or question.get("correctAnswer") or []
+            if isinstance(raw_accepted, list):
+                accepted_list = [normalize_answer(x) for x in raw_accepted if normalize_answer(x)]
+            elif isinstance(raw_accepted, str):
+                accepted_list = [normalize_answer(x) for x in raw_accepted.split(",") if normalize_answer(x)]
+            else:
+                accepted_list = []
+            
+            user_val = normalize_answer(value)
+            is_correct = bool(user_val) and (user_val in accepted_list)
+            earned = points if is_correct else 0
+            objective_points += earned
+            correct_answers += int(is_correct)
+            correction_status = "automatico"
+        elif kind in {"multiple_choice", "multiple_select"}:
             raw_correct = question.get("correctAnswers") or question.get("correctAnswer") or []
             if isinstance(raw_correct, str):
                 try:
@@ -119,11 +135,15 @@ def score_answers(questions, supplied):
             earned = points if is_correct else 0
             objective_points += earned
             correct_answers += int(is_correct)
+            correction_status = "automatico"
         else:
+            # single_choice, true_false e questões legadas
             is_correct = bool(value) and normalize_answer(value) == normalize_answer(question.get("correctAnswer"))
             earned = points if is_correct else 0
             objective_points += earned
             correct_answers += int(is_correct)
+            correction_status = "automatico"
+
         answers.append(
             {
                 "number": index + 1,
@@ -134,6 +154,7 @@ def score_answers(questions, supplied):
                 "points": points,
                 "earnedPoints": earned,
                 "isCorrect": is_correct,
+                "correctionStatus": correction_status,
             }
         )
     percentage = round((objective_points / total_points * 100) if total_points else 0, 2)

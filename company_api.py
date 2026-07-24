@@ -21,7 +21,15 @@ from exam_email_service import (
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 ALLOWED_FONTS = {"Inter", "Manrope", "Montserrat", "Poppins", "Roboto"}
 ALLOWED_RADII = {"small", "medium", "large"}
-ALLOWED_QUESTION_TYPES = {"multiple_choice", "multiple_select", "true_false", "essay"}
+ALLOWED_QUESTION_TYPES = {
+    "single_choice",
+    "multiple_choice",
+    "true_false",
+    "short_answer",
+    "long_answer",
+    "essay",
+    "multiple_select",
+}
 ALLOWED_STATUSES = {"draft", "published"}
 ALLOWED_RESULT_DELIVERY = {"automatic", "manual"}
 # on_save: envia ao concluir o cadastro | scheduled: envia X min antes | manual: não envia (botão manual) | none: não envia
@@ -92,47 +100,158 @@ def clean_branding(data):
 
 
 def clean_question(question, index):
-    question_type = clean_text(question.get("type"), 32, "multiple_choice")
-    if question_type not in ALLOWED_QUESTION_TYPES:
+    raw_type = clean_text(question.get("type"), 32, "single_choice")
+
+    # Mapeamento de tipos legados
+    if raw_type == "essay":
+        question_type = "long_answer"
+    elif raw_type == "multiple_select":
         question_type = "multiple_choice"
-
-    raw_options = question.get("options") if isinstance(question.get("options"), list) else []
-    options = [clean_text(option, 500) for option in raw_options[:10] if clean_text(option, 500)]
-    if question_type == "true_false":
-        options = ["Verdadeiro", "Falso"]
-    elif question_type in {"multiple_choice", "multiple_select"} and len(options) < 2:
-        options = ["Opção A", "Opção B"]
-    elif question_type == "essay":
-        options = []
-
-    raw_correct_answers = question.get("correctAnswers")
-    if isinstance(raw_correct_answers, list):
-        correct_answers = [clean_text(ans, 500) for ans in raw_correct_answers if clean_text(ans, 500)]
+    elif raw_type == "multiple_choice":
+        raw_struct = question.get("structuredOptions") if isinstance(question.get("structuredOptions"), list) else []
+        struct_correct_count = sum(1 for item in raw_struct if isinstance(item, dict) and item.get("isCorrect"))
+        raw_correct_list = question.get("correctAnswers") if isinstance(question.get("correctAnswers"), list) else []
+        if struct_correct_count > 1 or len(raw_correct_list) > 1:
+            question_type = "multiple_choice"
+        elif struct_correct_count == 1:
+            question_type = "single_choice"
+        elif question.get("correctAnswer") and not question.get("correctAnswers"):
+            question_type = "single_choice"
+        else:
+            question_type = "multiple_choice"
+    elif raw_type not in {"single_choice", "multiple_choice", "true_false", "short_answer", "long_answer"}:
+        question_type = "single_choice"
     else:
-        correct_answers = []
+        question_type = raw_type
 
-    correct_answer = clean_text(question.get("correctAnswer"), 500)
-    if question_type == "multiple_select":
-        if not correct_answers and correct_answer:
-            try:
-                parsed = json.loads(correct_answer)
-                if isinstance(parsed, list):
-                    correct_answers = [clean_text(ans, 500) for ans in parsed if clean_text(ans, 500)]
-            except (json.JSONDecodeError, TypeError):
-                correct_answers = [ans.strip() for ans in correct_answer.split(",") if ans.strip()]
-        if not correct_answers and options:
-            correct_answers = [options[0]]
-        correct_answer = json.dumps(correct_answers, ensure_ascii=False)
+    prompt = clean_text(question.get("prompt"), 3000)
+    if not prompt:
+        prompt = f"Questão {index + 1}"
+
+    points = clamp_integer(question.get("points"), 0, 1000, 10)
+    required = bool(question.get("required", True))
+    q_id = clean_text(question.get("id"), 80, f"question-{index + 1}")
+
+    cleaned_options = []
+    correct_answers_list = []
+    accepted_answers_list = []
+    min_chars = None
+    max_chars = None
+    manual_correction = False
+
+    if question_type in {"single_choice", "multiple_choice", "true_false"}:
+        raw_options = question.get("structuredOptions") or question.get("options")
+        if not isinstance(raw_options, list):
+            raw_options = []
+
+        if question_type == "true_false":
+            raw_options = ["Verdadeiro", "Falso"]
+        elif not raw_options and question_type in {"single_choice", "multiple_choice"}:
+            raw_options = ["Opção A", "Opção B"]
+
+        for opt_idx, item in enumerate(raw_options[:10]):
+            if isinstance(item, dict):
+                opt_text = clean_text(item.get("text"), 500)
+                opt_id = clean_text(item.get("id"), 80, f"opt-{opt_idx + 1}")
+                is_correct = bool(item.get("isCorrect", False))
+                try:
+                    weight = float(item.get("weight", 1.0 if is_correct else 0.0))
+                except (TypeError, ValueError):
+                    weight = 1.0 if is_correct else 0.0
+            else:
+                opt_text = clean_text(item, 500)
+                opt_id = f"opt-{opt_idx + 1}"
+                is_correct = False
+                weight = 1.0
+
+            if not opt_text and question_type != "true_false":
+                raise ValueError("Não é permitido salvar alternativa vazia.")
+
+            cleaned_options.append({
+                "id": opt_id,
+                "text": opt_text,
+                "order": opt_idx + 1,
+                "isCorrect": is_correct,
+                "weight": weight,
+            })
+
+        has_any_correct = any(opt["isCorrect"] for opt in cleaned_options)
+        if not has_any_correct:
+            raw_correct = question.get("correctAnswers") or question.get("correctAnswer")
+            if isinstance(raw_correct, list):
+                correct_texts = {clean_text(x, 500) for x in raw_correct if clean_text(x, 500)}
+            elif isinstance(raw_correct, str) and raw_correct.startswith("["):
+                try:
+                    correct_texts = {clean_text(x, 500) for x in json.loads(raw_correct) if isinstance(x, str)}
+                except Exception:
+                    correct_texts = {clean_text(raw_correct, 500)}
+            elif isinstance(raw_correct, str) and raw_correct:
+                correct_texts = {clean_text(raw_correct, 500)}
+            else:
+                correct_texts = set()
+
+            for opt in cleaned_options:
+                if opt["text"] in correct_texts:
+                    opt["isCorrect"] = True
+
+        correct_count = sum(1 for opt in cleaned_options if opt["isCorrect"])
+        if question_type in {"single_choice", "true_false"}:
+            if correct_count == 0 and cleaned_options:
+                cleaned_options[0]["isCorrect"] = True
+                correct_count = 1
+            if correct_count != 1:
+                raise ValueError("Questões de resposta única devem possuir exatamente uma alternativa correta.")
+        elif question_type == "multiple_choice":
+            if correct_count == 0 and cleaned_options:
+                cleaned_options[0]["isCorrect"] = True
+                correct_count = 1
+            if correct_count < 1:
+                raise ValueError("Questões de múltipla seleção devem possuir pelo menos uma alternativa correta.")
+
+        correct_answers_list = [opt["text"] for opt in cleaned_options if opt["isCorrect"]]
+        legacy_correct_answer = correct_answers_list[0] if correct_answers_list else ""
+        if question_type == "multiple_choice":
+            legacy_correct_answer = json.dumps(correct_answers_list, ensure_ascii=False)
+
+    elif question_type == "short_answer":
+        raw_accepted = question.get("acceptedAnswers")
+        if isinstance(raw_accepted, list):
+            accepted_answers_list = [clean_text(ans, 500) for ans in raw_accepted if clean_text(ans, 500)]
+        elif isinstance(raw_accepted, str) and raw_accepted:
+            accepted_answers_list = [ans.strip() for ans in raw_accepted.split(",") if ans.strip()]
+        else:
+            legacy_correct = clean_text(question.get("correctAnswer"), 500)
+            accepted_answers_list = [legacy_correct] if legacy_correct else []
+
+        if not accepted_answers_list:
+            raise ValueError("Questão de resposta curta deve possuir pelo menos uma resposta aceita.")
+
+        legacy_correct_answer = accepted_answers_list[0]
+
+    elif question_type == "long_answer":
+        manual_correction = True
+        min_chars = clamp_integer(question.get("minCharacters"), 0, 10000, 0)
+        max_chars = clamp_integer(question.get("maxCharacters"), 0, 50000, 5000)
+        if max_chars > 0 and min_chars > max_chars:
+            min_chars = max_chars
+        legacy_correct_answer = ""
+
+    simple_options = [opt["text"] for opt in cleaned_options] if cleaned_options else []
 
     return {
-        "id": clean_text(question.get("id"), 80, f"question-{index + 1}"),
+        "id": q_id,
         "type": question_type,
-        "prompt": clean_text(question.get("prompt"), 3000, f"Questão {index + 1}"),
-        "points": clamp_integer(question.get("points"), 0, 1000, 10),
-        "required": bool(question.get("required", True)),
-        "options": options,
-        "correctAnswer": correct_answer,
-        "correctAnswers": correct_answers if question_type == "multiple_select" else None,
+        "prompt": prompt,
+        "points": points,
+        "required": required,
+        "options": simple_options,
+        "structuredOptions": cleaned_options,
+        "correctAnswer": legacy_correct_answer,
+        "correctAnswers": correct_answers_list,
+        "acceptedAnswers": accepted_answers_list,
+        "minCharacters": min_chars,
+        "maxCharacters": max_chars,
+        "manualCorrection": manual_correction,
     }
 
 

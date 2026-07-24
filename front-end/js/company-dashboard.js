@@ -165,11 +165,71 @@ function applyBranding() {
 
 function renderOptions(question, container, questionIndex = 0) {
   container.replaceChildren();
-  if (question.type === 'essay') {
+
+  if (['long_answer', 'essay'].includes(question.type)) {
     const note = document.createElement('div');
     note.className = 'essay-note';
-    note.textContent = 'O candidato responderá em um campo de texto livre. Questões dissertativas são corrigidas no painel de Resultados.';
-    container.appendChild(note);
+    note.textContent = 'O candidato responderá em um campo de texto livre. Questões dissertativas exigem correção manual no painel de Resultados.';
+    
+    const charGrid = document.createElement('div');
+    charGrid.className = 'char-limits-grid';
+
+    const minLabel = document.createElement('label');
+    minLabel.className = 'char-limit-field';
+    minLabel.innerHTML = `<span>Mínimo de caracteres</span><input type="number" class="question-min-chars" min="0" max="10000" value="${question.minCharacters || 0}">`;
+
+    const maxLabel = document.createElement('label');
+    maxLabel.className = 'char-limit-field';
+    maxLabel.innerHTML = `<span>Máximo de caracteres</span><input type="number" class="question-max-chars" min="0" max="50000" value="${question.maxCharacters || 5000}">`;
+
+    charGrid.append(minLabel, maxLabel);
+    container.append(note, charGrid);
+    return;
+  }
+
+  if (question.type === 'short_answer') {
+    if (!Array.isArray(question.acceptedAnswers) || question.acceptedAnswers.length === 0) {
+      question.acceptedAnswers = question.correctAnswer ? [question.correctAnswer] : ['Resposta correta'];
+    }
+
+    const helper = document.createElement('div');
+    helper.className = 'options-helper-text';
+    helper.textContent = 'Cadastre as respostas aceitas para correção automática (sem diferenciar maiúsculas/minúsculas ou espaços nas pontas):';
+    container.appendChild(helper);
+
+    question.acceptedAnswers.forEach((ans, ansIndex) => {
+      const row = document.createElement('div');
+      row.className = 'option-row short-answer-row';
+
+      const marker = document.createElement('span');
+      marker.className = 'correct-badge';
+      marker.textContent = `Aceita ${ansIndex + 1}`;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = ans;
+      input.maxLength = 500;
+      input.dataset.acceptedIndex = String(ansIndex);
+      input.setAttribute('placeholder', 'Digite o texto da resposta aceita');
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-option';
+      remove.dataset.removeAccepted = String(ansIndex);
+      remove.textContent = '×';
+
+      row.append(marker, input, remove);
+      container.appendChild(row);
+    });
+
+    if (question.acceptedAnswers.length < 10) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'add-option';
+      add.dataset.addAccepted = 'true';
+      add.textContent = '+ Adicionar resposta aceita';
+      container.appendChild(add);
+    }
     return;
   }
 
@@ -177,7 +237,7 @@ function renderOptions(question, container, questionIndex = 0) {
     question.options = ['Opção A', 'Opção B'];
   }
 
-  const isMultiSelect = question.type === 'multiple_select';
+  const isMultiSelect = question.type === 'multiple_choice';
   if (isMultiSelect) {
     if (!Array.isArray(question.correctAnswers)) {
       if (question.correctAnswer) {
@@ -200,7 +260,7 @@ function renderOptions(question, container, questionIndex = 0) {
   const helper = document.createElement('div');
   helper.className = 'options-helper-text';
   helper.textContent = isMultiSelect
-    ? 'Marque as alternativas corretas (gabarito — múltiplas respostas permitidas):'
+    ? 'Marque as alternativas corretas (gabarito — múltiplas respostas):'
     : 'Marque a alternativa correta (gabarito):';
   container.appendChild(helper);
 
@@ -218,7 +278,6 @@ function renderOptions(question, container, questionIndex = 0) {
     if (!isMultiSelect) markInput.name = `correct-option-${questionIndex}`;
     markInput.checked = isCorrect;
     markInput.dataset.correctOption = String(optionIndex);
-    markInput.setAttribute('title', isMultiSelect ? 'Marcar/desmarcar como resposta correta' : 'Marcar como resposta correta (gabarito)');
 
     const input = document.createElement('input');
     input.type = 'text';
@@ -236,18 +295,20 @@ function renderOptions(question, container, questionIndex = 0) {
       row.appendChild(badge);
     }
 
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'remove-option';
-    remove.dataset.removeOption = String(optionIndex);
-    remove.setAttribute('aria-label', `Remover opção ${optionIndex + 1}`);
-    remove.textContent = '×';
-    row.appendChild(remove);
+    if (question.type !== 'true_false') {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-option';
+      remove.dataset.removeOption = String(optionIndex);
+      remove.setAttribute('aria-label', `Remover opção ${optionIndex + 1}`);
+      remove.textContent = '×';
+      row.appendChild(remove);
+    }
 
     container.appendChild(row);
   });
 
-  if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 10) {
+  if (['single_choice', 'multiple_choice'].includes(question.type) && question.options.length < 10) {
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'add-option';
@@ -418,11 +479,24 @@ function syncQuestionFromTarget(target) {
   if (target.classList.contains('question-prompt')) question.prompt = target.value;
   if (target.classList.contains('question-points')) question.points = Math.max(0, Number(target.value) || 0);
   if (target.classList.contains('question-required')) question.required = target.checked;
+  if (target.classList.contains('question-min-chars')) {
+    question.minCharacters = Math.max(0, Number(target.value) || 0);
+  }
+  if (target.classList.contains('question-max-chars')) {
+    question.maxCharacters = Math.max(0, Number(target.value) || 0);
+  }
+  if (target.matches('[data-accepted-index]')) {
+    const accIdx = Number(target.dataset.acceptedIndex);
+    if (Array.isArray(question.acceptedAnswers)) {
+      question.acceptedAnswers[accIdx] = target.value;
+      question.correctAnswer = question.acceptedAnswers[0] || '';
+    }
+  }
   if (target.matches('[data-option-index]')) {
     const optIdx = Number(target.dataset.optionIndex);
     const oldVal = question.options[optIdx];
     question.options[optIdx] = target.value;
-    if (question.type === 'multiple_select') {
+    if (question.type === 'multiple_choice') {
       if (Array.isArray(question.correctAnswers)) {
         const cIndex = question.correctAnswers.indexOf(oldVal);
         if (cIndex >= 0) question.correctAnswers[cIndex] = target.value;
@@ -435,7 +509,7 @@ function syncQuestionFromTarget(target) {
   if (target.matches('[data-correct-option]')) {
     const optIdx = Number(target.dataset.correctOption);
     const optVal = question.options[optIdx] || '';
-    if (question.type === 'multiple_select') {
+    if (question.type === 'multiple_choice') {
       if (!Array.isArray(question.correctAnswers)) question.correctAnswers = [];
       if (target.checked) {
         if (!question.correctAnswers.includes(optVal)) question.correctAnswers.push(optVal);
@@ -450,15 +524,31 @@ function syncQuestionFromTarget(target) {
   }
   if (target.classList.contains('question-type')) {
     question.type = target.value;
-    if (question.type === 'true_false') question.options = ['Verdadeiro', 'Falso'];
-    if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 2) {
-      question.options = ['Opção A', 'Opção B'];
+    if (question.type === 'true_false') {
+      question.options = ['Verdadeiro', 'Falso'];
+      question.correctAnswer = 'Verdadeiro';
+    } else if (['single_choice', 'multiple_choice'].includes(question.type)) {
+      if (!Array.isArray(question.options) || question.options.length < 2) {
+        question.options = ['Opção A', 'Opção B'];
+      }
+      if (question.type === 'multiple_choice') {
+        question.correctAnswers = [question.options[0]];
+        question.correctAnswer = JSON.stringify(question.correctAnswers);
+      } else {
+        question.correctAnswer = question.options[0];
+      }
+    } else if (question.type === 'short_answer') {
+      question.options = [];
+      question.acceptedAnswers = ['Resposta aceita'];
+      question.correctAnswer = 'Resposta aceita';
+    } else if (['long_answer', 'essay'].includes(question.type)) {
+      question.options = [];
+      question.acceptedAnswers = [];
+      question.correctAnswer = '';
+      question.minCharacters = 0;
+      question.maxCharacters = 5000;
+      question.manualCorrection = true;
     }
-    if (question.type === 'multiple_select') {
-      question.correctAnswers = [question.options[0]];
-      question.correctAnswer = JSON.stringify(question.correctAnswers);
-    }
-    if (question.type === 'essay') question.options = [];
     renderQuestions();
   }
   updateSummary();
