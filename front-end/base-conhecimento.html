@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="Base de Conhecimento oficial da plataforma Online Teste. Tutoriais, orientações, respostas e guias passo a passo para empresas e participantes.">
+  <title>Base de Conhecimento | Online Teste</title>
+  <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+  <link rel="stylesheet" href="./css/public-navigation.css?v=5">
+  <link rel="stylesheet" href="./css/public-site.css?v=4">
+  <link rel="stylesheet" href="./css/knowledge-base.css?v=1">
+  <link rel="stylesheet" href="./css/public-i18n.css?v=1">
+</head>
+<body class="public-page">
+
+<!-- Cabeçalho Institucional do Site -->
+<header class="public-header">
+  <a class="public-logo-link" href="./index.html" aria-label="Online Teste - Página inicial">
+    <img src="./assets/images/Logo.png" alt="Online Teste" class="public-logo">
+  </a>
+  <nav class="public-navigation" aria-label="Navegação principal">
+    <ul class="public-nav-list">
+      <li><a class="public-nav-link" href="./index.html">Home</a></li>
+      <li><a class="public-nav-link active" href="./base-conhecimento.html" aria-current="page">Base de Conhecimento</a></li>
+      <li><a class="public-nav-link" href="./QuemSomos.html">Sobre Nós</a></li>
+      <li><a class="public-nav-link" href="./solucoes.html">Soluções</a></li>
+      <li><a class="public-nav-link" href="./NossosPlanos.html">Planos</a></li>
+      <li class="public-login-dropdown">
+        <button class="public-login-trigger" type="button" aria-haspopup="true" aria-expanded="false" aria-controls="public-login-menu">
+          <i class="fa-solid fa-user" aria-hidden="true"></i> Login <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+        </button>
+        <ul class="public-login-menu" id="public-login-menu">
+          <li><a class="public-login-option" href="./login.html">Login Participantes</a></li>
+          <li><a class="public-login-option" href="./login_empresa.html">Login Empresa</a></li>
+          <li><a class="public-login-option" href="./login_admin.html">Admin</a></li>
+        </ul>
+      </li>
+    </ul>
+  </nav>
+</header>
+
+<main>
+  <!-- Visão de Catálogo da Base de Conhecimento -->
+  <div id="kb-catalog-view">
+    <!-- Banner de Busca em Destaque -->
+    <section class="kb-hero">
+      <div class="kb-hero-content">
+        <span class="kb-hero-kicker">CENTRAL DE AJUDA E CONHECIMENTO</span>
+        <h1>Como podemos ajudar?</h1>
+        <p>Encontre orientações, tutoriais e respostas sobre todos os recursos da plataforma.</p>
+        
+        <div class="kb-search-box">
+          <i class="fa-solid fa-magnifying-glass kb-search-icon" aria-hidden="true"></i>
+          <input type="text" id="kb-search-input" class="kb-search-input" placeholder="Busque por termos ex: criar participante, importar questões, rascunho, gabarito..." aria-label="Buscar artigos na Base de Conhecimento">
+          <button type="button" id="kb-search-clear" class="kb-search-clear" hidden aria-label="Limpar busca">✕</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Conteúdo Principal com Filtros e Categorias -->
+    <div class="kb-main-container">
+      <div class="kb-filters-wrapper">
+        <div class="kb-filter-group">
+          <span class="kb-filter-label">Público:</span>
+          <div id="kb-audience-pills">
+            <button class="kb-pill active" type="button" data-audience="all">Todos</button>
+            <button class="kb-pill" type="button" data-audience="company">🏢 Para Empresas</button>
+            <button class="kb-pill" type="button" data-audience="participant">👤 Para Participantes</button>
+            <button class="kb-pill" type="button" data-audience="platform">✨ Conheça a Plataforma</button>
+          </div>
+        </div>
+
+        <div class="kb-filter-group">
+          <span class="kb-filter-label">Categorias:</span>
+          <div id="kb-category-pills"></div>
+        </div>
+      </div>
+
+      <!-- Lista de Artigos Encontrados -->
+      <h2 class="kb-section-title"><span>📖</span> Artigos e Guia Passo a Passo</h2>
+      
+      <div id="kb-articles-grid" class="kb-articles-grid"></div>
+
+      <!-- Mensagem de Sem Resultados -->
+      <div id="kb-no-results" class="kb-no-results" hidden>
+        <span style="font-size: 36px;">🔍</span>
+        <h3>Nenhum artigo encontrado</h3>
+        <p>Tente buscar por outros termos ou selecionar outra categoria.</p>
+      </div>
+    </div>
+  </div>
+
+  <!-- Visão de Leitor Completo do Artigo (#article-view) -->
+  <div id="kb-article-view" hidden></div>
+</main>
+
+<!-- Rodapé Institucional do Site -->
+<footer class="public-footer">
+  <div class="site-container">
+    <div class="footer-grid">
+      <div class="footer-brand">
+        <img class="footer-logo" src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Online Teste">
+        <p>Avaliações online simples, práticas e seguras para empresas e participantes.</p>
+      </div>
+      <div class="footer-column">
+        <h3>Institucional</h3>
+        <ul class="footer-links">
+          <li><a href="./index.html">Home</a></li>
+          <li><a href="./base-conhecimento.html">Base de Conhecimento</a></li>
+          <li><a href="./QuemSomos.html">Sobre nós</a></li>
+          <li><a href="./solucoes.html">Soluções</a></li>
+          <li><a href="./NossosPlanos.html">Planos</a></li>
+          <li><a href="./contato.html">Contato</a></li>
+        </ul>
+      </div>
+      <div class="footer-column">
+        <h3>Contato</h3>
+        <ul class="footer-links">
+          <li><a href="tel:+551135625772">+55 (11) 3562-5772</a></li>
+          <li><a href="https://api.whatsapp.com/send?phone=5511970822573" target="_blank" rel="noopener">WhatsApp: +55 (11) 97082-2573</a></li>
+          <li><a href="./PoliticaDePrivacidade.html">Política de Privacidade</a></li>
+          <li><a href="./FAQ.html">Perguntas frequentes</a></li>
+        </ul>
+      </div>
+    </div>
+    <div class="footer-bottom">© 2026 Online Teste. Todos os direitos reservados.</div>
+  </div>
+</footer>
+
+<a class="whatsapp-fab" href="https://api.whatsapp.com/send?phone=5511970822573&amp;text=Online%20Teste%20no%20Whatsapp" target="_blank" rel="noopener" aria-label="Fale conosco pelo WhatsApp">
+  <i class="fa-brands fa-whatsapp"></i>
+</a>
+
+<script src="./js/public-navigation.js?v=3"></script>
+<script src="./js/knowledge-base.js?v=1"></script>
+<script src="./js/public-i18n.js?v=1"></script>
+</body>
+</html>

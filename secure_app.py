@@ -447,6 +447,12 @@ def logout():
     return response
 
 
+@app.get("/base-de-conhecimento")
+@app.get("/base-conhecimento")
+def serve_base_conhecimento():
+    return send_from_directory(app.static_folder, "base-conhecimento.html")
+
+
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
 def serve_file(path):
