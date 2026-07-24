@@ -495,6 +495,9 @@
     if (modal) modal.hidden = true;
   }
 
+  window.openKnowledgeBaseModal = openKBModal;
+  window.closeKnowledgeBaseModal = closeKBModal;
+
   function renderCategoryPills() {
     if (!elCategoryPills) return;
     elCategoryPills.innerHTML = CATEGORIES.map(cat => {

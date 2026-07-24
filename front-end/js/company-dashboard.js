@@ -1271,8 +1271,16 @@ function bindEvents() {
   }));
   window.addEventListener('scroll', scheduleStepUpdate, { passive: true });
   window.addEventListener('resize', scheduleStepUpdate);
+  document.querySelectorAll('.help-button').forEach(button => button.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof window.openKnowledgeBaseModal === 'function') {
+      window.openKnowledgeBaseModal();
+    } else {
+      const modal = document.getElementById('kb-company-modal');
+      if (modal) modal.removeAttribute('hidden');
+    }
+  }));
   updateActiveStep();
-  document.querySelectorAll('.help-button').forEach(button => button.addEventListener('click', () => window.location.href = 'SuporteEmpresa.html'));
   const btnAssign = document.getElementById('btn-assign-participants');
   if (btnAssign) {
     btnAssign.addEventListener('click', () => {
