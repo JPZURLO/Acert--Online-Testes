@@ -473,13 +473,18 @@
   }
 
   function bindModalControls() {
-    // Botão de Ajuda na barra da Empresa
-    document.querySelectorAll('.help-button, #btn-open-help-kb, [data-open-kb]').forEach(btn => {
+    // Botões de abertura da Base de Conhecimento (menu lateral e barra de ações)
+    document.querySelectorAll('#btn-sidebar-kb, #btn-open-help-kb, .help-button, [data-open-kb]').forEach(btn => {
       btn.addEventListener('click', openKBModal);
     });
 
     const closeBtn = document.getElementById('close-kb-company-modal');
     if (closeBtn) closeBtn.addEventListener('click', closeKBModal);
+
+    // Se a URL contiver #kb ou #artigo-*, abre automaticamente o modal
+    if (window.location.hash === '#kb' || window.location.hash.startsWith('#artigo-')) {
+      openKBModal();
+    }
   }
 
   function openKBModal() {
