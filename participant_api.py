@@ -512,7 +512,7 @@ def create_participant_blueprint(open_database, token_payload):
             if has_pending:
                 return jsonify({
                     "success": False,
-                    "message": "Existem termos ou documentos obrigatórios pendentes de leitura, aceite ou envio assinado.",
+                    "message": "Você possui documentos obrigatórios pendentes. Conclua as etapas abaixo antes de iniciar a prova.",
                     "pendingDocuments": pending_docs
                 }), 409
 

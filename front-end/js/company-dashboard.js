@@ -761,13 +761,16 @@ async function loadExam(examId) {
 async function saveExam(status = 'draft', silent = false) {
   const exam = collectExam();
   exam.status = status;
-  if (!exam.title) {
+  if (status === 'published' && !exam.title) {
     if (!silent) toast('Informe o título do teste.', 'error');
-    elements['exam-title'].focus();
+    elements['exam-title']?.focus();
     return false;
   }
+  if (!exam.title) {
+    exam.title = 'Rascunho sem título';
+  }
   // Valida minutos antes para envio agendado
-  if (exam.emailSendOption === 'scheduled' && !(exam.emailScheduleMinutesBefore > 0)) {
+  if (status === 'published' && exam.emailSendOption === 'scheduled' && !(exam.emailScheduleMinutesBefore > 0)) {
     if (!silent) toast('Informe os minutos antes do início para o envio agendado.', 'error');
     elements['email-schedule-minutes']?.focus();
     return false;
@@ -1261,15 +1264,18 @@ async function loadWorkspace() {
 
 async function loadExamDocuments(examId) {
   const container = document.getElementById('exam-documents-list');
+  const trackingContainer = document.getElementById('document-tracking-container');
   if (!container) return;
   if (!examId) {
-    container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Salve o exame primeiro para conseguir anexar documentos e termos de aceite.</p>';
+    container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento anexado. Clique em "+ Anexar Documento / Termo" acima para adicionar.</p>';
+    if (trackingContainer) trackingContainer.hidden = true;
     return;
   }
   try {
     const res = await api(`/api/company/exams/${examId}/documents`);
     if (!res.documents || res.documents.length === 0) {
       container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento ou termo anexado a este exame.</p>';
+      if (trackingContainer) trackingContainer.hidden = true;
       return;
     }
     const docTypeLabels = {
@@ -1279,38 +1285,148 @@ async function loadExamDocuments(examId) {
       support_material: 'Material de Apoio',
       other: 'Outro Documento',
     };
+    const actionLabels = {
+      view_only: 'Apenas visualizar',
+      confirm_read: 'Confirmar leitura',
+      accept_electronic: 'Aceite eletrônico',
+      download_sign_return: 'Assinar e reenviar',
+      upload_only: 'Enviar arquivo',
+      informative: 'Apenas informativo',
+    };
+
     container.innerHTML = res.documents.map(doc => `
       <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 0.5rem;">
         <div>
-          <div style="display: flex; align-items: center; gap: 0.5rem;">
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
             <span style="font-weight: 600; color: #1E293B;">${doc.title}</span>
             <span style="background: #E2E8F0; color: #475569; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">${docTypeLabels[doc.docType] || doc.docType}</span>
+            <span style="background: #FEF3C7; color: #92400E; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">${actionLabels[doc.participantAction] || doc.participantAction}</span>
+            ${doc.mandatory ? '<span style="background: #FEE2E2; color: #991B1B; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Obrigatório</span>' : '<span style="background: #F1F5F9; color: #64748B; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px;">Opcional</span>'}
+            ${doc.blocksExamStart ? '<span style="background: #7F1D1D; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Bloqueia Início</span>' : ''}
           </div>
-          <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">
+          <div style="font-size: 0.8rem; color: #64748B; margin-top: 4px;">
             ${doc.originalName} (${(doc.sizeBytes / 1024).toFixed(1)} KB)
-            ${doc.requireAcceptance ? ' · <b style="color:#D97706;">Exige aceite digital</b>' : ''}
-            ${doc.requireReturnSigned ? ' · <b style="color:#DC2626;">Exige envio assinado</b>' : ''}
+            ${doc.requiresUploadApproval ? ' · <b style="color:#D97706;">Exige aprovação da empresa</b>' : ''}
           </div>
         </div>
         <div style="display: flex; gap: 0.5rem; align-items: center;">
-          <a href="/api/company/documents/${doc.id}/download" target="_blank" class="button secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Baixar</a>
-          <button onclick="deleteExamDocument(${doc.id})" class="button danger" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Excluir</button>
+          <a href="/api/company/exams/${examId}/documents/${doc.id}/download" target="_blank" class="button secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Baixar</a>
+          <button onclick="deleteExamDocument(${examId}, ${doc.id})" class="button danger" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Excluir</button>
         </div>
       </div>
     `).join('');
+
+    // Carrega acompanhamento por participante se contêiner existir
+    if (trackingContainer) {
+      trackingContainer.hidden = false;
+      loadDocumentTracking(examId);
+    }
   } catch (err) {
     container.innerHTML = '<p style="color: #EF4444; font-size: 0.9rem;">Erro ao carregar documentos do exame.</p>';
   }
 }
 
-async function deleteExamDocument(docId) {
+async function deleteExamDocument(examId, docId) {
   if (!confirm('Deseja realmente excluir este documento do exame?')) return;
   try {
-    await api(`/api/company/documents/${docId}`, { method: 'DELETE' });
+    await api(`/api/company/exams/${examId}/documents/${docId}`, { method: 'DELETE' });
     toast('Documento removido com sucesso.', 'success');
-    if (state.examId) loadExamDocuments(state.examId);
+    loadExamDocuments(examId);
   } catch (err) {
     toast(err.message || 'Erro ao excluir documento.', 'error');
+  }
+}
+
+async function loadDocumentTracking(examId) {
+  const container = document.getElementById('doc-tracking-list');
+  const filterSelect = document.getElementById('doc-tracking-filter');
+  if (!container) return;
+  const statusFilter = filterSelect ? filterSelect.value : '';
+
+  try {
+    const url = `/api/company/exams/${examId}/documents/participants${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`;
+    const res = await api(url);
+    if (!res.items || res.items.length === 0) {
+      container.innerHTML = '<p style="color: #64748B; font-style: italic;">Nenhum registro de participante encontrado para os documentos.</p>';
+      return;
+    }
+
+    const statusBadges = {
+      pendente: '<span style="background:#F1F5F9; color:#475569; padding:2px 8px; border-radius:12px; font-weight:500;">Pendente</span>',
+      visualizado: '<span style="background:#E0F2FE; color:#0369A1; padding:2px 8px; border-radius:12px; font-weight:500;">Visualizado</span>',
+      baixado: '<span style="background:#E0F2FE; color:#0369A1; padding:2px 8px; border-radius:12px; font-weight:500;">Baixado</span>',
+      leitura_confirmada: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:500;">Leitura Confirmada</span>',
+      aceito: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:600;">Aceito Eletronicamente</span>',
+      enviado: '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:12px; font-weight:600;">Aguardando Análise</span>',
+      aprovado: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:600;">Aprovado</span>',
+      recusado: '<span style="background:#FEE2E2; color:#B91C1C; padding:2px 8px; border-radius:12px; font-weight:600;">Recusado</span>',
+    };
+
+    container.innerHTML = `
+      <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+        <thead>
+          <tr style="background: #F8FAFC; border-bottom: 1px solid #E2E8F0; text-align: left; color: #475569; font-size: 0.8rem;">
+            <th style="padding: 0.6rem 0.8rem;">Participante</th>
+            <th style="padding: 0.6rem 0.8rem;">Documento</th>
+            <th style="padding: 0.6rem 0.8rem;">Status</th>
+            <th style="padding: 0.6rem 0.8rem;">Registros / Arquivo</th>
+            <th style="padding: 0.6rem 0.8rem; text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${res.items.map(item => `
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 0.6rem 0.8rem;">
+                <b>${item.participantName}</b><br>
+                <small style="color: #64748B;">${item.participantEmail}</small>
+              </td>
+              <td style="padding: 0.6rem 0.8rem;">
+                ${item.documentTitle}
+                ${item.blocksExamStart ? ' <b style="color:#DC2626;">(Bloqueante)</b>' : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem;">
+                ${statusBadges[item.status] || item.status}
+                ${item.rejectionReason ? `<br><small style="color:#DC2626;">Motivo: ${item.rejectionReason}</small>` : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem; color: #64748B;">
+                ${item.acceptedAt ? `Aceito em: ${new Date(item.acceptedAt).toLocaleString('pt-BR')}` : ''}
+                ${item.returnedOriginalName ? `Enviado: ${item.returnedOriginalName}` : ''}
+                ${!item.acceptedAt && !item.returnedOriginalName ? '—' : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem; text-align: right;">
+                ${item.status === 'enviado' ? `
+                  <button onclick="reviewParticipantDoc(${examId}, ${item.documentId}, ${item.participantId}, 'aprovado')" class="button secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background:#DCFCE7; color:#15803D; border-color:#86EFAC;">Aprovar</button>
+                  <button onclick="reviewParticipantDoc(${examId}, ${item.documentId}, ${item.participantId}, 'recusado')" class="button danger" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Recusar</button>
+                ` : '—'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    container.innerHTML = '<p style="color: #EF4444;">Erro ao carregar acompanhamento de participantes.</p>';
+  }
+}
+
+async function reviewParticipantDoc(examId, docId, participantId, decision) {
+  let rejectionReason = null;
+  if (decision === 'recusado') {
+    rejectionReason = prompt('Informe o motivo da recusa para o participante:');
+    if (!rejectionReason || !rejectionReason.trim()) {
+      toast('A recusa exige um motivo justificado.', 'error');
+      return;
+    }
+  }
+  try {
+    await api(`/api/company/exams/${examId}/documents/${docId}/participants/${participantId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ decision, rejectionReason })
+    });
+    toast(`Documento marcado como ${decision}.`, 'success');
+    loadDocumentTracking(examId);
+  } catch (err) {
+    toast(err.message || 'Erro ao processar análise.', 'error');
   }
 }
 
@@ -1321,11 +1437,50 @@ function initDocumentManagerUI() {
   const cancelBtn = document.getElementById('cancel-document-modal');
   const form = document.getElementById('document-upload-form');
 
+  const actionSelect = document.getElementById('doc-participant-action');
+  const blocksField = document.getElementById('field-doc-blocks-start');
+  const approvalField = document.getElementById('field-doc-requires-approval');
+  const deadlineTypeSelect = document.getElementById('doc-deadline-type-select');
+  const deadlineAtField = document.getElementById('field-doc-deadline-at');
+  const filterTrackingSelect = document.getElementById('doc-tracking-filter');
+  const refreshTrackingBtn = document.getElementById('refresh-doc-tracking');
+
+  if (actionSelect) {
+    actionSelect.addEventListener('change', () => {
+      const val = actionSelect.value;
+      const requiresAction = val !== 'informative' && val !== 'view_only';
+      const isFileUpload = val === 'download_sign_return' || val === 'upload_only';
+      if (blocksField) blocksField.hidden = !requiresAction;
+      if (approvalField) approvalField.hidden = !isFileUpload;
+    });
+  }
+
+  if (deadlineTypeSelect) {
+    deadlineTypeSelect.addEventListener('change', () => {
+      if (deadlineAtField) deadlineAtField.hidden = deadlineTypeSelect.value !== 'specific_datetime';
+    });
+  }
+
+  if (filterTrackingSelect) {
+    filterTrackingSelect.addEventListener('change', () => {
+      if (state.examId) loadDocumentTracking(state.examId);
+    });
+  }
+  if (refreshTrackingBtn) {
+    refreshTrackingBtn.addEventListener('click', () => {
+      if (state.examId) loadDocumentTracking(state.examId);
+    });
+  }
+
   if (btnAdd) {
-    btnAdd.addEventListener('click', () => {
+    btnAdd.addEventListener('click', async () => {
       if (!state.examId) {
-        toast('Salve o exame antes de anexar documentos ou termos.', 'warning');
-        return;
+        // Auto-salva como rascunho silenciosamente para criar examId antes de anexar documentos (Item 2)
+        const saved = await saveExam('draft', true);
+        if (!saved || !state.examId) {
+          toast('Informe ao menos um título ou adicione dados para salvar o rascunho antes de anexar.', 'error');
+          return;
+        }
       }
       modal.hidden = false;
     });
@@ -1349,10 +1504,14 @@ function initDocumentManagerUI() {
       formData.append('title', document.getElementById('doc-title-input').value.trim());
       formData.append('docType', document.getElementById('doc-type-select').value);
       formData.append('description', document.getElementById('doc-desc-input').value.trim());
+      formData.append('participantAction', document.getElementById('doc-participant-action').value);
+      formData.append('mandatory', document.getElementById('doc-mandatory-select').value);
+      formData.append('blocksExamStart', document.getElementById('doc-blocks-start-select').value);
+      formData.append('requiresUploadApproval', document.getElementById('doc-requires-approval-select').value);
+      formData.append('deadlineType', document.getElementById('doc-deadline-type-select').value);
+      formData.append('deadlineAt', document.getElementById('doc-deadline-at-input').value);
       formData.append('downloadAllowed', document.getElementById('doc-download-allowed').checked);
-      formData.append('requireRead', document.getElementById('doc-require-read').checked);
-      formData.append('requireAcceptance', document.getElementById('doc-require-acceptance').checked);
-      formData.append('requireReturnSigned', document.getElementById('doc-require-return-signed').checked);
+      formData.append('version', (document.getElementById('doc-version-input')?.value || '').trim());
 
       try {
         const res = await fetch(`/api/company/exams/${state.examId}/documents`, {
@@ -1384,3 +1543,4 @@ document.addEventListener('DOMContentLoaded', async () => {
   updatePreview();
   await loadWorkspace();
 });
+

@@ -319,15 +319,22 @@ def clean_exam(data):
         for index, question in enumerate(raw_questions[:MAX_QUESTIONS])
         if isinstance(question, dict)
     ]
+    status = clean_text(data.get("status"), 16, "draft")
+    status = status if status in ALLOWED_STATUSES else "draft"
+    is_draft = (status == "draft")
+
     title = clean_text(data.get("title"), 180)
     if not title:
-        raise ValueError("Informe o título do teste.")
-    status = clean_text(data.get("status"), 16, "draft")
+        if not is_draft:
+            raise ValueError("Informe o título do teste.")
+        title = "Rascunho sem título"
+
     result_delivery = clean_text(data.get("resultDelivery"), 16, "manual")
     available_from = clean_datetime(data.get("availableFrom"))
     available_until = clean_datetime(data.get("availableUntil"))
     if available_from and available_until and available_until <= available_from:
         raise ValueError("A data final deve ser posterior à data inicial.")
+
     email_send_option = clean_text(data.get("emailSendOption"), 16, "manual")
     email_schedule_minutes = data.get("emailScheduleMinutesBefore")
     try:
@@ -339,7 +346,10 @@ def clean_exam(data):
             raise
         email_schedule_minutes = None
     if email_send_option == "scheduled" and email_schedule_minutes is None:
-        raise ValueError("Informe os minutos antes do início para o envio agendado.")
+        if not is_draft:
+            raise ValueError("Informe os minutos antes do início para o envio agendado.")
+        email_send_option = "manual"
+
     return {
         "title": title,
         "description": clean_text(data.get("description"), 3000),
@@ -347,7 +357,7 @@ def clean_exam(data):
         "passingScore": clamp_integer(data.get("passingScore"), 0, 100, 60),
         "gradingScale": normalize_grading_scale(data.get("gradingScale")),
         "shuffleQuestions": bool(data.get("shuffleQuestions", False)),
-        "status": status if status in ALLOWED_STATUSES else "draft",
+        "status": status,
         "resultDelivery": result_delivery if result_delivery in ALLOWED_RESULT_DELIVERY else "manual",
         "availableFrom": available_from,
         "availableUntil": available_until,
