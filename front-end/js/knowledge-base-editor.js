@@ -789,19 +789,27 @@
     document.body.classList.remove('kb-edit-active', 'kb-preview-mode');
     document.body.style.paddingTop = '';
 
-    // Recoloca o botão de edição
-    const btnTrigger = document.getElementById('btn-trigger-inline-edit');
-    if (btnTrigger) btnTrigger.hidden = false;
-
     // Remove contenteditable de todos os elementos
     document.querySelectorAll('.kb-editable').forEach(el => {
       el.contentEditable = 'false';
+      el.classList.remove('kb-editable');
+      el._editBound = false;
     });
     document.querySelectorAll('.kb-block-wrapper').forEach(el => {
       el._blockActivated = false;
       const actions = el.querySelector('.kb-block-actions');
       if (actions) actions.remove();
     });
+
+    // Recoloca o botão de edição se estiver na BaseConhecimento
+    const btnTrigger = document.getElementById('btn-trigger-inline-edit');
+    if (btnTrigger) btnTrigger.hidden = false;
+
+    // Se estiver no overlay do Admin, fecha-o e recarrega a tabela
+    if (typeof window._kbEditorOnClose === 'function') {
+      window._kbEditorOnClose();
+      window._kbEditorOnClose = null;
+    }
   }
 
 })();

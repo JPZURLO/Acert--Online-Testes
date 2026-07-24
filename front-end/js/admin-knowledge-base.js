@@ -1,6 +1,7 @@
 /**
  * Console Admin — Gerenciamento da Base de Conhecimento (Online Teste)
- * Permite criar, editar, reordenar passos, vincular prints e remover tutoriais.
+ * Permite criar, editar, reordenar passos e remover tutoriais.
+ * Edição acontece em overlay visual dentro do próprio Admin, igual à visualização do cliente.
  */
 
 (function () {
@@ -11,13 +12,11 @@
 
   // DOM Elements
   let elTableBody = null;
-  let elCount = null;
+  let elCount     = null;
   let elSearchInput = null;
   let elCategoryFilter = null;
-  let elModal = null;
-  let elForm = null;
-  let elStepsContainer = null;
-  let elFormMessage = null;
+
+  const IMG_BASE = './assets/images/base-conhecimento/';
 
   document.addEventListener('DOMContentLoaded', () => {
     cacheElements();
@@ -26,30 +25,15 @@
   });
 
   function cacheElements() {
-    elTableBody = document.getElementById('admin-kb-table-body');
-    elCount = document.getElementById('admin-kb-count');
-    elSearchInput = document.getElementById('admin-kb-search');
+    elTableBody      = document.getElementById('admin-kb-table-body');
+    elCount          = document.getElementById('admin-kb-count');
+    elSearchInput    = document.getElementById('admin-kb-search');
     elCategoryFilter = document.getElementById('admin-kb-category-filter');
-    elModal = document.getElementById('admin-kb-modal');
-    elForm = document.getElementById('admin-kb-form');
-    elStepsContainer = document.getElementById('admin-kb-steps-container');
-    elFormMessage = document.getElementById('admin-kb-form-message');
   }
 
   function bindEvents() {
     const btnNew = document.getElementById('btn-admin-kb-new');
-    if (btnNew) btnNew.addEventListener('click', () => openModalForCreate());
-
-    const btnCloseModal = document.getElementById('close-admin-kb-modal');
-    if (btnCloseModal) btnCloseModal.addEventListener('click', closeModal);
-
-    const btnCancel = document.getElementById('cancel-admin-kb');
-    if (btnCancel) btnCancel.addEventListener('click', closeModal);
-
-    const btnAddStep = document.getElementById('btn-admin-kb-add-step');
-    if (btnAddStep) btnAddStep.addEventListener('click', () => addStepRow());
-
-    if (elForm) elForm.addEventListener('submit', handleFormSubmit);
+    if (btnNew) btnNew.addEventListener('click', openEditorForNew);
 
     if (elSearchInput) {
       elSearchInput.addEventListener('input', (e) => {
@@ -66,6 +50,9 @@
     }
   }
 
+  // ---------------------------------------------------------------------------
+  // Carga de artigos
+  // ---------------------------------------------------------------------------
   async function loadArticles() {
     if (elCount) elCount.textContent = 'Carregando artigos...';
     try {
@@ -81,8 +68,6 @@
     } catch (err) {
       console.warn('Erro ao carregar artigos do admin:', err);
     }
-
-    // Se a API retornar vazio ou falhar, tenta carregar o fallback
     try {
       const resPub = await fetch('/api/knowledge-base/articles');
       if (resPub.ok) {
@@ -92,10 +77,12 @@
         }
       }
     } catch (_) {}
-
     renderTable();
   }
 
+  // ---------------------------------------------------------------------------
+  // Tabela de artigos
+  // ---------------------------------------------------------------------------
   function renderTable() {
     if (!elTableBody) return;
 
@@ -103,10 +90,11 @@
       if (filterState.category && art.category !== filterState.category) return false;
       if (filterState.search) {
         const q = filterState.search;
-        const inTitle = (art.title || '').toLowerCase().includes(q);
-        const inSummary = (art.summary || '').toLowerCase().includes(q);
-        const inCategory = (art.category || '').toLowerCase().includes(q);
-        return inTitle || inSummary || inCategory;
+        return (
+          (art.title    || '').toLowerCase().includes(q) ||
+          (art.summary  || '').toLowerCase().includes(q) ||
+          (art.category || '').toLowerCase().includes(q)
+        );
       }
       return true;
     });
@@ -116,64 +104,212 @@
     if (filtered.length === 0) {
       elTableBody.innerHTML = `
         <tr>
-          <td colspan="7" style="text-align: center; padding: 30px; color: var(--muted, #94a3b8);">
+          <td colspan="7" style="text-align:center;padding:30px;color:var(--muted,#94a3b8);">
             Nenhum artigo encontrado. Clique em "+ Novo artigo" para cadastrar o primeiro tutorial.
           </td>
-        </tr>
-      `;
+        </tr>`;
       return;
     }
 
     elTableBody.innerHTML = filtered.map(art => {
       const audienceBadge = {
-        company: '🏢 Empresa',
+        company:     '🏢 Empresa',
         participant: '♙ Participante',
-        platform: '✨ Geral'
+        platform:    '✨ Geral'
       }[art.audience] || '🏢 Empresa';
 
-      const stepsCount = Array.isArray(art.steps) ? art.steps.length : 0;
+      const stepsCount  = Array.isArray(art.steps) ? art.steps.length : 0;
+      const statusLabel = art.status === 'draft' ? '🟡 Rascunho' : '🟢 Publicado';
 
       return `
         <tr>
           <td>
-            <strong style="color: #0f172a; font-size: 13px;">${escapeHTML(art.title)}</strong>
-            <small style="display: block; color: #64748b; font-size: 11px;">ID: ${escapeHTML(art.id)}</small>
+            <strong style="color:#0f172a;font-size:13px;">${escapeHTML(art.title)}</strong>
+            <small style="display:block;color:#64748b;font-size:11px;">ID: ${escapeHTML(art.id)}</small>
           </td>
-          <td><span class="admin-status" style="background: #f1f5f9; color: #334155;">${escapeHTML(art.category || 'Geral')}</span></td>
-          <td><span class="admin-status active" style="font-size: 11px;">${audienceBadge}</span></td>
+          <td><span class="admin-status" style="background:#f1f5f9;color:#334155;">${escapeHTML(art.category || 'Geral')}</span></td>
+          <td><span class="admin-status active" style="font-size:11px;">${audienceBadge}</span></td>
           <td><strong>${stepsCount}</strong> passo(s)</td>
-          <td><small style="color: #64748b;">${escapeHTML(art.readTime || '3 min')}</small></td>
-          <td><small style="color: #64748b;">${escapeHTML(art.updatedAt || '—')}</small></td>
+          <td><small style="color:#64748b;">${escapeHTML(art.readTime || '3 min')}</small></td>
+          <td><small style="color:#64748b;">${statusLabel}</small></td>
           <td>
-            <div style="display: flex; gap: 6px;">
-              <button class="admin-secondary" type="button" style="padding: 4px 10px; font-size: 11px;" onclick="window.editAdminArticle('${art.id}')">
+            <div style="display:flex;gap:6px;">
+              <button class="admin-primary" type="button" style="padding:4px 14px;font-size:12px;"
+                onclick="window.editAdminArticle('${art.id}')">
                 <i class="fa-solid fa-pen-to-square"></i> Editar
               </button>
-
-              <button class="admin-secondary danger" type="button" style="padding: 4px 10px; font-size: 11px;" onclick="window.deleteAdminArticle('${art.id}')">
-                <i class="fa-solid fa-trash"></i> Excluir
+              <button class="admin-secondary danger" type="button" style="padding:4px 10px;font-size:12px;"
+                onclick="window.deleteAdminArticle('${art.id}')">
+                <i class="fa-solid fa-trash"></i>
               </button>
             </div>
           </td>
-        </tr>
-      `;
+        </tr>`;
     }).join('');
   }
 
-  window.openModalForCreate = function () {
-    window.location.href = `./BaseConhecimento.html#novo-artigo&edit=true`;
-  };
+  // ---------------------------------------------------------------------------
+  // Abre o Editor Visual em Overlay dentro do Admin
+  // ---------------------------------------------------------------------------
+  function openEditorForNew() {
+    const newArt = {
+      id: 'novo-' + Date.now(),
+      slug: 'novo-artigo',
+      title: 'Novo Artigo',
+      category: 'Primeiros passos',
+      audience: 'company',
+      readTime: '3 min de leitura',
+      updatedAt: new Date().toLocaleDateString('pt-BR'),
+      lead: 'Escreva aqui o resumo do artigo...',
+      summary: 'Escreva aqui o resumo do artigo...',
+      alertTip: '',
+      status: 'draft',
+      steps: [],
+      blocks: []
+    };
+    openEditorOverlay(newArt);
+  }
+
+  window.openModalForCreate = openEditorForNew;
 
   window.editAdminArticle = function (id) {
-    window.location.href = `./BaseConhecimento.html#artigo-${id}&edit=true`;
+    const art = articlesState.find(a => a.id === id);
+    if (!art) return;
+    openEditorOverlay(art);
   };
 
+  function openEditorOverlay(article) {
+    const overlay = document.getElementById('kb-editor-overlay');
+    const articleView = document.getElementById('kb-article-view');
+    if (!overlay || !articleView) return;
+
+    // Renderiza o artigo como o cliente vê
+    articleView.innerHTML = buildArticleHTML(article);
+
+    // Mostra o overlay
+    overlay.style.display = 'block';
+    document.body.style.overflow = 'hidden';
+    window.scrollTo(0, 0);
+
+    // Guarda o objeto no window para o editor acessar
+    window.currentKbArticleObj = article;
+
+    // Ativa o editor visual inline
+    if (typeof window.enableInlineKbEditor === 'function') {
+      window.enableInlineKbEditor(article);
+    }
+
+    // Após fechar, recarrega a lista
+    window._kbEditorOnClose = async () => {
+      overlay.style.display = 'none';
+      document.body.style.overflow = '';
+      await loadArticles();
+    };
+  }
+
+  // ---------------------------------------------------------------------------
+  // Monta o HTML do artigo igual à visualização do cliente (BaseConhecimento)
+  // ---------------------------------------------------------------------------
+  function buildArticleHTML(article) {
+    const steps = Array.isArray(article.steps) ? article.steps : [];
+
+    const stepsHTML = steps.length > 0 ? steps.map((step, i) => {
+      const imgSrc   = step.image || (IMG_BASE + '11-empresa-dashboard-main.png');
+      const altText  = escapeHTML(step.alt || step.title);
+      const capText  = escapeHTML(step.caption || step.title);
+      const fileName = step.filename || 'print-da-tela.png';
+
+      return `
+        <div class="kb-step-card kb-block-wrapper">
+          <div class="kb-step-header">
+            <span class="kb-step-number">${i + 1}</span>
+            <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
+          </div>
+          <p class="kb-step-desc">${escapeHTML(step.desc)}</p>
+          <figure class="kb-step-figure">
+            <div class="kb-step-figure-badge">🖼️ Print: <code>${escapeHTML(fileName)}</code></div>
+            <button class="kb-image-zoom-btn" type="button">
+              <img src="${imgSrc}" alt="${altText}" loading="lazy"
+                onerror="this.src='./assets/images/Logo.png';">
+            </button>
+            <figcaption>
+              <span>${capText}</span>
+            </figcaption>
+          </figure>
+        </div>`;
+    }).join('') : `
+      <div class="kb-step-card kb-block-wrapper" style="text-align:center;padding:40px;color:#94a3b8;">
+        <i class="fa-solid fa-plus" style="font-size:24px;margin-bottom:12px;display:block;"></i>
+        Nenhum passo ainda. Use <strong>+ Passo</strong> na toolbar para adicionar.
+      </div>`;
+
+    const alertHTML = article.alertTip ? `
+      <div class="kb-alert kb-alert-tip">
+        <span class="kb-alert-icon">💡</span>
+        <div><strong>Dica Útil:</strong> ${escapeHTML(article.alertTip)}</div>
+      </div>` : '';
+
+    return `
+      <div class="kb-animated">
+        <div class="kb-reader-layout">
+          <main class="kb-article-content">
+            <header class="kb-article-header">
+              <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:8px;">
+                <span class="kb-badge kb-badge-company">🏢 Para Empresas</span>
+                <span class="kb-read-time">⏱️ ${escapeHTML(article.readTime || '3 min de leitura')}</span>
+                <span class="kb-read-time">📅 ${escapeHTML(article.updatedAt || '')}</span>
+              </div>
+              <h1 class="kb-header-title" style="font-size:28px;font-weight:850;margin:12px 0 8px;">
+                ${escapeHTML(article.title)}
+              </h1>
+              <p class="kb-header-lead kb-article-lead">
+                ${escapeHTML(article.lead || article.summary || '')}
+              </p>
+            </header>
+
+            <div class="kb-article-body">
+              <h2 style="font-size:20px;font-weight:850;margin:28px 0 16px;">
+                Passo a Passo Guiado com Imagens
+              </h2>
+              <div class="kb-article-steps">
+                ${stepsHTML}
+              </div>
+              ${alertHTML}
+            </div>
+          </main>
+
+          <aside class="kb-article-sidebar">
+            <div class="kb-sidebar-card">
+              <div class="kb-sidebar-title">Dicas de Edição</div>
+              <ul style="margin:0;padding:0 0 0 16px;font-size:12px;color:#64748b;line-height:1.8;">
+                <li>Clique em qualquer texto para editar</li>
+                <li>Use a toolbar para formatar</li>
+                <li>Hover nos passos para ver ações</li>
+                <li>📷 Foto troca a imagem do passo</li>
+                <li>Salve como rascunho ou publique</li>
+              </ul>
+            </div>
+          </aside>
+        </div>
+      </div>`;
+  }
+
+  // ---------------------------------------------------------------------------
+  // Excluir artigo
+  // ---------------------------------------------------------------------------
   window.deleteAdminArticle = async function (id) {
     const art = articlesState.find(a => a.id === id);
     if (!confirm(`Deseja realmente excluir o artigo "${art?.title || id}"?`)) return;
 
     try {
-      const res = await fetch(`/api/admin/knowledge-base/${id}`, { method: 'DELETE' });
+      const csrfCookie = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('acert_csrf_token='));
+      const csrf = csrfCookie ? csrfCookie.split('=')[1] : '';
+
+      const res = await fetch(`/api/admin/knowledge-base/${id}`, {
+        method: 'DELETE',
+        headers: { 'X-CSRF-Token': csrf }
+      });
+
       if (res.ok) {
         articlesState = articlesState.filter(a => a.id !== id);
         renderTable();
@@ -186,125 +322,21 @@
     }
   };
 
-  function addStepRow(stepData = {}) {
-    if (!elStepsContainer) return;
-
-    const stepIndex = elStepsContainer.children.length + 1;
-    const card = document.createElement('div');
-    card.className = 'admin-kb-step-item';
-    card.style.cssText = 'padding: 14px; border: 1px solid #e2e8f0; border-radius: 10px; background: #f8fafc; display: grid; gap: 10px;';
-
-    card.innerHTML = `
-      <div style="display: flex; justify-content: space-between; align-items: center;">
-        <strong style="font-size: 13px; color: #0f172a;">Passo <span class="step-num-display">${stepIndex}</span></strong>
-        <button class="admin-secondary danger" type="button" style="padding: 2px 8px; font-size: 11px;" onclick="this.closest('.admin-kb-step-item').remove(); window.renumberAdminKbSteps();">
-          <i class="fa-solid fa-times"></i> Remover
-        </button>
-      </div>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Título do Passo *
-          <input class="admin-input step-title" required value="${escapeHTML(stepData.title || '')}" placeholder="Ex: Acesse o menu Participantes">
-        </label>
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Nome do Print de Tela (Imagem)
-          <input class="admin-input step-filename" value="${escapeHTML(stepData.filename || '')}" placeholder="Ex: 12-empresa-participantes-listagem.png">
-        </label>
-      </div>
-
-      <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Descrição do Passo *
-        <textarea class="admin-input step-desc" rows="2" required placeholder="Explicação clara do que o usuário deve fazer neste passo...">${escapeHTML(stepData.desc || '')}</textarea>
-      </label>
-
-      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Legenda da Imagem (Caption)
-          <input class="admin-input step-caption" value="${escapeHTML(stepData.caption || '')}" placeholder="Ex: Tela principal de Gestão de Participantes">
-        </label>
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Texto Alternativo (Alt)
-          <input class="admin-input step-alt" value="${escapeHTML(stepData.alt || '')}" placeholder="Ex: Lista de candidatos cadastrados">
-        </label>
-      </div>
-    `;
-
-    elStepsContainer.appendChild(card);
-  }
-
+  // ---------------------------------------------------------------------------
+  // Renumerar passos (chamado pelo editor)
+  // ---------------------------------------------------------------------------
   window.renumberAdminKbSteps = function () {
-    if (!elStepsContainer) return;
-    Array.from(elStepsContainer.children).forEach((child, idx) => {
-      const numSpan = child.querySelector('.step-num-display');
-      if (numSpan) numSpan.textContent = idx + 1;
+    const container = document.querySelector('#kb-article-view .kb-article-steps');
+    if (!container) return;
+    Array.from(container.children).forEach((card, i) => {
+      const numEl = card.querySelector('.kb-step-number');
+      if (numEl) numEl.textContent = i + 1;
     });
   };
 
-  async function handleFormSubmit(e) {
-    e.preventDefault();
-    if (elFormMessage) elFormMessage.textContent = 'Salvando artigo...';
-
-    const id = document.getElementById('admin-kb-id').value;
-    const title = document.getElementById('admin-kb-title').value.trim();
-    const category = document.getElementById('admin-kb-category').value;
-    const audience = document.getElementById('admin-kb-audience').value;
-    const readTime = document.getElementById('admin-kb-readtime').value.trim();
-    const lead = document.getElementById('admin-kb-lead').value.trim();
-    const alertTip = document.getElementById('admin-kb-alert').value.trim();
-
-    // Coleta os passos
-    const stepCards = Array.from(elStepsContainer.children);
-    const steps = stepCards.map((card, idx) => {
-      const stTitle = card.querySelector('.step-title').value.trim();
-      const stDesc = card.querySelector('.step-desc').value.trim();
-      const stFilename = card.querySelector('.step-filename').value.trim();
-      const stCaption = card.querySelector('.step-caption').value.trim();
-      const stAlt = card.querySelector('.step-alt').value.trim();
-
-      const imagePath = stFilename ? `./assets/images/base-conhecimento/${stFilename}` : './assets/images/base-conhecimento/11-empresa-dashboard-main.png';
-
-      return {
-        num: idx + 1,
-        title: stTitle,
-        desc: stDesc,
-        filename: stFilename || 'print-da-tela.png',
-        image: imagePath,
-        caption: stCaption || stTitle,
-        alt: stAlt || stTitle
-      };
-    });
-
-    const payload = {
-      id: id || undefined,
-      title,
-      category,
-      audience,
-      readTime,
-      lead,
-      alertTip,
-      steps
-    };
-
-    try {
-      const res = await fetch('/api/admin/knowledge-base', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      });
-
-      const data = await res.json();
-      if (res.ok && data.success) {
-        showToast('Artigo salvo com sucesso!');
-        closeModal();
-        await loadArticles();
-      } else {
-        if (elFormMessage) elFormMessage.textContent = data.message || 'Erro ao salvar o artigo.';
-      }
-    } catch (err) {
-      if (elFormMessage) elFormMessage.textContent = 'Falha na comunicação com o servidor.';
-    }
-  }
-
-  function closeModal() {
-    if (elModal) elModal.hidden = true;
-  }
-
+  // ---------------------------------------------------------------------------
+  // Toast
+  // ---------------------------------------------------------------------------
   function showToast(msg) {
     const region = document.getElementById('admin-toast-region');
     if (!region) return;
