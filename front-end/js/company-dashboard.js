@@ -881,8 +881,8 @@ async function importQuestionsFromFile() {
   elements['question-import-errors'].replaceChildren();
 
   const extension = file.name.toLowerCase().split('.').pop();
-  if (!['xlsx', 'gift', 'txt'].includes(extension)) {
-    showQuestionImportErrors('Selecione um arquivo Excel .xlsx ou GIFT .gift/.txt.');
+  if (!['xlsx', 'csv', 'gift', 'txt', 'docx'].includes(extension)) {
+    showQuestionImportErrors('Selecione um arquivo Excel (.xlsx, .csv), Word (.docx) ou GIFT (.gift, .txt).');
     elements['question-import-file'].value = '';
     return;
   }
@@ -1202,6 +1202,13 @@ function bindEvents() {
   window.addEventListener('scroll', scheduleStepUpdate, { passive: true });
   window.addEventListener('resize', scheduleStepUpdate);
   updateActiveStep();
+  document.querySelectorAll('.help-button').forEach(button => button.addEventListener('click', () => window.location.href = 'SuporteEmpresa.html'));
+  const btnAssign = document.getElementById('btn-assign-participants');
+  if (btnAssign) {
+    btnAssign.addEventListener('click', () => {
+      window.location.href = state.examId ? `Participante.html?examId=${state.examId}` : 'Participante.html';
+    });
+  }
   document.querySelectorAll('[data-view="overview"]').forEach(button => button.addEventListener('click', () => window.location.href = 'VisaoGeral.html'));
   document.querySelectorAll('[data-view="results"]').forEach(button => button.addEventListener('click', () => window.location.href = 'Resultados.html'));
   document.getElementById('collapse-sidebar').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
