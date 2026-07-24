@@ -1,6 +1,10 @@
 /**
  * Online Teste — Editor Visual Inline por Blocos da Base de Conhecimento
  * Permite editar artigos diretamente na própria estrutura da página com visualização em tempo real.
+ *
+ * Ativação:
+ *   window.enableInlineKbEditor(articleData)  — chamado pelo knowledge-base.js após renderizar o artigo
+ *   window.disableInlineKbEditor()            — sai do modo de edição
  */
 
 (function () {
@@ -11,57 +15,43 @@
     article: null,
     isEditing: false,
     isPreviewOnly: false,
-    activeBlockIndex: null,
     autosaveTimer: null,
-    historyStack: [],
-    historyIndex: -1,
-    pendingImageTarget: null // elemento de bloco aguardando upload
+    pendingImageTarget: null,
+    uploadedImageUrl: null
   };
 
-  // DOM Containers
-  let elAdminBar = null;
-  let elToolbar = null;
-  let elArticleReader = null;
+  let elAdminBar    = null;
+  let elToolbar     = null;
   let elSettingsDrawer = null;
-  let elImageModal = null;
+  let elImageModal  = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
-    initEditorUI();
-  });
+  // -------------------------------------------------------------------------
+  // Injeção do DOM de controle (barra de admin, toolbar, drawer, modal imagem)
+  // Chamada a cada vez que enableInlineKbEditor é invocado para garantir que
+  // os elementos estejam na página.
+  // -------------------------------------------------------------------------
+  function injectEditorChrome() {
 
-  function initEditorUI() {
-    // Injeta a estrutura de controle no leitor se não existir
-    ensureEditorDOM();
-    bindGlobalEvents();
-  }
-
-  function ensureEditorDOM() {
-    // Verifica se já temos o container do leitor
-    elArticleReader = document.getElementById('kb-article-view');
-    if (!elArticleReader) return;
-
-    // Criar a barra de Admin
+    // ---- Barra de Administração (fixa no topo) ----------------------------
     if (!document.getElementById('kb-editor-admin-bar')) {
-      const adminBar = document.createElement('div');
-      adminBar.id = 'kb-editor-admin-bar';
-      adminBar.className = 'kb-editor-admin-bar';
-      adminBar.hidden = true;
-      adminBar.innerHTML = `
+      const bar = document.createElement('div');
+      bar.id = 'kb-editor-admin-bar';
+      bar.className = 'kb-editor-admin-bar';
+      bar.innerHTML = `
         <div class="kb-editor-admin-info">
           <i class="fa-solid fa-pen-to-square"></i>
-          <span>Modo de Edição Inline</span>
+          <span>Modo Edição Visual</span>
           <span class="kb-status-badge draft" id="kb-editor-status-badge">Rascunho</span>
-          <small id="kb-editor-autosave-status" style="color: #94a3b8; font-weight: 500;">Alterações salvas</small>
+          <small id="kb-editor-autosave-status" style="color:#94a3b8;font-weight:500;">Pronto para editar</small>
         </div>
-
         <div class="kb-editor-admin-actions">
-          <button class="kb-btn-editor secondary" id="btn-kb-toggle-preview" type="button" title="Alterna visualização limpa">
-            <i class="fa-solid fa-eye"></i> <span id="kb-preview-label">Visualizar sem controles</span>
+          <button class="kb-btn-editor secondary" id="btn-kb-toggle-preview" type="button">
+            <i class="fa-solid fa-eye"></i> <span id="kb-preview-label">Visualizar Limpo</span>
           </button>
-          <button class="kb-btn-editor secondary" id="btn-kb-open-settings" type="button" title="Metadados, Slug e SEO">
+          <button class="kb-btn-editor secondary" id="btn-kb-open-settings" type="button">
             <i class="fa-solid fa-gear"></i> Configurações
           </button>
-          <button class="kb-btn-editor secondary" id="btn-kb-save-draft" type="button">
+          <button class="kb-btn-editor warning" id="btn-kb-save-draft" type="button">
             <i class="fa-solid fa-floppy-disk"></i> Salvar Rascunho
           </button>
           <button class="kb-btn-editor success" id="btn-kb-publish" type="button">
@@ -72,345 +62,385 @@
           </button>
         </div>
       `;
-      document.body.prepend(adminBar);
-      elAdminBar = adminBar;
+      document.body.prepend(bar);
+      elAdminBar = bar;
     } else {
       elAdminBar = document.getElementById('kb-editor-admin-bar');
     }
 
-    // Criar Barra de Ferramentas Sticky
+    // ---- Barra de Formatação Sticky (logo abaixo da admin bar) -----------
     if (!document.getElementById('kb-editor-toolbar')) {
       const toolbar = document.createElement('div');
       toolbar.id = 'kb-editor-toolbar';
       toolbar.className = 'kb-editor-toolbar';
-      toolbar.hidden = true;
       toolbar.innerHTML = `
         <div class="kb-toolbar-group">
-          <select class="kb-toolbar-select" id="kb-tool-heading">
+          <select class="kb-toolbar-select" id="kb-tool-heading" title="Formatar como">
             <option value="p">Texto Normal</option>
-            <option value="h2">Título Principal (H2)</option>
-            <option value="h3">Subtítulo (H3)</option>
+            <option value="h2">Título H2</option>
+            <option value="h3">Subtítulo H3</option>
             <option value="blockquote">Citação</option>
           </select>
         </div>
-
         <div class="kb-toolbar-group">
-          <button class="kb-toolbar-btn" data-cmd="bold" title="Negrito (Ctrl+B)"><i class="fa-solid fa-bold"></i></button>
-          <button class="kb-toolbar-btn" data-cmd="italic" title="Itálico (Ctrl+I)"><i class="fa-solid fa-italic"></i></button>
-          <button class="kb-toolbar-btn" data-cmd="underline" title="Sublinhado (Ctrl+U)"><i class="fa-solid fa-underline"></i></button>
-          <button class="kb-toolbar-btn" id="btn-kb-tool-link" title="Inserir Link"><i class="fa-solid fa-link"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
+          <button class="kb-toolbar-btn" id="btn-kb-tool-link" title="Link"><i class="fa-solid fa-link"></i></button>
         </div>
-
         <div class="kb-toolbar-group">
-          <button class="kb-toolbar-btn" data-cmd="insertUnorderedList" title="Lista com Marcadores"><i class="fa-solid fa-list-ul"></i></button>
-          <button class="kb-toolbar-btn" data-cmd="insertOrderedList" title="Lista Numerada"><i class="fa-solid fa-list-ol"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="insertUnorderedList" title="Lista •"><i class="fa-solid fa-list-ul"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="insertOrderedList" title="Lista 1."><i class="fa-solid fa-list-ol"></i></button>
         </div>
-
         <div class="kb-toolbar-group">
-          <button class="kb-toolbar-btn" id="btn-kb-add-image" title="Inserir Imagem / Print"><i class="fa-solid fa-image"></i></button>
-          <button class="kb-toolbar-btn" id="btn-kb-add-step-block" title="Inserir Bloco Passo a Passo"><i class="fa-solid fa-list-check"></i></button>
-          <button class="kb-toolbar-btn" id="btn-kb-add-alert-block" title="Inserir Alerta / Dica / Aviso"><i class="fa-solid fa-lightbulb"></i></button>
+          <button class="kb-toolbar-btn" id="btn-kb-add-image" title="Inserir Imagem"><i class="fa-solid fa-image"></i> Imagem</button>
+          <button class="kb-toolbar-btn" id="btn-kb-add-step-block" title="Novo Passo"><i class="fa-solid fa-list-check"></i> Passo</button>
+          <button class="kb-toolbar-btn" id="btn-kb-add-alert-block" title="Inserir Dica/Alerta"><i class="fa-solid fa-lightbulb"></i> Dica</button>
         </div>
-
         <div class="kb-toolbar-group">
           <button class="kb-toolbar-btn" data-cmd="undo" title="Desfazer"><i class="fa-solid fa-rotate-left"></i></button>
           <button class="kb-toolbar-btn" data-cmd="redo" title="Refazer"><i class="fa-solid fa-rotate-right"></i></button>
-          <button class="kb-toolbar-btn" data-cmd="removeFormat" title="Remover Formatação"><i class="fa-solid fa-text-slash"></i></button>
+          <button class="kb-toolbar-btn" data-cmd="removeFormat" title="Limpar formatação"><i class="fa-solid fa-text-slash"></i></button>
         </div>
       `;
+      // Insere a toolbar APÓS a barra de admin, antes do conteúdo da página
+      elAdminBar.insertAdjacentElement('afterend', toolbar);
       elToolbar = toolbar;
+    } else {
+      elToolbar = document.getElementById('kb-editor-toolbar');
     }
 
-    // Criar Painel de Configurações Lateral (Settings Drawer)
+    // ---- Painel Lateral de Configurações ---------------------------------
     if (!document.getElementById('kb-settings-drawer')) {
       const drawer = document.createElement('div');
       drawer.id = 'kb-settings-drawer';
       drawer.className = 'kb-settings-drawer';
       drawer.innerHTML = `
         <div class="kb-drawer-header">
-          <h3>Configurações do Artigo</h3>
+          <h3 style="margin:0;font-size:16px;">Configurações do Artigo</h3>
           <button class="kb-drawer-close" id="btn-kb-drawer-close" type="button">×</button>
         </div>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">Título da URL (Slug)
-          <input class="admin-input" id="kb-setting-slug" placeholder="ex: como-criar-um-novo-participante">
+        <label class="kb-drawer-field">Slug (URL do artigo)
+          <input class="admin-input" id="kb-setting-slug" placeholder="como-criar-participante">
         </label>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">Categoria
-          <select class="admin-select" id="kb-setting-category">
-            <option value="Primeiros passos">Primeiros passos</option>
-            <option value="Criação de exames">Criação de exames</option>
-            <option value="Questões e importação">Questões e importação</option>
-            <option value="Participantes">Participantes</option>
-            <option value="Documentos e termos">Documentos e termos</option>
-            <option value="Convites e acessos">Convites e acessos</option>
-            <option value="Monitoramento">Monitoramento</option>
-            <option value="Resultados">Resultados</option>
-            <option value="Personalização">Personalização</option>
-            <option value="Conheça a plataforma">Conheça a plataforma</option>
+        <label class="kb-drawer-field">Categoria
+          <select class="admin-input" id="kb-setting-category">
+            <option>Primeiros passos</option>
+            <option>Criação de exames</option>
+            <option>Questões e importação</option>
+            <option>Participantes</option>
+            <option>Documentos e termos</option>
+            <option>Convites e acessos</option>
+            <option>Monitoramento</option>
+            <option>Resultados</option>
+            <option>Personalização</option>
+            <option>Conheça a plataforma</option>
           </select>
         </label>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">Público-Alvo
-          <select class="admin-select" id="kb-setting-audience">
-            <option value="company">Empresas (Painel)</option>
+        <label class="kb-drawer-field">Público-Alvo
+          <select class="admin-input" id="kb-setting-audience">
+            <option value="company">Empresas</option>
             <option value="participant">Participantes</option>
-            <option value="platform">Geral / Institucional</option>
+            <option value="platform">Geral</option>
           </select>
         </label>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">Resumo Curto (Lead)
-          <textarea class="admin-input" id="kb-setting-lead" rows="3" placeholder="Resumo exibido na lista de artigos..."></textarea>
+        <label class="kb-drawer-field">Tempo de Leitura
+          <input class="admin-input" id="kb-setting-readtime" placeholder="5 min de leitura">
         </label>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">SEO Title
-          <input class="admin-input" id="kb-setting-seo-title" placeholder="Título Otimizado para Motores de Busca">
+        <label class="kb-drawer-field">Resumo Curto (Lead)
+          <textarea class="admin-input" id="kb-setting-lead" rows="3" placeholder="Resumo para a lista de artigos..."></textarea>
         </label>
-
-        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 12px;">Meta Description
+        <label class="kb-drawer-field">SEO Title
+          <input class="admin-input" id="kb-setting-seo-title" placeholder="Título para o Google">
+        </label>
+        <label class="kb-drawer-field">Meta Description
           <textarea class="admin-input" id="kb-setting-meta-desc" rows="2" placeholder="Descrição para o Google..."></textarea>
         </label>
-
-        <div style="margin-top: auto; padding-top: 16px;">
-          <button class="kb-btn-editor primary" id="btn-kb-save-settings" type="button" style="width: 100%; justify-content: center;">
-            Aplicar Configurações
+        <div style="margin-top:16px;">
+          <button class="kb-btn-editor primary" id="btn-kb-save-settings" type="button" style="width:100%;justify-content:center;">
+            <i class="fa-solid fa-check"></i> Aplicar Configurações
           </button>
         </div>
       `;
       document.body.appendChild(drawer);
       elSettingsDrawer = drawer;
+    } else {
+      elSettingsDrawer = document.getElementById('kb-settings-drawer');
     }
 
-    // Criar Modal de Upload de Imagem
+    // ---- Modal de Upload de Imagem ---------------------------------------
     if (!document.getElementById('kb-image-modal')) {
-      const imageModal = document.createElement('div');
-      imageModal.id = 'kb-image-modal';
-      imageModal.className = 'kb-image-modal';
-      imageModal.hidden = true;
-      imageModal.innerHTML = `
+      const modal = document.createElement('div');
+      modal.id = 'kb-image-modal';
+      modal.className = 'kb-image-modal';
+      modal.hidden = true;
+      modal.innerHTML = `
         <div class="kb-image-modal-card">
-          <div style="display: flex; justify-content: space-between; align-items: center;">
-            <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Inserir Print ou Imagem no Artigo</h3>
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+            <h3 style="font-size:16px;font-weight:800;margin:0;">Inserir Imagem / Print de Tela</h3>
             <button type="button" class="kb-drawer-close" id="btn-kb-image-modal-close">×</button>
           </div>
-
           <div class="kb-drop-zone" id="kb-image-drop-zone">
-            <i class="fa-solid fa-cloud-arrow-up"></i>
-            <p style="font-weight: 700; font-size: 14px; margin: 4px 0;">Arraste e solte sua imagem aqui</p>
-            <span style="font-size: 12px; color: #64748b;">Suporta PNG, JPG, JPEG ou WEBP (até 10 MB)</span>
-            <input type="file" id="kb-image-file-input" accept="image/png,image/jpeg,image/webp" style="display: none;">
+            <i class="fa-solid fa-cloud-arrow-up" style="font-size:32px;color:#0f6f73;"></i>
+            <p style="font-weight:700;font-size:14px;margin:8px 0 4px;">Arraste e solte sua imagem aqui</p>
+            <span style="font-size:12px;color:#64748b;">PNG, JPG, JPEG ou WEBP — máximo 10 MB</span>
+            <input type="file" id="kb-image-file-input" accept="image/png,image/jpeg,image/webp" style="display:none;">
           </div>
-
-          <div id="kb-image-preview-area" hidden style="text-align: center;">
-            <img id="kb-image-preview-img" style="max-height: 180px; border-radius: 8px; border: 1px solid #cbd5e1;">
+          <div id="kb-image-preview-area" hidden style="text-align:center;margin:12px 0;">
+            <img id="kb-image-preview-img" src="" alt="" style="max-height:180px;border-radius:8px;border:1px solid #cbd5e1;object-fit:contain;">
           </div>
-
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Legenda (Caption)
-              <input class="admin-input" id="kb-img-caption-input" placeholder="Ex: Tela de lista de participantes">
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0;">
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;">
+              Legenda
+              <input class="admin-input" id="kb-img-caption-input" placeholder="Ex: Tela de participantes">
             </label>
-            <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 600; font-size: 12px;">Texto Alternativo (ALT)
-              <input class="admin-input" id="kb-img-alt-input" placeholder="Ex: Imagem do botão Novo Participante">
+            <label style="display:flex;flex-direction:column;gap:4px;font-size:12px;font-weight:600;">
+              Texto ALT
+              <input class="admin-input" id="kb-img-alt-input" placeholder="Descrição da imagem">
             </label>
           </div>
-
-          <div style="display: flex; justify-content: flex-end; gap: 10px;">
+          <div style="display:flex;justify-content:flex-end;gap:10px;">
             <button class="kb-btn-editor secondary" id="btn-kb-img-cancel" type="button">Cancelar</button>
-            <button class="kb-btn-editor primary" id="btn-kb-img-confirm" type="button">Inserir Imagem</button>
+            <button class="kb-btn-editor primary" id="btn-kb-img-confirm" type="button">
+              <i class="fa-solid fa-check"></i> Inserir Imagem
+            </button>
           </div>
         </div>
       `;
-      document.body.appendChild(imageModal);
-      elImageModal = imageModal;
+      document.body.appendChild(modal);
+      elImageModal = modal;
+    } else {
+      elImageModal = document.getElementById('kb-image-modal');
     }
+
+    bindChromeEvents();
   }
 
-  function bindGlobalEvents() {
-    // Botões da Barra de Administração
-    const btnTogglePreview = document.getElementById('btn-kb-toggle-preview');
-    if (btnTogglePreview) btnTogglePreview.addEventListener('click', togglePreviewMode);
+  // -------------------------------------------------------------------------
+  // Bind de eventos para todos os elementos de controle do editor
+  // Usa flags para não duplicar listeners (removeEventListener via named fn)
+  // -------------------------------------------------------------------------
+  function bindChromeEvents() {
+    // Usa delegação de evento na barra de admin para não re-registrar
+    const bar = document.getElementById('kb-editor-admin-bar');
+    if (bar && !bar._evBound) {
+      bar._evBound = true;
 
-    const btnOpenSettings = document.getElementById('btn-kb-open-settings');
-    if (btnOpenSettings) btnOpenSettings.addEventListener('click', openSettingsDrawer);
+      bar.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
+        const id = btn.id;
+        if (id === 'btn-kb-toggle-preview') togglePreviewMode();
+        else if (id === 'btn-kb-open-settings') openSettingsDrawer();
+        else if (id === 'btn-kb-save-draft') saveArticle('draft');
+        else if (id === 'btn-kb-publish') saveArticle('published');
+        else if (id === 'btn-kb-cancel-edit') exitEditorMode();
+      });
+    }
 
-    const btnSaveDraft = document.getElementById('btn-kb-save-draft');
-    if (btnSaveDraft) btnSaveDraft.addEventListener('click', () => saveArticle('draft'));
+    // Toolbar
+    const toolbar = document.getElementById('kb-editor-toolbar');
+    if (toolbar && !toolbar._evBound) {
+      toolbar._evBound = true;
 
-    const btnPublish = document.getElementById('btn-kb-publish');
-    if (btnPublish) btnPublish.addEventListener('click', () => saveArticle('published'));
-
-    const btnCancel = document.getElementById('btn-kb-cancel-edit');
-    if (btnCancel) btnCancel.addEventListener('click', exitEditorMode);
-
-    // Botão fechar Drawer de Configurações
-    const btnCloseDrawer = document.getElementById('btn-kb-drawer-close');
-    if (btnCloseDrawer) btnCloseDrawer.addEventListener('click', closeSettingsDrawer);
-
-    const btnSaveSettings = document.getElementById('btn-kb-save-settings');
-    if (btnSaveSettings) btnSaveSettings.addEventListener('click', applySettingsFromDrawer);
-
-    // Botões da Barra de Formatação (execCommand)
-    document.querySelectorAll('.kb-toolbar-btn[data-cmd]').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
+      toolbar.addEventListener('click', (e) => {
+        const btn = e.target.closest('button');
+        if (!btn) return;
         const cmd = btn.getAttribute('data-cmd');
-        document.execCommand(cmd, false, null);
-        triggerAutosave();
-      });
-    });
-
-    const selectHeading = document.getElementById('kb-tool-heading');
-    if (selectHeading) {
-      selectHeading.addEventListener('change', (e) => {
-        const val = e.target.value;
-        if (val === 'p') document.execCommand('formatBlock', false, '<p>');
-        else if (val === 'h2') document.execCommand('formatBlock', false, '<h2>');
-        else if (val === 'h3') document.execCommand('formatBlock', false, '<h3>');
-        else if (val === 'blockquote') document.execCommand('formatBlock', false, '<blockquote>');
-        triggerAutosave();
-      });
-    }
-
-    const btnAddLink = document.getElementById('btn-kb-tool-link');
-    if (btnAddLink) {
-      btnAddLink.addEventListener('click', () => {
-        const url = prompt('Digite a URL do link:', 'https://');
-        if (url) document.execCommand('createLink', false, url);
-        triggerAutosave();
-      });
-    }
-
-    // Modal de Imagem
-    const btnAddImage = document.getElementById('btn-kb-add-image');
-    if (btnAddImage) btnAddImage.addEventListener('click', () => openImageModal());
-
-    const btnCloseImgModal = document.getElementById('btn-kb-image-modal-close');
-    if (btnCloseImgModal) btnCloseImgModal.addEventListener('click', closeImageModal);
-
-    const btnCancelImgModal = document.getElementById('btn-kb-img-cancel');
-    if (btnCancelImgModal) btnCancelImgModal.addEventListener('click', closeImageModal);
-
-    const dropZone = document.getElementById('kb-image-drop-zone');
-    const fileInput = document.getElementById('kb-image-file-input');
-    if (dropZone && fileInput) {
-      dropZone.addEventListener('click', () => fileInput.click());
-      fileInput.addEventListener('change', (e) => {
-        if (e.target.files && e.target.files[0]) handleImageFileUpload(e.target.files[0]);
-      });
-
-      dropZone.addEventListener('dragover', (e) => {
-        e.preventDefault();
-        dropZone.classList.add('dragover');
-      });
-
-      dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
-
-      dropZone.addEventListener('drop', (e) => {
-        e.preventDefault();
-        dropZone.classList.remove('dragover');
-        if (e.dataTransfer.files && e.dataTransfer.files[0]) {
-          handleImageFileUpload(e.dataTransfer.files[0]);
+        if (cmd) { document.execCommand(cmd, false, null); triggerAutosave(); return; }
+        if (btn.id === 'btn-kb-tool-link') {
+          const url = prompt('URL do link:', 'https://');
+          if (url) { document.execCommand('createLink', false, url); triggerAutosave(); }
         }
+        if (btn.id === 'btn-kb-add-image') openImageModal();
+        if (btn.id === 'btn-kb-add-step-block') insertStepBlock();
+        if (btn.id === 'btn-kb-add-alert-block') insertAlertBlock();
       });
-    }
 
-    const btnConfirmImg = document.getElementById('btn-kb-img-confirm');
-    if (btnConfirmImg) btnConfirmImg.addEventListener('click', confirmImageInsertion);
-
-    // Botões para adicionar blocos especiais
-    const btnAddStep = document.getElementById('btn-kb-add-step-block');
-    if (btnAddStep) btnAddStep.addEventListener('click', () => insertStepBlock());
-
-    const btnAddAlert = document.getElementById('btn-kb-add-alert-block');
-    if (btnAddAlert) btnAddAlert.addEventListener('click', () => insertAlertBlock());
-  }
-
-  // --- Ativação do Modo Edição Inline ---
-  window.enableInlineKbEditor = function (articleData) {
-    editorState.article = articleData;
-    editorState.isEditing = true;
-    editorState.isPreviewOnly = false;
-
-    ensureEditorDOM();
-
-    if (elAdminBar) {
-      elAdminBar.hidden = false;
-      const statusBadge = document.getElementById('kb-editor-status-badge');
-      if (statusBadge) {
-        statusBadge.textContent = articleData.status === 'draft' ? 'Rascunho' : 'Publicado';
-        statusBadge.className = `kb-status-badge ${articleData.status || 'published'}`;
+      const sel = document.getElementById('kb-tool-heading');
+      if (sel) {
+        sel.addEventListener('change', (e) => {
+          const map = { p: '<p>', h2: '<h2>', h3: '<h3>', blockquote: '<blockquote>' };
+          document.execCommand('formatBlock', false, map[e.target.value] || '<p>');
+          triggerAutosave();
+        });
       }
     }
 
-    if (elToolbar && elArticleReader) {
-      elArticleReader.prepend(elToolbar);
-      elToolbar.hidden = false;
+    // Settings drawer
+    const drawer = document.getElementById('kb-settings-drawer');
+    if (drawer && !drawer._evBound) {
+      drawer._evBound = true;
+      drawer.addEventListener('click', (e) => {
+        if (e.target.id === 'btn-kb-drawer-close') closeSettingsDrawer();
+        if (e.target.id === 'btn-kb-save-settings') applySettingsFromDrawer();
+      });
     }
 
-    makeArticleBlocksEditable();
+    // Image modal
+    const modal = document.getElementById('kb-image-modal');
+    if (modal && !modal._evBound) {
+      modal._evBound = true;
+
+      modal.addEventListener('click', (e) => {
+        if (e.target.id === 'btn-kb-image-modal-close') closeImageModal();
+        if (e.target.id === 'btn-kb-img-cancel') closeImageModal();
+        if (e.target.id === 'btn-kb-img-confirm') confirmImageInsertion();
+      });
+
+      const dropZone = document.getElementById('kb-image-drop-zone');
+      const fileInput = document.getElementById('kb-image-file-input');
+      if (dropZone && fileInput) {
+        dropZone.addEventListener('click', () => fileInput.click());
+        fileInput.addEventListener('change', (e) => {
+          if (e.target.files && e.target.files[0]) handleImageFileUpload(e.target.files[0]);
+        });
+        dropZone.addEventListener('dragover', (e) => { e.preventDefault(); dropZone.classList.add('dragover'); });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+          e.preventDefault();
+          dropZone.classList.remove('dragover');
+          if (e.dataTransfer.files && e.dataTransfer.files[0]) handleImageFileUpload(e.dataTransfer.files[0]);
+        });
+      }
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // Ativação principal do Editor Visual Inline
+  // -------------------------------------------------------------------------
+  window.enableInlineKbEditor = function (articleData) {
+    if (!articleData) return;
+
+    editorState.article = articleData;
+    editorState.isEditing = true;
+    editorState.isPreviewOnly = false;
+    editorState.uploadedImageUrl = null;
+
+    // Garante que o chrome do editor existe
+    injectEditorChrome();
+
+    // Mostra barra de admin e toolbar
+    if (elAdminBar) elAdminBar.hidden = false;
+    if (elToolbar) elToolbar.hidden = false;
+
+    // Atualiza badge de status
+    const badge = document.getElementById('kb-editor-status-badge');
+    if (badge) {
+      const s = articleData.status || 'published';
+      badge.textContent = s === 'draft' ? 'Rascunho' : 'Publicado';
+      badge.className = 'kb-status-badge ' + s;
+    }
+
+    // Preenche campos do drawer com valores atuais
+    const setVal = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+    setVal('kb-setting-slug',      articleData.slug  || articleData.id);
+    setVal('kb-setting-category',  articleData.category || '');
+    setVal('kb-setting-audience',  articleData.audience || 'company');
+    setVal('kb-setting-readtime',  articleData.readTime || '3 min de leitura');
+    setVal('kb-setting-lead',      articleData.lead || articleData.summary || '');
+    setVal('kb-setting-seo-title', articleData.seoTitle || articleData.title || '');
+    setVal('kb-setting-meta-desc', articleData.metaDescription || '');
+
+    // Esconde o botão "✏️ Editar no Editor Visual" para não duplicar
+    const btnTrigger = document.getElementById('btn-trigger-inline-edit');
+    if (btnTrigger) btnTrigger.hidden = true;
+
+    // Adiciona padding no body para compensar a barra fixa
+    document.body.style.paddingTop = '110px';
+
+    // Habilita edição nos elementos
+    makeArticleEditable();
+
+    // Marca modo edição com classe no body
+    document.body.classList.add('kb-edit-active');
   };
 
-  function makeArticleBlocksEditable() {
-    if (!elArticleReader) return;
+  function makeArticleEditable() {
+    const articleView = document.getElementById('kb-article-view');
+    if (!articleView) return;
 
-    // Torna título e lead editáveis diretamente
-    const titleEl = elArticleReader.querySelector('.kb-header-title');
-    if (titleEl) {
-      titleEl.contentEditable = "true";
+    // Título do artigo
+    const titleEl = articleView.querySelector('h1');
+    if (titleEl && !titleEl._editBound) {
+      titleEl._editBound = true;
+      titleEl.contentEditable = 'true';
+      titleEl.classList.add('kb-editable');
       titleEl.addEventListener('input', triggerAutosave);
     }
 
-    const leadEl = elArticleReader.querySelector('.kb-header-lead');
-    if (leadEl) {
-      leadEl.contentEditable = "true";
+    // Lead / resumo
+    const leadEl = articleView.querySelector('.kb-article-lead');
+    if (leadEl && !leadEl._editBound) {
+      leadEl._editBound = true;
+      leadEl.contentEditable = 'true';
+      leadEl.classList.add('kb-editable');
       leadEl.addEventListener('input', triggerAutosave);
     }
 
-    // Passos do tutorial
-    const stepsContainer = elArticleReader.querySelector('.kb-article-steps');
-    if (stepsContainer) {
-      Array.from(stepsContainer.children).forEach((stepCard) => {
-        wrapStepInBlockEditor(stepCard);
-      });
+    // Passos — ativa edição inline e adiciona controles de bloco
+    const stepsEl = articleView.querySelector('.kb-article-steps');
+    if (stepsEl) {
+      Array.from(stepsEl.children).forEach(stepCard => activateBlockEditor(stepCard));
+    }
+
+    // Dica/Alerta
+    const alertEl = articleView.querySelector('.kb-alert');
+    if (alertEl && !alertEl._editBound) {
+      alertEl._editBound = true;
+      alertEl.contentEditable = 'true';
+      alertEl.classList.add('kb-editable');
     }
   }
 
-  function wrapStepInBlockEditor(stepCard) {
-    if (stepCard.classList.contains('kb-block-wrapper')) return;
+  function activateBlockEditor(stepCard) {
+    if (stepCard._blockActivated) return;
+    stepCard._blockActivated = true;
 
     stepCard.classList.add('kb-block-wrapper');
 
-    const titleEl = stepCard.querySelector('.kb-step-title');
-    if (titleEl) {
-      titleEl.contentEditable = "true";
-      titleEl.addEventListener('input', triggerAutosave);
-    }
+    // Habilita edição nos campos de texto do passo
+    ['.kb-step-title', '.kb-step-desc', 'figcaption span'].forEach(sel => {
+      const el = stepCard.querySelector(sel);
+      if (el && !el._editBound) {
+        el._editBound = true;
+        el.contentEditable = 'true';
+        el.classList.add('kb-editable');
+        el.addEventListener('input', triggerAutosave);
+      }
+    });
 
-    const descEl = stepCard.querySelector('.kb-step-desc');
-    if (descEl) {
-      descEl.contentEditable = "true";
-      descEl.addEventListener('input', triggerAutosave);
+    // Cria a barra de ações flutuante do bloco
+    if (!stepCard.querySelector('.kb-block-actions')) {
+      const actions = document.createElement('div');
+      actions.className = 'kb-block-actions';
+      actions.innerHTML = `
+        <button class="kb-block-action-btn" type="button" title="Mover para cima" onclick="window.moveKbBlock(this, -1)">
+          <i class="fa-solid fa-arrow-up"></i>
+        </button>
+        <button class="kb-block-action-btn" type="button" title="Mover para baixo" onclick="window.moveKbBlock(this, 1)">
+          <i class="fa-solid fa-arrow-down"></i>
+        </button>
+        <button class="kb-block-action-btn" type="button" title="Trocar imagem" onclick="window.replaceKbBlockImage(this)">
+          <i class="fa-solid fa-camera"></i> Foto
+        </button>
+        <button class="kb-block-action-btn danger" type="button" title="Excluir passo" onclick="window.removeKbBlock(this)">
+          <i class="fa-solid fa-trash"></i>
+        </button>
+      `;
+      stepCard.appendChild(actions);
     }
-
-    // Ações do bloco (Cima, Baixo, Duplicar, Excluir)
-    const actionsBar = document.createElement('div');
-    actionsBar.className = 'kb-block-actions';
-    actionsBar.innerHTML = `
-      <button class="kb-block-action-btn" type="button" title="Mover para cima" onclick="window.moveKbBlock(this, -1)"><i class="fa-solid fa-arrow-up"></i></button>
-      <button class="kb-block-action-btn" type="button" title="Mover para baixo" onclick="window.moveKbBlock(this, 1)"><i class="fa-solid fa-arrow-down"></i></button>
-      <button class="kb-block-action-btn" type="button" title="Trocar imagem" onclick="window.replaceKbBlockImage(this)"><i class="fa-solid fa-camera"></i></button>
-      <button class="kb-block-action-btn danger" type="button" title="Excluir este passo" onclick="window.removeKbBlock(this)"><i class="fa-solid fa-trash"></i></button>
-    `;
-    stepCard.appendChild(actionsBar);
   }
 
-  window.moveKbBlock = function (btn, direction) {
+  // -------------------------------------------------------------------------
+  // Controles de bloco expostos globalmente
+  // -------------------------------------------------------------------------
+  window.moveKbBlock = function (btn, dir) {
     const wrapper = btn.closest('.kb-block-wrapper');
     if (!wrapper) return;
-
-    if (direction === -1 && wrapper.previousElementSibling) {
+    if (dir === -1 && wrapper.previousElementSibling) {
       wrapper.parentNode.insertBefore(wrapper, wrapper.previousElementSibling);
-    } else if (direction === 1 && wrapper.nextElementSibling) {
+    } else if (dir === 1 && wrapper.nextElementSibling) {
       wrapper.parentNode.insertBefore(wrapper.nextElementSibling, wrapper);
     }
     renumberSteps();
@@ -420,256 +450,277 @@
   window.removeKbBlock = function (btn) {
     const wrapper = btn.closest('.kb-block-wrapper');
     if (!wrapper) return;
-
-    if (confirm('Deseja realmente remover este bloco?')) {
-      wrapper.remove();
-      renumberSteps();
-      triggerAutosave();
-    }
+    if (!confirm('Deseja excluir este passo?')) return;
+    wrapper.remove();
+    renumberSteps();
+    triggerAutosave();
   };
 
   window.replaceKbBlockImage = function (btn) {
     const wrapper = btn.closest('.kb-block-wrapper');
     if (!wrapper) return;
-
     editorState.pendingImageTarget = wrapper.querySelector('img');
     openImageModal();
   };
 
   function renumberSteps() {
-    if (!elArticleReader) return;
-    const steps = elArticleReader.querySelectorAll('.kb-block-wrapper');
-    steps.forEach((step, idx) => {
-      const numBadge = step.querySelector('.kb-step-number');
-      if (numBadge) numBadge.textContent = idx + 1;
+    const stepsEl = document.querySelector('.kb-article-steps');
+    if (!stepsEl) return;
+    Array.from(stepsEl.children).forEach((card, i) => {
+      const numEl = card.querySelector('.kb-step-number');
+      if (numEl) numEl.textContent = i + 1;
     });
   }
 
-  function togglePreviewMode() {
-    editorState.isPreviewOnly = !editorState.isPreviewOnly;
-    const label = document.getElementById('kb-preview-label');
+  // -------------------------------------------------------------------------
+  // Inserir novo passo
+  // -------------------------------------------------------------------------
+  function insertStepBlock() {
+    const stepsEl = document.querySelector('.kb-article-steps');
+    if (!stepsEl) return;
 
-    if (editorState.isPreviewOnly) {
-      document.body.classList.add('kb-preview-mode');
-      if (label) label.textContent = 'Voltar para Edição';
-    } else {
-      document.body.classList.remove('kb-preview-mode');
-      if (label) label.textContent = 'Visualizar sem controles';
-    }
-  }
+    const idx = stepsEl.children.length + 1;
+    const card = document.createElement('div');
+    card.className = 'kb-step-card kb-block-wrapper';
+    card.innerHTML = `
+      <div class="kb-step-header">
+        <span class="kb-step-number">${idx}</span>
+        <h3 class="kb-step-title kb-editable" contenteditable="true">Título do Passo ${idx}</h3>
+      </div>
+      <p class="kb-step-desc kb-editable" contenteditable="true">Descreva este passo aqui...</p>
+      <figure class="kb-step-figure">
+        <div class="kb-step-figure-badge">🖼️ Clique em <strong>📷 Foto</strong> para inserir uma imagem</div>
+        <button class="kb-image-zoom-btn" type="button" style="display:none;">
+          <img src="" alt="" loading="lazy">
+        </button>
+        <figcaption>
+          <span contenteditable="true" class="kb-editable">Legenda da imagem</span>
+        </figcaption>
+      </figure>
+    `;
 
-  function openSettingsDrawer() {
-    if (!elSettingsDrawer) return;
+    stepsEl.appendChild(card);
+    activateBlockEditor(card);
 
-    const art = editorState.article || {};
-    document.getElementById('kb-setting-slug').value = art.slug || art.id || '';
-    document.getElementById('kb-setting-category').value = art.category || 'Primeiros passos';
-    document.getElementById('kb-setting-audience').value = art.audience || 'company';
-    document.getElementById('kb-setting-lead').value = art.lead || art.summary || '';
-    document.getElementById('kb-setting-seo-title').value = art.seoTitle || art.title || '';
-    document.getElementById('kb-setting-meta-desc').value = art.metaDescription || art.summary || '';
-
-    elSettingsDrawer.classList.add('open');
-  }
-
-  function closeSettingsDrawer() {
-    if (elSettingsDrawer) elSettingsDrawer.classList.remove('open');
-  }
-
-  function applySettingsFromDrawer() {
-    if (!editorState.article) return;
-
-    editorState.article.slug = document.getElementById('kb-setting-slug').value.trim();
-    editorState.article.category = document.getElementById('kb-setting-category').value;
-    editorState.article.audience = document.getElementById('kb-setting-audience').value;
-    editorState.article.lead = document.getElementById('kb-setting-lead').value.trim();
-    editorState.article.seoTitle = document.getElementById('kb-setting-seo-title').value.trim();
-    editorState.article.metaDescription = document.getElementById('kb-setting-meta-desc').value.trim();
-
-    closeSettingsDrawer();
+    // Foca no título do novo passo
+    const t = card.querySelector('.kb-step-title');
+    if (t) { t.focus(); document.execCommand('selectAll'); }
     triggerAutosave();
   }
 
+  // -------------------------------------------------------------------------
+  // Inserir bloco de alerta/dica
+  // -------------------------------------------------------------------------
+  function insertAlertBlock() {
+    const body = document.querySelector('.kb-article-body');
+    if (!body) return;
+
+    const alertDiv = document.createElement('div');
+    alertDiv.className = 'kb-alert kb-alert-tip kb-editable';
+    alertDiv.contentEditable = 'true';
+    alertDiv.innerHTML = `<span class="kb-alert-icon">💡</span> <strong>Dica:</strong> Clique aqui para digitar a dica ou aviso...`;
+    alertDiv.addEventListener('input', triggerAutosave);
+    body.appendChild(alertDiv);
+    alertDiv.focus();
+    triggerAutosave();
+  }
+
+  // -------------------------------------------------------------------------
+  // Upload & Inserção de Imagem
+  // -------------------------------------------------------------------------
   function openImageModal() {
     if (!elImageModal) return;
-    document.getElementById('kb-image-preview-area').hidden = true;
-    document.getElementById('kb-img-caption-input').value = '';
-    document.getElementById('kb-img-alt-input').value = '';
     elImageModal.hidden = false;
+    const preview = document.getElementById('kb-image-preview-area');
+    if (preview) preview.hidden = true;
+    const cap = document.getElementById('kb-img-caption-input');
+    if (cap) cap.value = '';
+    const alt = document.getElementById('kb-img-alt-input');
+    if (alt) alt.value = '';
+    editorState.uploadedImageUrl = null;
   }
 
   function closeImageModal() {
     if (elImageModal) elImageModal.hidden = true;
     editorState.pendingImageTarget = null;
+    editorState.uploadedImageUrl = null;
   }
 
   async function handleImageFileUpload(file) {
+    const slug = (editorState.article && (editorState.article.slug || editorState.article.id)) || 'sem-slug';
     const formData = new FormData();
     formData.append('file', file);
-    formData.append('slug', editorState.article?.slug || 'geral');
+    formData.append('slug', slug);
 
-    const previewImg = document.getElementById('kb-image-preview-img');
-    const previewArea = document.getElementById('kb-image-preview-area');
+    // Lê o CSRF token do cookie
+    const csrf = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('acert_csrf_token='));
+    const csrfValue = csrf ? csrf.split('=')[1] : '';
+
+    const statusEl = document.getElementById('kb-editor-autosave-status');
+    if (statusEl) statusEl.textContent = 'Enviando imagem...';
 
     try {
       const res = await fetch('/api/admin/knowledge-base/upload-image', {
         method: 'POST',
+        headers: { 'X-CSRF-Token': csrfValue },
         body: formData
       });
 
       const data = await res.json();
       if (res.ok && data.success) {
-        previewImg.src = data.url;
-        previewImg.dataset.uploadedUrl = data.url;
-        previewImg.dataset.filename = data.filename;
-        previewArea.hidden = false;
+        editorState.uploadedImageUrl = data.url;
+
+        const previewImg = document.getElementById('kb-image-preview-img');
+        if (previewImg) previewImg.src = data.url;
+        const previewArea = document.getElementById('kb-image-preview-area');
+        if (previewArea) previewArea.hidden = false;
+
+        if (statusEl) statusEl.textContent = 'Imagem carregada. Confirme para inserir.';
       } else {
-        alert(data.message || 'Erro ao enviar imagem.');
+        alert('Erro no upload: ' + (data.message || 'Tente novamente.'));
       }
     } catch (err) {
-      alert('Falha na comunicação com o servidor de upload.');
+      console.error('Erro no upload:', err);
+      alert('Falha ao enviar imagem. Verifique sua conexão.');
     }
   }
 
   function confirmImageInsertion() {
-    const previewImg = document.getElementById('kb-image-preview-img');
-    const caption = document.getElementById('kb-img-caption-input').value.trim();
-    const alt = document.getElementById('kb-img-alt-input').value.trim();
-    const url = previewImg.dataset.uploadedUrl || previewImg.src;
+    const url = editorState.uploadedImageUrl;
+    const caption = (document.getElementById('kb-img-caption-input') || {}).value || '';
+    const alt = (document.getElementById('kb-img-alt-input') || {}).value || '';
 
-    if (!url) {
-      alert('Selecione ou envie uma imagem antes de confirmar.');
+    if (!url) { alert('Selecione uma imagem primeiro.'); return; }
+
+    // Se estiver trocando imagem de um bloco existente
+    if (editorState.pendingImageTarget) {
+      editorState.pendingImageTarget.src = url;
+      editorState.pendingImageTarget.alt = alt || caption;
+      const fig = editorState.pendingImageTarget.closest('figure');
+      if (fig) {
+        const btn = fig.querySelector('.kb-image-zoom-btn');
+        if (btn) btn.style.display = '';
+        const cap = fig.querySelector('figcaption span');
+        if (cap) cap.textContent = caption;
+      }
+      closeImageModal();
+      triggerAutosave();
       return;
     }
 
-    if (editorState.pendingImageTarget) {
-      // Substitui imagem existente no bloco
-      editorState.pendingImageTarget.src = url;
-      editorState.pendingImageTarget.alt = alt || 'Print da tela';
+    // Inserção de novo bloco de imagem standalone
+    const stepsEl = document.querySelector('.kb-article-steps') || document.querySelector('.kb-article-body');
+    if (!stepsEl) { closeImageModal(); return; }
 
-      const figcaption = editorState.pendingImageTarget.closest('figure')?.querySelector('figcaption');
-      if (figcaption) figcaption.textContent = caption || 'Print da tela';
-    } else {
-      // Cria um novo bloco de passo com a imagem
-      insertStepBlockWithImage(url, caption, alt);
-    }
+    const fig = document.createElement('figure');
+    fig.className = 'kb-step-figure kb-editable';
+    fig.style.margin = '20px 0';
+    fig.innerHTML = `
+      <button class="kb-image-zoom-btn" type="button" onclick="window.openKnowledgeImageZoom('${url}','${alt}','${caption}')">
+        <img src="${url}" alt="${alt}" style="max-width:100%;border-radius:8px;border:1px solid #e2e8f0;">
+      </button>
+      <figcaption>
+        <span contenteditable="true" class="kb-editable">${caption || 'Legenda da imagem'}</span>
+      </figcaption>
+    `;
+    stepsEl.appendChild(fig);
 
     closeImageModal();
     triggerAutosave();
   }
 
-  function insertStepBlock() {
-    insertStepBlockWithImage('./assets/images/base-conhecimento/11-empresa-dashboard-main.png', 'Novo passo', 'Novo passo');
+  // -------------------------------------------------------------------------
+  // Configurações / Drawer
+  // -------------------------------------------------------------------------
+  function openSettingsDrawer() {
+    if (!elSettingsDrawer) return;
+    elSettingsDrawer.classList.add('kb-drawer-open');
   }
 
-  function insertStepBlockWithImage(imgUrl, caption, alt) {
-    if (!elArticleReader) return;
+  function closeSettingsDrawer() {
+    if (!elSettingsDrawer) return;
+    elSettingsDrawer.classList.remove('kb-drawer-open');
+  }
 
-    const stepsContainer = elArticleReader.querySelector('.kb-article-steps');
-    if (!stepsContainer) return;
-
-    const stepNum = stepsContainer.children.length + 1;
-    const stepCard = document.createElement('article');
-    stepCard.className = 'kb-step-card kb-block-wrapper';
-    stepCard.innerHTML = `
-      <header class="kb-step-header">
-        <span class="kb-step-number">${stepNum}</span>
-        <h3 class="kb-step-title" contenteditable="true">Novo Passo do Tutorial</h3>
-      </header>
-      <p class="kb-step-desc" contenteditable="true">Descreva o que o usuário deve realizar neste passo...</p>
-      <figure class="kb-step-figure">
-        <img src="${imgUrl}" alt="${alt || 'Print da tela'}" loading="lazy">
-        <span class="kb-step-figure-badge">🖼️ Print da Tela</span>
-        <figcaption contenteditable="true">${caption || 'Legenda da imagem'}</figcaption>
-      </figure>
-    `;
-
-    stepsContainer.appendChild(stepCard);
-    wrapStepInBlockEditor(stepCard);
-    renumberSteps();
+  function applySettingsFromDrawer() {
+    if (!editorState.article) return;
+    const get = id => { const el = document.getElementById(id); return el ? el.value.trim() : ''; };
+    editorState.article.slug          = get('kb-setting-slug');
+    editorState.article.category      = get('kb-setting-category');
+    editorState.article.audience      = get('kb-setting-audience');
+    editorState.article.readTime      = get('kb-setting-readtime');
+    editorState.article.lead          = get('kb-setting-lead');
+    editorState.article.seoTitle      = get('kb-setting-seo-title');
+    editorState.article.metaDescription = get('kb-setting-meta-desc');
+    closeSettingsDrawer();
     triggerAutosave();
   }
 
-  function insertAlertBlock() {
-    if (!elArticleReader) return;
-
-    const alertBox = document.createElement('aside');
-    alertBox.className = 'kb-alert-box tip kb-block-wrapper';
-    alertBox.innerHTML = `
-      <div class="kb-alert-icon">💡</div>
-      <div class="kb-alert-content">
-        <strong>Dica Útil</strong>
-        <p contenteditable="true">Escreva aqui uma dica ou recomendação importante para o usuário...</p>
-      </div>
-    `;
-
-    const stepsContainer = elArticleReader.querySelector('.kb-article-steps');
-    if (stepsContainer) {
-      stepsContainer.appendChild(alertBox);
-      triggerAutosave();
-    }
+  // -------------------------------------------------------------------------
+  // Salvar Artigo
+  // -------------------------------------------------------------------------
+  function triggerAutosave() {
+    clearTimeout(editorState.autosaveTimer);
+    const statusEl = document.getElementById('kb-editor-autosave-status');
+    if (statusEl) statusEl.textContent = 'Salvando...';
+    editorState.autosaveTimer = setTimeout(() => saveArticle('draft', true), 2500);
   }
 
-  function triggerAutosave() {
-    const statusEl = document.getElementById('kb-editor-autosave-status');
-    if (statusEl) statusEl.textContent = 'Salvando rascunho...';
+  async function saveArticle(targetStatus, isAutosave = false) {
+    if (!editorState.article) return;
 
     clearTimeout(editorState.autosaveTimer);
-    editorState.autosaveTimer = setTimeout(() => {
-      saveArticle('draft', true);
-    }, 2000);
-  }
 
-  async function saveArticle(targetStatus = 'draft', isAutosave = false) {
-    if (!editorState.article || !elArticleReader) return;
+    const articleView = document.getElementById('kb-article-view');
+    const titleEl    = articleView && articleView.querySelector('h1');
+    const leadEl     = articleView && articleView.querySelector('.kb-article-lead');
+    const stepsEl    = articleView && articleView.querySelector('.kb-article-steps');
 
-    const titleEl = elArticleReader.querySelector('.kb-header-title');
-    const leadEl = elArticleReader.querySelector('.kb-header-lead');
+    const updatedTitle = titleEl ? titleEl.textContent.trim() : (editorState.article.title || '');
+    const updatedLead  = leadEl  ? leadEl.textContent.trim()  : (editorState.article.lead || '');
 
-    const updatedTitle = titleEl ? titleEl.textContent.trim() : editorState.article.title;
-    const updatedLead = leadEl ? leadEl.textContent.trim() : editorState.article.lead;
-
-    // Coleta todos os passos dos blocos
-    const stepCards = Array.from(elArticleReader.querySelectorAll('.kb-step-card'));
-    const steps = stepCards.map((card, idx) => {
-      const stTitle = card.querySelector('.kb-step-title')?.textContent.trim() || '';
-      const stDesc = card.querySelector('.kb-step-desc')?.textContent.trim() || '';
-      const img = card.querySelector('img');
-      const figcaption = card.querySelector('figcaption');
-
-      const imagePath = img ? img.getAttribute('src') : '';
-      const filename = imagePath ? imagePath.split('/').pop() : '';
-
-      return {
-        num: idx + 1,
-        title: stTitle,
-        desc: stDesc,
-        image: imagePath,
-        filename: filename,
-        caption: figcaption ? figcaption.textContent.trim() : stTitle,
-        alt: img ? img.alt : stTitle
-      };
-    });
+    // Extrai os passos editados do DOM
+    const steps = [];
+    if (stepsEl) {
+      Array.from(stepsEl.querySelectorAll('.kb-step-card, .kb-block-wrapper')).forEach((card, idx) => {
+        const titleNode   = card.querySelector('.kb-step-title');
+        const descNode    = card.querySelector('.kb-step-desc');
+        const imgNode     = card.querySelector('img');
+        const captionNode = card.querySelector('figcaption span');
+        steps.push({
+          num:     idx + 1,
+          title:   titleNode   ? titleNode.textContent.trim()   : `Passo ${idx + 1}`,
+          desc:    descNode    ? descNode.textContent.trim()    : '',
+          image:   imgNode     ? (imgNode.src || '')            : '',
+          alt:     imgNode     ? (imgNode.alt || '')            : '',
+          caption: captionNode ? captionNode.textContent.trim() : ''
+        });
+      });
+    }
 
     const payload = {
-      id: editorState.article.id,
-      slug: editorState.article.slug || editorState.article.id,
-      title: updatedTitle,
-      category: editorState.article.category || 'Primeiros passos',
-      audience: editorState.article.audience || 'company',
-      readTime: editorState.article.readTime || '3 min de leitura',
-      lead: updatedLead,
-      alertTip: editorState.article.alertTip || '',
-      status: targetStatus,
-      steps: steps,
-      seoTitle: editorState.article.seoTitle || updatedTitle,
+      id:              editorState.article.id,
+      slug:            editorState.article.slug || editorState.article.id,
+      title:           updatedTitle,
+      category:        editorState.article.category || 'Primeiros passos',
+      audience:        editorState.article.audience || 'company',
+      readTime:        editorState.article.readTime || '3 min de leitura',
+      lead:            updatedLead,
+      alertTip:        editorState.article.alertTip || '',
+      status:          targetStatus,
+      steps:           steps,
+      seoTitle:        editorState.article.seoTitle || updatedTitle,
       metaDescription: editorState.article.metaDescription || (updatedLead ? updatedLead.slice(0, 160) : '')
     };
+
+    // CSRF
+    const csrf = document.cookie.split(';').map(c => c.trim()).find(c => c.startsWith('acert_csrf_token='));
+    const csrfValue = csrf ? csrf.split('=')[1] : '';
 
     try {
       const res = await fetch('/api/admin/knowledge-base', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': csrfValue },
         body: JSON.stringify(payload)
       });
 
@@ -678,31 +729,79 @@
         editorState.article = data.article;
 
         const statusEl = document.getElementById('kb-editor-autosave-status');
-        const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-        if (statusEl) statusEl.textContent = `Alterações salvas às ${nowStr}`;
+        if (statusEl) {
+          const now = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+          statusEl.textContent = `Salvo às ${now}`;
+        }
 
-        const statusBadge = document.getElementById('kb-editor-status-badge');
-        if (statusBadge) {
-          statusBadge.textContent = targetStatus === 'draft' ? 'Rascunho' : 'Publicado';
-          statusBadge.className = `kb-status-badge ${targetStatus}`;
+        const badge = document.getElementById('kb-editor-status-badge');
+        if (badge) {
+          badge.textContent = targetStatus === 'draft' ? 'Rascunho' : 'Publicado';
+          badge.className = 'kb-status-badge ' + targetStatus;
         }
 
         if (!isAutosave) {
-          alert(targetStatus === 'published' ? 'Artigo publicado com sucesso!' : 'Rascunho salvo com sucesso!');
+          const msg = targetStatus === 'published' ? 'Artigo publicado com sucesso!' : 'Rascunho salvo!';
+          alert(msg);
         }
+      } else {
+        const statusEl = document.getElementById('kb-editor-autosave-status');
+        if (statusEl) statusEl.textContent = 'Erro ao salvar.';
+        if (!isAutosave) alert('Não foi possível salvar. ' + (data.message || ''));
       }
     } catch (err) {
-      console.warn('Erro ao salvar artigo:', err);
+      console.warn('Erro ao salvar:', err);
     }
   }
 
-  function exitEditorMode() {
-    if (confirm('Deseja fechar o modo de edição?')) {
-      document.body.classList.remove('kb-preview-mode');
-      if (elAdminBar) elAdminBar.hidden = true;
+  // -------------------------------------------------------------------------
+  // Visualizar sem controles / Voltar ao modo de edição
+  // -------------------------------------------------------------------------
+  function togglePreviewMode() {
+    editorState.isPreviewOnly = !editorState.isPreviewOnly;
+    const label = document.getElementById('kb-preview-label');
+    if (editorState.isPreviewOnly) {
+      document.body.classList.add('kb-preview-mode');
       if (elToolbar) elToolbar.hidden = true;
-      window.location.reload();
+      if (label) label.textContent = 'Voltar à Edição';
+    } else {
+      document.body.classList.remove('kb-preview-mode');
+      if (elToolbar) elToolbar.hidden = false;
+      if (label) label.textContent = 'Visualizar Limpo';
     }
+  }
+
+  // -------------------------------------------------------------------------
+  // Saída do modo de edição
+  // -------------------------------------------------------------------------
+  window.disableInlineKbEditor = function () {
+    exitEditorMode();
+  };
+
+  function exitEditorMode() {
+    editorState.isEditing = false;
+    clearTimeout(editorState.autosaveTimer);
+
+    if (elAdminBar) elAdminBar.hidden = true;
+    if (elToolbar) elToolbar.hidden = true;
+    if (elSettingsDrawer) elSettingsDrawer.classList.remove('kb-drawer-open');
+
+    document.body.classList.remove('kb-edit-active', 'kb-preview-mode');
+    document.body.style.paddingTop = '';
+
+    // Recoloca o botão de edição
+    const btnTrigger = document.getElementById('btn-trigger-inline-edit');
+    if (btnTrigger) btnTrigger.hidden = false;
+
+    // Remove contenteditable de todos os elementos
+    document.querySelectorAll('.kb-editable').forEach(el => {
+      el.contentEditable = 'false';
+    });
+    document.querySelectorAll('.kb-block-wrapper').forEach(el => {
+      el._blockActivated = false;
+      const actions = el.querySelector('.kb-block-actions');
+      if (actions) actions.remove();
+    });
   }
 
 })();

@@ -1086,3 +1086,207 @@
   border-color: transparent !important;
   background-color: transparent !important;
 }
+
+/* ============================================================
+   EDITOR VISUAL INLINE — estilos adicionais (v2)
+   ============================================================ */
+
+/* Drawer aberto (usa .kb-drawer-open, não .open) */
+.kb-settings-drawer.kb-drawer-open {
+  transform: translateX(0);
+}
+
+/* Campo do drawer */
+.kb-drawer-field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #334155;
+}
+
+/* Elemento em modo edição */
+.kb-editable {
+  outline: none;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+
+.kb-edit-active .kb-editable:hover,
+.kb-edit-active .kb-editable:focus {
+  background: rgba(37, 99, 235, 0.06);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.25);
+}
+
+/* Bloco wrapper — destaque leve em modo edição */
+.kb-edit-active .kb-block-wrapper {
+  position: relative;
+  border: 1.5px dashed transparent;
+  border-radius: 10px;
+  padding: 10px;
+  transition: border-color 0.15s;
+}
+
+.kb-edit-active .kb-block-wrapper:hover {
+  border-color: #2563eb;
+}
+
+/* Barra de ações de bloco — exibida ao hover do bloco */
+.kb-block-actions {
+  display: none;
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background: #1e293b;
+  border-radius: 8px;
+  padding: 4px 6px;
+  gap: 4px;
+  flex-direction: row;
+  align-items: center;
+  z-index: 20;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+}
+
+.kb-edit-active .kb-block-wrapper:hover .kb-block-actions {
+  display: flex;
+}
+
+.kb-block-action-btn {
+  padding: 4px 8px;
+  border: none;
+  background: transparent;
+  color: #cbd5e1;
+  font-size: 11px;
+  cursor: pointer;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  white-space: nowrap;
+}
+
+.kb-block-action-btn:hover { background: #334155; color: #fff; }
+.kb-block-action-btn.danger:hover { background: #ef4444; color: #fff; }
+
+/* Botões do editor (admin bar, toolbar) */
+.kb-btn-editor {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  border: none;
+  border-radius: 8px;
+  font-size: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.kb-btn-editor.primary   { background: #2563eb; color: #fff; }
+.kb-btn-editor.secondary { background: #e2e8f0; color: #1e293b; }
+.kb-btn-editor.success   { background: #16a34a; color: #fff; }
+.kb-btn-editor.warning   { background: #d97706; color: #fff; }
+.kb-btn-editor.danger    { background: #dc2626; color: #fff; }
+
+.kb-btn-editor:hover { opacity: 0.88; transform: translateY(-1px); }
+
+/* Barra de Administração fixa no topo */
+.kb-editor-admin-bar {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2000;
+  background: #0f172a;
+  color: #f1f5f9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 20px;
+  gap: 12px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 10px rgba(0,0,0,0.35);
+  min-height: 52px;
+}
+
+.kb-editor-admin-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.kb-editor-admin-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Barra de Ferramentas Sticky */
+.kb-editor-toolbar {
+  position: fixed;
+  top: 52px;
+  left: 0;
+  right: 0;
+  z-index: 1999;
+  background: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 16px;
+  flex-wrap: wrap;
+  box-shadow: 0 2px 6px rgba(0,0,0,0.2);
+}
+
+.kb-toolbar-group {
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  padding: 0 6px;
+  border-right: 1px solid #334155;
+}
+
+.kb-toolbar-group:last-child { border-right: none; }
+
+.kb-toolbar-btn {
+  background: transparent;
+  border: none;
+  color: #cbd5e1;
+  padding: 5px 8px;
+  border-radius: 5px;
+  cursor: pointer;
+  font-size: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 0.1s;
+}
+
+.kb-toolbar-btn:hover { background: #334155; color: #fff; }
+
+.kb-toolbar-select {
+  background: #334155;
+  color: #f1f5f9;
+  border: none;
+  border-radius: 5px;
+  padding: 4px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+/* Status badge */
+.kb-status-badge {
+  display: inline-block;
+  padding: 2px 10px;
+  border-radius: 99px;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.kb-status-badge.draft     { background: #fef3c7; color: #92400e; }
+.kb-status-badge.published { background: #dcfce7; color: #166534; }

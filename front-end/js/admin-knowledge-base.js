@@ -161,39 +161,11 @@
   }
 
   window.openModalForCreate = function () {
-    if (!elForm) return;
-    elForm.reset();
-    document.getElementById('admin-kb-id').value = '';
-    document.getElementById('admin-kb-modal-title').textContent = 'Novo Artigo';
-    if (elFormMessage) elFormMessage.textContent = '';
-    if (elStepsContainer) elStepsContainer.innerHTML = '';
-    addStepRow(); // Inicia com 1 passo por padrão
-    if (elModal) elModal.hidden = false;
+    window.location.href = `./BaseConhecimento.html#novo-artigo&edit=true`;
   };
 
   window.editAdminArticle = function (id) {
-    const art = articlesState.find(a => a.id === id);
-    if (!art || !elForm) return;
-
-    document.getElementById('admin-kb-modal-title').textContent = `Editar Artigo: ${art.title}`;
-    document.getElementById('admin-kb-id').value = art.id;
-    document.getElementById('admin-kb-title').value = art.title || '';
-    document.getElementById('admin-kb-category').value = art.category || 'Primeiros passos';
-    document.getElementById('admin-kb-audience').value = art.audience || 'company';
-    document.getElementById('admin-kb-readtime').value = art.readTime || '3 min de leitura';
-    document.getElementById('admin-kb-lead').value = art.lead || art.summary || '';
-    document.getElementById('admin-kb-alert').value = art.alertTip || '';
-
-    if (elFormMessage) elFormMessage.textContent = '';
-    if (elStepsContainer) elStepsContainer.innerHTML = '';
-
-    if (Array.isArray(art.steps) && art.steps.length > 0) {
-      art.steps.forEach(step => addStepRow(step));
-    } else {
-      addStepRow();
-    }
-
-    if (elModal) elModal.hidden = false;
+    window.location.href = `./BaseConhecimento.html#artigo-${id}&edit=true`;
   };
 
   window.deleteAdminArticle = async function (id) {

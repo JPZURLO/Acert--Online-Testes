@@ -678,29 +678,17 @@
     renderArticlesList();
   }
 
-  function showArticle(articleId) {
-    const article = KNOWLEDGE_ARTICLES.find(a => a.id === articleId);
+  function showArticle(articleId, customArticle = null, forceEditMode = false) {
+    const article = customArticle || KNOWLEDGE_ARTICLES.find(a => a.id === articleId);
     if (!article) {
       showCatalog();
       return;
     }
 
-    state.currentArticleId = articleId;
+    state.currentArticleId = article.id;
     if (elCatalogView) elCatalogView.hidden = true;
     if (elArticleView) elArticleView.hidden = false;
     window.scrollTo({ top: 0, behavior: 'smooth' });
-
-    let tocHTML = '';
-    if (article.toc && article.toc.length > 0) {
-      tocHTML = `
-        <div class="kb-toc-card">
-          <div class="kb-toc-title">Sumário do Guia</div>
-          <ol class="kb-toc-list">
-            ${article.toc.map(item => `<li><a href="#${item.id}">${escapeHTML(item.title)}</a></li>`).join('')}
-          </ol>
-        </div>
-      `;
-    }
 
     let stepsHTML = '';
     if (article.steps && article.steps.length > 0) {
@@ -711,12 +699,12 @@
         const fileName = step.filename || 'print-da-tela.png';
 
         return `
-          <div class="kb-step-card">
+          <div class="kb-step-card kb-block-wrapper">
             <div class="kb-step-header">
-              <span class="kb-step-num">${step.num}</span>
+              <span class="kb-step-number">${step.num}</span>
               <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
             </div>
-            <p>${escapeHTML(step.desc)}</p>
+            <p class="kb-step-desc">${escapeHTML(step.desc)}</p>
             
             <figure class="kb-step-figure">
               <div class="kb-step-figure-badge">🖼️ Print da Tela: <code>${fileName}</code></div>
@@ -752,9 +740,15 @@
 
     elArticleView.innerHTML = `
       <div class="kb-animated">
-        <button class="button secondary" type="button" style="margin-bottom: 20px;" onclick="window.backToCatalog()">
-          ← Voltar para a lista de artigos
-        </button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-wrap: wrap; gap: 10px;">
+          <button class="button secondary" type="button" onclick="window.backToCatalog()">
+            ← Voltar para a lista de artigos
+          </button>
+          
+          <button class="kb-btn-editor primary" type="button" id="btn-trigger-inline-edit" onclick="window.enableInlineKbEditor(window.currentKbArticleObj)">
+            <i class="fa-solid fa-pen-to-square"></i> ✏️ Editar no Editor Visual
+          </button>
+        </div>
 
         <div class="kb-reader-layout">
           <main class="kb-article-content">
@@ -764,15 +758,15 @@
                 <span class="kb-read-time">⏱️ ${article.readTime}</span>
                 <span class="kb-read-time">📅 Atualizado em ${article.updatedAt}</span>
               </div>
-              <h1 style="font-size: 28px; font-weight: 850; margin: 12px 0;">${escapeHTML(article.title)}</h1>
-              <p class="kb-article-lead">${escapeHTML(article.lead || article.summary)}</p>
+              <h1 class="kb-header-title" style="font-size: 28px; font-weight: 850; margin: 12px 0;">${escapeHTML(article.title)}</h1>
+              <p class="kb-header-lead kb-article-lead">${escapeHTML(article.lead || article.summary)}</p>
             </header>
-
-            ${tocHTML}
 
             <div class="kb-article-body">
               <h2 style="font-size: 20px; font-weight: 850; margin: 24px 0 16px;">Passo a Passo Guiado com Imagens</h2>
-              ${stepsHTML}
+              <div class="kb-article-steps">
+                ${stepsHTML}
+              </div>
 
               ${article.alertTip ? `
                 <div class="kb-alert kb-alert-tip">
@@ -801,6 +795,12 @@
         </div>
       </div>
     `;
+
+    window.currentKbArticleObj = article;
+
+    if (forceEditMode && typeof window.enableInlineKbEditor === 'function') {
+      window.enableInlineKbEditor(article);
+    }
   }
 
   // --- Modal Lightbox Zoom de Imagem ---
