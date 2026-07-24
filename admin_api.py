@@ -684,4 +684,92 @@ def create_admin_blueprint(open_database, token_payload):
         finally:
             connection.close()
 
+    @blueprint.get("/api/admin/knowledge-base")
+    def list_admin_knowledge_base():
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        kb_file = os.path.join(current_app.root_path, "data", "knowledge_base_articles.json")
+        if os.path.exists(kb_file):
+            try:
+                with open(kb_file, "r", encoding="utf-8") as f:
+                    articles = json.load(f)
+                return jsonify({"success": True, "articles": articles})
+            except Exception as exc:
+                return jsonify({"success": False, "message": str(exc)}), 500
+        return jsonify({"success": True, "articles": []})
+
+    @blueprint.post("/api/admin/knowledge-base")
+    def save_admin_knowledge_base_article():
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        title = text(data.get("title"), 200)
+        if not title:
+            return jsonify({"success": False, "message": "Título é obrigatório."}), 400
+
+        article_id = text(data.get("id"), 120) or slug(title)
+        category = text(data.get("category"), 100) or "Geral"
+        audience = text(data.get("audience"), 30) or "company"
+        read_time = text(data.get("readTime"), 50) or "3 min de leitura"
+        lead = text(data.get("lead") or data.get("summary"), 2000)
+        alert_tip = text(data.get("alertTip"), 2000)
+        steps = data.get("steps") if isinstance(data.get("steps"), list) else []
+
+        kb_dir = os.path.join(current_app.root_path, "data")
+        os.makedirs(kb_dir, exist_ok=True)
+        kb_file = os.path.join(kb_dir, "knowledge_base_articles.json")
+
+        articles = []
+        if os.path.exists(kb_file):
+            try:
+                with open(kb_file, "r", encoding="utf-8") as f:
+                    articles = json.load(f)
+            except Exception:
+                articles = []
+
+        article_obj = {
+            "id": article_id,
+            "title": title,
+            "summary": lead[:160],
+            "category": category,
+            "audience": audience,
+            "readTime": read_time,
+            "updatedAt": datetime.now().strftime("%d/%m/%Y"),
+            "lead": lead,
+            "alertTip": alert_tip,
+            "steps": steps,
+        }
+
+        existing_index = next((i for i, a in enumerate(articles) if a.get("id") == article_id), None)
+        if existing_index is not None:
+            articles[existing_index] = article_obj
+        else:
+            articles.append(article_obj)
+
+        with open(kb_file, "w", encoding="utf-8") as f:
+            json.dump(articles, f, ensure_ascii=False, indent=2)
+
+        return jsonify({"success": True, "article": article_obj})
+
+    @blueprint.delete("/api/admin/knowledge-base/<article_id>")
+    def delete_admin_knowledge_base_article(article_id):
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        kb_file = os.path.join(current_app.root_path, "data", "knowledge_base_articles.json")
+        if not os.path.exists(kb_file):
+            return jsonify({"success": False, "message": "Artigo não encontrado."}), 404
+
+        try:
+            with open(kb_file, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            articles = [a for a in articles if a.get("id") != article_id]
+            with open(kb_file, "w", encoding="utf-8") as f:
+                json.dump(articles, f, ensure_ascii=False, indent=2)
+            return jsonify({"success": True})
+        except Exception as exc:
+            return jsonify({"success": False, "message": str(exc)}), 500
+
     return blueprint

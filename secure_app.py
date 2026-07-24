@@ -421,6 +421,20 @@ def obter_nome_completo():
         connection.close()
 
 
+@app.get("/api/knowledge-base/articles")
+def public_knowledge_base_articles():
+    import json, os
+    kb_file = os.path.join(app.root_path, "data", "knowledge_base_articles.json")
+    if os.path.exists(kb_file):
+        try:
+            with open(kb_file, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            return jsonify({"success": True, "articles": articles})
+        except Exception:
+            pass
+    return jsonify({"success": True, "articles": []})
+
+
 @app.get("/api/obterRazaoSocial")
 def obter_razao_social():
     payload, error = token_payload("company")

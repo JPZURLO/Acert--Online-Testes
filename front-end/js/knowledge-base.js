@@ -538,12 +538,26 @@
   let elArticlesGrid = null;
   let elNoResults = null;
 
-  document.addEventListener('DOMContentLoaded', () => {
+  document.addEventListener('DOMContentLoaded', async () => {
     cacheDOMElements();
     renderCategoryPills();
     bindEvents();
+    await fetchServerArticles();
     checkURLHashRoute();
   });
+
+  async function fetchServerArticles() {
+    try {
+      const res = await fetch('/api/knowledge-base/articles');
+      if (res.ok) {
+        const data = await res.json();
+        if (data.success && Array.isArray(data.articles) && data.articles.length > 0) {
+          KNOWLEDGE_ARTICLES.length = 0;
+          KNOWLEDGE_ARTICLES.push(...data.articles);
+        }
+      }
+    } catch (_) {}
+  }
 
   function cacheDOMElements() {
     elCatalogView = document.getElementById('kb-catalog-view');
