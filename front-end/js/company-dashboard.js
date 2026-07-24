@@ -251,10 +251,44 @@ function renderOptions(question, container, questionIndex = 0) {
         question.correctAnswers = [question.options[0]];
       }
     }
-  } else {
-    if (!question.correctAnswer && question.options.length > 0) {
-      question.correctAnswer = question.options[0];
+  if (question.type === 'binary_choice') {
+    if (!Array.isArray(question.options) || question.options.length !== 2) {
+      question.options = ['Conforme', 'Não conforme'];
     }
+    if (!question.correctOption) question.correctOption = question.options[0];
+    if (!question.correctAnswer) question.correctAnswer = question.options[0];
+  } else if (question.type === 'fill_blank') {
+    if (!Array.isArray(question.blanks) || question.blanks.length === 0) {
+      question.blanks = [{ id: 'blank-1', acceptedAnswers: ['palavra'], caseSensitive: false, accentInsensitive: true }];
+    }
+  }
+
+  if (question.type === 'fill_blank') {
+    const helper = document.createElement('div');
+    helper.className = 'options-helper-text';
+    helper.textContent = 'Lacunas configuradas no enunciado (use ______ para indicar onde fica cada lacuna):';
+    container.appendChild(helper);
+
+    question.blanks.forEach((blank, bIdx) => {
+      const row = document.createElement('div');
+      row.className = 'option-row';
+      row.style.flexDirection = 'column';
+      row.style.alignItems = 'flex-start';
+      row.style.gap = '0.4rem';
+
+      const title = document.createElement('div');
+      title.innerHTML = `<strong>Lacuna #${bIdx + 1}</strong> (${blank.id})`;
+      
+      const accInput = document.createElement('input');
+      accInput.type = 'text';
+      accInput.value = (blank.acceptedAnswers || []).join(', ');
+      accInput.placeholder = 'Respostas aceitas (separadas por vírgula)';
+      accInput.dataset.blankIndex = String(bIdx);
+
+      row.append(title, accInput);
+      container.appendChild(row);
+    });
+    return;
   }
 
   const helper = document.createElement('div');
@@ -295,7 +329,7 @@ function renderOptions(question, container, questionIndex = 0) {
       row.appendChild(badge);
     }
 
-    if (question.type !== 'true_false') {
+    if (!['true_false', 'binary_choice'].includes(question.type)) {
       const remove = document.createElement('button');
       remove.type = 'button';
       remove.className = 'remove-option';
@@ -1168,7 +1202,8 @@ function bindEvents() {
   window.addEventListener('scroll', scheduleStepUpdate, { passive: true });
   window.addEventListener('resize', scheduleStepUpdate);
   updateActiveStep();
-  document.querySelectorAll('[data-view="overview"], [data-view="results"]').forEach(button => button.addEventListener('click', () => toast('Este módulo será conectado na próxima etapa.')));
+  document.querySelectorAll('[data-view="overview"]').forEach(button => button.addEventListener('click', () => window.location.href = 'VisaoGeral.html'));
+  document.querySelectorAll('[data-view="results"]').forEach(button => button.addEventListener('click', () => window.location.href = 'Resultados.html'));
   document.getElementById('collapse-sidebar').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
   document.getElementById('mobile-menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
   document.getElementById('botao-logout').addEventListener('click', async () => {
