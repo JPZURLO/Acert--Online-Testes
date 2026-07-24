@@ -15,7 +15,7 @@ class ProductionBootstrapTests(unittest.TestCase):
     def test_all_migrations_have_executable_statements(self):
         files = sorted([f for f in Path("migrations").glob("*.sql") if not f.name.endswith("_rollback.sql")])
         self.assertEqual(files[0].name, "000_base_schema.sql")
-        self.assertEqual(files[-1].name, "016_question_types_restructuring.sql")
+        self.assertEqual(files[-1].name, "017_exam_documents_and_questions_expansion.sql")
         for migration in files:
             with self.subTest(migration=migration.name):
                 self.assertTrue(statements(migration.read_text(encoding="utf-8")))

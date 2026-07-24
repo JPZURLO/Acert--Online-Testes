@@ -256,6 +256,8 @@ def protect_cookie_authenticated_writes():
         return None
     if not request.cookies.get(JWT_COOKIE_NAME):
         return None
+    if not request.cookies.get(JWT_COOKIE_NAME):
+        return None
     cookie_token = request.cookies.get(CSRF_COOKIE_NAME, "")
     header_token = request.headers.get("X-CSRF-Token", "")
     if not cookie_token or not header_token or not hmac.compare_digest(cookie_token, header_token):
@@ -292,6 +294,8 @@ def request_too_large(_error):
     return "Arquivo muito grande.", 413
 
 
+from exam_documents import create_exam_documents_blueprint
+app.register_blueprint(create_exam_documents_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_operations_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
@@ -303,7 +307,6 @@ app.register_blueprint(create_support_finance_blueprint(open_database, token_pay
 app.register_blueprint(create_error_monitoring_blueprint(open_database, token_payload))
 install_error_handlers(app, open_database, token_payload)
 recording_maintenance_thread = start_recording_maintenance(open_database)
-
 
 @app.post("/login")
 def login():
