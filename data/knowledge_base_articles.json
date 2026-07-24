@@ -1,0 +1,418 @@
+[
+  {
+    "id": "como-criar-um-novo-participante",
+    "title": "Como criar um novo participante",
+    "summary": "Aprenda a cadastrar manualmente um candidato ou aluno no painel da empresa para conceder acesso aos exames.",
+    "category": "Participantes",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Este guia ensina passo a passo como cadastrar um participante individual no painel da empresa.",
+    "alertTip": "Você também pode importar centenas de participantes de uma só vez utilizando a importação em lote via arquivo CSV.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Acesse a área de Participantes",
+        "desc": "No painel da empresa, clique na opção \"Participantes\" na barra de navegação lateral para visualizar a lista completa.",
+        "image": "./assets/images/base-conhecimento/12-empresa-participantes-listagem.png",
+        "filename": "12-empresa-participantes-listagem.png",
+        "alt": "Tela de Gestão de Participantes com a lista de inscritos",
+        "caption": "Tela principal de Gestão de Participantes da empresa"
+      },
+      {
+        "num": 2,
+        "title": "Clique no botão \"Novo Participante\"",
+        "desc": "Localize o botão azul \"+ Novo Participante\" no canto superior direito da tela. O modal centralizado de cadastro será aberto.",
+        "image": "./assets/images/base-conhecimento/13-empresa-participantes-novo-modal.png",
+        "filename": "13-empresa-participantes-novo-modal.png",
+        "alt": "Modal centralizado de cadastro de novo participante",
+        "caption": "Formulário de cadastro individual do novo participante"
+      },
+      {
+        "num": 3,
+        "title": "Preencha os dados e confirme o cadastro",
+        "desc": "Informe o Nome Completo, E-mail oficial, Documento e selecione o exame ao qual o participante terá acesso.",
+        "image": "./assets/images/base-conhecimento/12-empresa-participantes-listagem.png",
+        "filename": "12-empresa-participantes-listagem.png",
+        "alt": "Lista de participantes com o cadastro confirmado",
+        "caption": "Participante cadastrado e credenciais de acesso ativas"
+      }
+    ]
+  },
+  {
+    "id": "como-importar-participantes-por-csv",
+    "title": "Como importar participantes por CSV",
+    "summary": "Cadastre turmas inteiras ou listas de candidatos de forma rápida enviando uma planilha CSV.",
+    "category": "Participantes",
+    "audience": "company",
+    "readTime": "4 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Saiba como estruturar sua planilha no formato CSV e importar múltiplos participantes em lote.",
+    "alertTip": "Certifique-se de salvar a planilha com a codificação UTF-8 para evitar problemas com acentos.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Abra a opção Importar CSV",
+        "desc": "Na tela de Participantes, clique em \"Importar CSV\" para abrir o assistente em lote.",
+        "image": "./assets/images/base-conhecimento/12-empresa-participantes-listagem.png",
+        "filename": "12-empresa-participantes-listagem.png",
+        "alt": "Tela de Gestão com o botão de Importar CSV destacado",
+        "caption": "Tela de Participantes com o botão Importar CSV"
+      },
+      {
+        "num": 2,
+        "title": "Preencha a planilha e envie o arquivo",
+        "desc": "Selecione o arquivo `.csv` preenchido com a lista de candidatos no modal de importação.",
+        "image": "./assets/images/base-conhecimento/14-empresa-participantes-importar-csv-modal.png",
+        "filename": "14-empresa-participantes-importar-csv-modal.png",
+        "alt": "Modal de importação de participantes via arquivo CSV",
+        "caption": "Modal para envio do arquivo CSV formatado"
+      },
+      {
+        "num": 3,
+        "title": "Valide e confirme a importação",
+        "desc": "O sistema processará as linhas da planilha. Clique em \"Validar e Importar\" para salvar a turma no sistema.",
+        "image": "./assets/images/base-conhecimento/12-empresa-participantes-listagem.png",
+        "filename": "12-empresa-participantes-listagem.png",
+        "alt": "Lista atualizada após a importação via CSV",
+        "caption": "Participantes cadastrados com sucesso na plataforma"
+      }
+    ]
+  },
+  {
+    "id": "como-salvar-um-exame-como-rascunho",
+    "title": "Como salvar um exame como rascunho",
+    "summary": "Entenda como o salvamento de rascunhos protege suas alterações antes da publicação final do teste.",
+    "category": "Criação de exames",
+    "audience": "company",
+    "readTime": "2 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Evite a perda de dados durante a montagem das suas avaliações salvando rascunhos da edição.",
+    "alertTip": "O exame em rascunho não fica visível para os candidatos até que você clique no botão \"Publicar teste\".",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Edite o conteúdo do teste",
+        "desc": "Qualquer alteração no título, instruções, tempo ou questões atualiza a indicação \"Rascunho local\" no topo.",
+        "image": "./assets/images/base-conhecimento/15-empresa-exames-rascunho-indicador.png",
+        "filename": "15-empresa-exames-rascunho-indicador.png",
+        "alt": "Indicador de Rascunho no cabeçalho do Estúdio de Testes",
+        "caption": "Cabeçalho do Estúdio com indicação de Rascunho local"
+      },
+      {
+        "num": 2,
+        "title": "Clique em \"Salvar rascunho\"",
+        "desc": "Utilize o botão \"Salvar rascunho\" no canto superior direito para persistir a versão atual no banco.",
+        "image": "./assets/images/base-conhecimento/11-empresa-dashboard-main.png",
+        "filename": "11-empresa-dashboard-main.png",
+        "alt": "Visão geral do painel do Estúdio com o botão Salvar rascunho",
+        "caption": "Estúdio de Testes da empresa com botões de rascunho"
+      }
+    ]
+  },
+  {
+    "id": "como-importar-questoes",
+    "title": "Como importar questões",
+    "summary": "Utilize o assistente de importação em 3 etapas com pré-visualização editável para subir questões por Excel, Word, CSV ou GIFT.",
+    "category": "Questões e importação",
+    "audience": "company",
+    "readTime": "5 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Aprenda a utilizar o assistente oficial de importação de questões com revisão prévia editável.",
+    "alertTip": "Você pode escolher se a importação vai Substituir a lista atual ou Adicionar às questões existentes.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Clique em \"Importar questões\"",
+        "desc": "No construtor do exame, clique no botão azul \"Importar questões\" para abrir o assistente em 3 etapas.",
+        "image": "./assets/images/base-conhecimento/19-empresa-construtor-questoes.png",
+        "filename": "19-empresa-construtor-questoes.png",
+        "alt": "Botão de Importar Questões no Construtor do Exame",
+        "caption": "Seção do Construtor com botões de ação"
+      },
+      {
+        "num": 2,
+        "title": "Escolha o formato dos arquivos (Etapa 1)",
+        "desc": "Selecione se deseja enviar 1 único arquivo (perguntas + alternativas) ou 2 arquivos separados (perguntas e gabarito).",
+        "image": "./assets/images/base-conhecimento/20-empresa-importacao-assistente-etapa1.png",
+        "filename": "20-empresa-importacao-assistente-etapa1.png",
+        "alt": "Etapa 1 do Assistente de Importação com 1 ou 2 arquivos",
+        "caption": "Etapa 1: Seleção do modo de arquivo"
+      },
+      {
+        "num": 3,
+        "title": "Revise as questões na pré-visualização (Etapa 2)",
+        "desc": "Corrija enunciados, ajuste alternativas ou marque respostas corretas diretamente nos cartões editáveis.",
+        "image": "./assets/images/base-conhecimento/21-empresa-importacao-assistente-etapa2-preview.png",
+        "filename": "21-empresa-importacao-assistente-etapa2-preview.png",
+        "alt": "Etapa 2 de pré-visualização editável das questões",
+        "caption": "Etapa 2: Cartões de questões pré-visualizados e editáveis"
+      },
+      {
+        "num": 4,
+        "title": "Confirme a importação (Etapa 3)",
+        "desc": "Clique em \"Confirmar importação\". As questões revisadas serão injetadas diretamente na lista do seu exame.",
+        "image": "./assets/images/base-conhecimento/22-empresa-importacao-assistente-etapa3-confirmacao.png",
+        "filename": "22-empresa-importacao-assistente-etapa3-confirmacao.png",
+        "alt": "Etapa 3 de confirmação da importação no exame",
+        "caption": "Etapa 3: Resumo e confirmação no teste"
+      }
+    ]
+  },
+  {
+    "id": "como-importar-perguntas-e-gabarito-separados",
+    "title": "Como importar perguntas e gabarito em arquivos separados",
+    "summary": "Saiba como importar um arquivo contendo enunciados e opções e um segundo arquivo contendo as respostas corretas.",
+    "category": "Questões e importação",
+    "audience": "company",
+    "readTime": "4 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Ideal para provas extensas onde as respostas corretas estão organizadas em uma folha de gabarito separada.",
+    "alertTip": "O arquivo de gabarito pode conter múltiplas respostas por questão, ex: `Questão 1: A, C, E`.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Selecione \"Dois arquivos separados\"",
+        "desc": "Na primeira etapa do assistente, escolha o card \"Dois arquivos separados\".",
+        "image": "./assets/images/base-conhecimento/20-empresa-importacao-assistente-etapa1.png",
+        "filename": "20-empresa-importacao-assistente-etapa1.png",
+        "alt": "Seleção da opção de 2 arquivos separados no assistente",
+        "caption": "Assistente de importação no modo de dois arquivos"
+      },
+      {
+        "num": 2,
+        "title": "Consulte os modelos de gabarito no botão \"Modelos\"",
+        "desc": "Clique no botão \"Modelos\" para ver exemplos de gabaritos suportados (inclusive com múltiplas respostas corretas por questão).",
+        "image": "./assets/images/base-conhecimento/23-empresa-importacao-modelos-modal.png",
+        "filename": "23-empresa-importacao-modelos-modal.png",
+        "alt": "Modal de modelos de importação e especificações de gabarito",
+        "caption": "Modal de modelos de arquivos e gabaritos suportados"
+      }
+    ]
+  },
+  {
+    "id": "como-configurar-multiplas-respostas-corretas",
+    "title": "Como configurar múltiplas respostas corretas",
+    "summary": "Configure questões de múltipla seleção onde o participante precisa marcar mais de uma alternativa correta.",
+    "category": "Questões e importação",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Saiba como definir opções de seleção múltipla (checkboxes) com pontuação integral ou parcial.",
+    "alertTip": "Você também pode definir este formato durante a importação via Excel marcando as colunas correspondentes.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Escolha \"Múltipla seleção (várias respostas)\"",
+        "desc": "No seletor de tipo de questão, escolha \"Múltipla seleção\". Os seletores mudarão de formato de rádio para checkbox.",
+        "image": "./assets/images/base-conhecimento/19-empresa-construtor-questoes.png",
+        "filename": "19-empresa-construtor-questoes.png",
+        "alt": "Seletor do tipo Múltipla seleção no Construtor",
+        "caption": "Seletor de tipo de questão no Construtor"
+      },
+      {
+        "num": 2,
+        "title": "Marque todas as alternativas corretas",
+        "desc": "Selecione os checkboxes ao lado de cada opção correta (ex: Alternativas A, C e E).",
+        "image": "./assets/images/base-conhecimento/21-empresa-importacao-assistente-etapa2-preview.png",
+        "filename": "21-empresa-importacao-assistente-etapa2-preview.png",
+        "alt": "Questão com múltiplas opções marcadas como corretas",
+        "caption": "Cartão de questão com várias respostas corretas"
+      }
+    ]
+  },
+  {
+    "id": "como-anexar-documentos-e-termos",
+    "title": "Como anexar documentos e termos",
+    "summary": "Adicione regras do exame, termos de aceite com leitura obrigatória ou formulários que exigem assinatura e devolução.",
+    "category": "Documentos e termos",
+    "audience": "company",
+    "readTime": "4 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Garanta o cumprimento de exigências normativas e de conformidade anexando termos e documentos ao exame.",
+    "alertTip": "Se marcar \"Exigir aceite digital\", o participante só poderá iniciar a prova após aceitar o termo.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Acesse a seção \"Documentos, Regras e Termos\"",
+        "desc": "No Estúdio de Testes, na aba Aplicação, localize o painel de documentos e clique em \"+ Anexar Documento / Termo\".",
+        "image": "./assets/images/base-conhecimento/17-empresa-documentos-painel.png",
+        "filename": "17-empresa-documentos-painel.png",
+        "alt": "Painel de Gestão de Documentos e Termos anexados ao exame",
+        "caption": "Painel de Gestão de Documentos e Termos do Exame"
+      },
+      {
+        "num": 2,
+        "title": "Configure o documento no modal de anexo",
+        "desc": "Defina o título, selecione o arquivo PDF/DOCX e marque a regra de exigência (confirmação ou devolução assinada).",
+        "image": "./assets/images/base-conhecimento/18-empresa-documentos-anexo-modal.png",
+        "filename": "18-empresa-documentos-anexo-modal.png",
+        "alt": "Modal de anexo e regras de documentos e termos",
+        "caption": "Modal de anexo de documentos e aceite digital"
+      }
+    ]
+  },
+  {
+    "id": "como-exigir-assinatura-antes-da-prova",
+    "title": "Como exigir assinatura antes da prova",
+    "summary": "Exija que o candidato baixe o documento de instrução ou termo, assine e envie a cópia antes de iniciar.",
+    "category": "Documentos e termos",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Passo a passo para ativar a exigência de devolução de documento assinado antes da liberação das questões.",
+    "alertTip": "O envio do comprovante assinado fica gravado no histórico individual do participante para auditoria.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Ative a regra no modal do documento",
+        "desc": "No modal de anexo do documento, selecione a regra \"Exigir devolução do documento assinado pelo participante\".",
+        "image": "./assets/images/base-conhecimento/18-empresa-documentos-anexo-modal.png",
+        "filename": "18-empresa-documentos-anexo-modal.png",
+        "alt": "Configuração da regra de devolução no modal",
+        "caption": "Configuração no modal de anexo do documento"
+      },
+      {
+        "num": 2,
+        "title": "Exigência na tela do participante",
+        "desc": "Na área do candidato, os botões de download e upload do termo assinado ficarão bloqueando o início até a conclusão.",
+        "image": "./assets/images/base-conhecimento/27-participante-documentos-pendentes.png",
+        "filename": "27-participante-documentos-pendentes.png",
+        "alt": "Ambiente do participante com documento pendente",
+        "caption": "Ambiente do participante com envio de documento pendente"
+      }
+    ]
+  },
+  {
+    "id": "como-configurar-envio-acesso",
+    "title": "Como configurar o envio do acesso",
+    "summary": "Escolha se os convites com login e senha serão enviados automaticamente ao salvar, agendados por horário ou enviados manualmente.",
+    "category": "Convites e acessos",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Configure as opções de notificação por e-mail para disponibilizar credenciais de acesso no momento exato.",
+    "alertTip": "Se selecionar envio manual, você pode disparar os e-mails quando desejar através da lista de participantes.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Selecione a forma de envio do acesso",
+        "desc": "Na aba Aplicação do exame, navegue até o painel \"Envio do acesso ao candidato\" e escolha a opção desejada.",
+        "image": "./assets/images/base-conhecimento/16-empresa-envio-acesso-painel.png",
+        "filename": "16-empresa-envio-acesso-painel.png",
+        "alt": "Painel de configuração de envio de credenciais de acesso",
+        "caption": "Painel de agendamento e forma de envio do acesso"
+      }
+    ]
+  },
+  {
+    "id": "como-acompanhar-o-exame-em-tempo-real",
+    "title": "Como acompanhar o exame em tempo real",
+    "summary": "Monitore quais participantes iniciaram, quem está em andamento, tempo restante e respostas enviadas ao vivo.",
+    "category": "Monitoramento",
+    "audience": "company",
+    "readTime": "4 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Tenha controle total do andamento dos testes com indicadores em tempo real.",
+    "alertTip": "Caso um participante perca a conexão, o sistema permite retomar o exame exatamente de onde parou.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Acesse o Painel de Acompanhamento ao Vivo",
+        "desc": "Clique em \"Resultados\" ou \"Monitoramento\" para abrir o acompanhamento em tempo real dos participantes em prova.",
+        "image": "./assets/images/base-conhecimento/24-empresa-monitoramento-ao-vivo.png",
+        "filename": "24-empresa-monitoramento-ao-vivo.png",
+        "alt": "Painel de Acompanhamento ao Vivo em tempo real",
+        "caption": "Painel de Monitoramento ao Vivo"
+      }
+    ]
+  },
+  {
+    "id": "como-visualizar-os-resultados",
+    "title": "Como visualizar os resultados",
+    "summary": "Analise notas finais, relatórios por competência, tempo de resposta e notas corrigidas automaticamente.",
+    "category": "Resultados",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Saiba como interpretar os resultados consolidados e exportar relatórios de desempenho.",
+    "alertTip": "Você pode liberar os resultados de forma automática ou somente após a revisão manual do avaliador.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Acesse o Dashboard de Resultados",
+        "desc": "Clique no menu \"Resultados\" para abrir a visão consolidada de notas, percentuais de acerto e aprovações.",
+        "image": "./assets/images/base-conhecimento/25-empresa-resultados-dashboard.png",
+        "filename": "25-empresa-resultados-dashboard.png",
+        "alt": "Dashboard de Resultados consolidados",
+        "caption": "Dashboard de Resultados consolidados da empresa"
+      }
+    ]
+  },
+  {
+    "id": "como-personalizar-aparencia-exame",
+    "title": "Como personalizar a aparência do exame",
+    "summary": "Adicione o logotipo da sua empresa, altere as cores da marca e visualize a prévia em tempo real.",
+    "category": "Personalização",
+    "audience": "company",
+    "readTime": "3 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Fortaleça a autoridade da sua marca personalizando a tela em que o participante fará a avaliação.",
+    "alertTip": "A personalização visual está disponível nos planos Pró e Enterprise da plataforma.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Personalize as cores e o logotipo da empresa",
+        "desc": "Navegue até a seção 4 (Aparência) para fazer upload da sua marca (PNG/JPG) e escolher a paleta de cores.",
+        "image": "./assets/images/base-conhecimento/11-empresa-dashboard-main.png",
+        "filename": "11-empresa-dashboard-main.png",
+        "alt": "Painel de Aparência e Marca no Estúdio",
+        "caption": "Estúdio de Testes com personalização de marca"
+      }
+    ]
+  },
+  {
+    "id": "conheca-os-tipos-de-questoes-disponiveis",
+    "title": "Conheça os tipos de questões disponíveis",
+    "summary": "Explore todas as modalidades de questões suportadas: resposta única, seleção múltipla, verdadeiro/falso, escolha binária, lacunas e dissertativas.",
+    "category": "Conheça a plataforma",
+    "audience": "platform",
+    "readTime": "5 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Conheça os recursos pedagógicos e formatos de avaliação disponíveis na plataforma Online Teste.",
+    "alertTip": "Todas as alternativas podem ser embaralhadas automaticamente a cada tentativa.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Tipos de Questões no Construtor",
+        "desc": "O construtor permite alternar instantaneamente entre escolha única, seleção múltipla, verdadeiro/falso, lacunas e dissertativas.",
+        "image": "./assets/images/base-conhecimento/19-empresa-construtor-questoes.png",
+        "filename": "19-empresa-construtor-questoes.png",
+        "alt": "Seletor de tipo de questão no Construtor",
+        "caption": "Seletor de tipo de questão no Estúdio"
+      }
+    ]
+  },
+  {
+    "id": "conheca-a-plataforma-online-teste",
+    "title": "Conheça a plataforma Online Teste",
+    "summary": "Visão geral completa da solução em nuvem para criação, aplicação segura, correção automática e gestão corporativa de avaliações.",
+    "category": "Conheça a plataforma",
+    "audience": "platform",
+    "readTime": "6 min de leitura",
+    "updatedAt": "24/07/2026",
+    "lead": "Descubra como o Online Teste ajuda empresas, instituições de ensino e órgãos certificadores a transformar seu processo de avaliações.",
+    "alertTip": "Você pode solicitar um teste gratuito ou agendar uma demonstração exclusiva com nossos especialistas.",
+    "steps": [
+      {
+        "num": 1,
+        "title": "Experiência Completa para a Empresa",
+        "desc": "Do cadastro de exames ao acompanhamento em tempo real, o sistema oferece um ambiente integrado e seguro.",
+        "image": "./assets/images/base-conhecimento/11-empresa-dashboard-main.png",
+        "filename": "11-empresa-dashboard-main.png",
+        "alt": "Visão Geral do Painel da Empresa",
+        "caption": "Visão Geral do Estúdio de Testes da Empresa"
+      }
+    ]
+  }
+]
