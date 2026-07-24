@@ -81,6 +81,10 @@ async function api(url, options = {}) {
     data = {};
   }
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      window.location.replace('login_empresa.html');
+      return;
+    }
     const error = new Error(data.message || 'Não foi possível concluir a operação.');
     error.status = response.status;
     error.details = Array.isArray(data.errors) ? data.errors : [];
@@ -1291,12 +1295,15 @@ function bindEvents() {
   document.querySelectorAll('[data-view="results"]').forEach(button => button.addEventListener('click', () => window.location.href = 'Resultados.html'));
   document.getElementById('collapse-sidebar').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
   document.getElementById('mobile-menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
-  document.getElementById('botao-logout').addEventListener('click', async () => {
-    try { await fetch('/logout', { method: 'POST' }); } finally {
-      sessionStorage.removeItem(draftKey);
-      localStorage.removeItem('RazaoSocial');
-      window.location.replace('index.html');
-    }
+  document.querySelectorAll('#botao-logout, #logout-button, .logout-button').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await fetch('/logout', { method: 'POST' }); } finally {
+        sessionStorage.removeItem(draftKey);
+        localStorage.removeItem('RazaoSocial');
+        window.location.replace('login_empresa.html');
+      }
+    });
   });
 }
 

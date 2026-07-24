@@ -91,5 +91,43 @@
   <script src="./js/knowledge-base.js?v=3"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
+  <script>
+    document.addEventListener('DOMContentLoaded', async () => {
+      // Verificação de autenticação da empresa
+      try {
+        const res = await fetch('/api/obterRazaoSocial');
+        if (!res.ok) {
+          window.location.replace('login_empresa.html');
+          return;
+        }
+        const data = await res.json();
+        if (data.RazaoSocial) {
+          const nameEl = document.getElementById('company-name');
+          const initialsEl = document.getElementById('company-initials');
+          if (nameEl) nameEl.textContent = data.RazaoSocial;
+          if (initialsEl) {
+            initialsEl.textContent = String(data.RazaoSocial)
+              .split(/\s+/)
+              .slice(0, 2)
+              .map(x => x[0])
+              .join('')
+              .toUpperCase();
+          }
+        }
+      } catch (err) {
+        console.warn('Sessão:', err);
+      }
+
+      // Handler do botão de logout
+      document.querySelectorAll('#logout-button, #botao-logout, .logout-button').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+          e.preventDefault();
+          try { await fetch('/logout', { method: 'POST' }); } finally {
+            window.location.replace('login_empresa.html');
+          }
+        });
+      });
+    });
+  </script>
 </body>
 </html>
