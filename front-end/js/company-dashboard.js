@@ -115,12 +115,37 @@ function initials(name) {
   return String(name || 'Empresa').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
 }
 
+function getToastRegion() {
+  let container = document.getElementById('toast-region') || elements['toast-region'];
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-region';
+    container.className = 'toast-region';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(container);
+  }
+  elements['toast-region'] = container;
+  return container;
+}
+
 function toast(message, type = 'success') {
-  const item = document.createElement('div');
-  item.className = `toast ${type === 'error' ? 'error' : ''}`;
-  item.textContent = message;
-  elements['toast-region'].appendChild(item);
-  setTimeout(() => item.remove(), 3600);
+  try {
+    const container = getToastRegion();
+    if (!container) {
+      console.warn('[Toast Fallback]', message);
+      return;
+    }
+    const item = document.createElement('div');
+    item.className = `toast ${type === 'error' ? 'error' : (type === 'warning' ? 'warning' : 'success')}`;
+    item.textContent = message;
+    container.appendChild(item);
+    setTimeout(() => {
+      try { item.remove(); } catch (_) {}
+    }, 4000);
+  } catch (err) {
+    console.error('[Toast Error]', err, message);
+  }
 }
 
 function setSaveStatus(label, kind = '') {
@@ -776,10 +801,18 @@ async function saveExam(status = 'draft', silent = false) {
     return false;
   }
   setSaveStatus('Salvando...', 'saving');
+
+  const method = state.examId ? 'PUT' : 'POST';
+  const url = state.examId ? `/api/company/exams/${state.examId}` : '/api/company/exams';
+
+  console.log('saveExam iniciado');
+  console.log('payload do exame:', exam);
+  console.log('endpoint utilizado:', url);
+
   try {
-    const method = state.examId ? 'PUT' : 'POST';
-    const url = state.examId ? `/api/company/exams/${state.examId}` : '/api/company/exams';
     const data = await api(url, { method, body: JSON.stringify(exam) });
+    console.log('resposta recebida:', data);
+
     state.examId = data.exam.id;
     state.status = data.exam.status;
     state.dirty = false;
@@ -792,27 +825,45 @@ async function saveExam(status = 'draft', silent = false) {
     elements['page-title'].textContent = 'Editar teste';
     elements['breadcrumb-mode'].textContent = 'Editar teste';
     setSaveStatus(status === 'published' ? 'Teste publicado' : 'Alterações salvas', 'saved');
-    if (!silent) toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+
+    if (!silent) {
+      try {
+        toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação toast:', tErr);
+      }
+    }
     // Exibe resultado do envio de e-mail
     const emailResult = data.emailResult;
     if (!silent && emailResult && emailResult.option !== 'none' && emailResult.option !== 'manual') {
-      if (emailResult.option === 'scheduled') {
-        const qtd = emailResult.queued || 0;
-        toast(`★ ${qtd} acesso(s) ao exame agendado(s) para envio automático.`);
-      } else if (emailResult.sent > 0) {
-        let msg = `✉ ${emailResult.sent} acesso(s) ao exame enviado(s) com sucesso.`;
-        if (emailResult.failed > 0) msg += ` ${emailResult.failed} falhou.`;
-        toast(msg, emailResult.failed > 0 ? 'error' : 'success');
-      } else if (emailResult.failed > 0) {
-        toast(`⚠ Falha ao enviar acesso ao exame: ${emailResult.error || 'Erro desconhecido.'}`, 'error');
+      try {
+        if (emailResult.option === 'scheduled') {
+          const qtd = emailResult.queued || 0;
+          toast(`★ ${qtd} acesso(s) ao exame agendado(s) para envio automático.`);
+        } else if (emailResult.sent > 0) {
+          let msg = `✉ ${emailResult.sent} acesso(s) ao exame enviado(s) com sucesso.`;
+          if (emailResult.failed > 0) msg += ` ${emailResult.failed} falhou.`;
+          toast(msg, emailResult.failed > 0 ? 'error' : 'success');
+        } else if (emailResult.failed > 0) {
+          toast(`⚠ Falha ao enviar acesso ao exame: ${emailResult.error || 'Erro desconhecido.'}`, 'error');
+        }
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação de e-mail:', tErr);
       }
     }
     // Atualiza painel de status do e-mail
     updateEmailStatusPanel(emailResult);
     return true;
   } catch (error) {
+    console.error('Erro ao salvar exame:', error);
     setSaveStatus('Falha ao salvar');
-    if (!silent) toast(error.message, 'error');
+    if (!silent) {
+      try {
+        toast(error.message || 'Não foi possível salvar o exame.', 'error');
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação de erro:', tErr);
+      }
+    }
     return false;
   }
 }
