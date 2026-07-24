@@ -26,6 +26,23 @@ class ApplicationWorkflowTests(unittest.TestCase):
         self.assertTrue(has_essay)
         self.assertIsNone(answers[1]["isCorrect"])
 
+    def test_multiple_select_scoring_requires_exact_set_match(self):
+        questions = [{"id": "q1", "type": "multiple_select", "prompt": "Múltiplas", "points": 50, "correctAnswers": ["A", "C"]}]
+        # Exact set match -> correct
+        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A", "C"]'})
+        self.assertEqual((points, total, percentage, correct), (50, 50, 100.0, 1))
+        self.assertTrue(answers[0]["isCorrect"])
+
+        # Partial set match -> incorrect
+        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A"]'})
+        self.assertEqual((points, total, percentage, correct), (0, 50, 0.0, 0))
+        self.assertFalse(answers[0]["isCorrect"])
+
+        # Extra item -> incorrect
+        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A", "B", "C"]'})
+        self.assertEqual((points, total, percentage, correct), (0, 50, 0.0, 0))
+        self.assertFalse(answers[0]["isCorrect"])
+
     def test_participant_routes_require_user_session(self):
         app = Flask(__name__)
         def reject(_account_type):

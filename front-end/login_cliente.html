@@ -61,7 +61,8 @@
             </select>
             <button class="button secondary" id="new-exam" type="button">Novo</button>
             <button class="button secondary" id="save-draft" type="button">Salvar rascunho</button>
-            <button class="button primary" id="publish-exam" type="button"><span>◉</span> Visualizar e publicar</button>
+            <button class="button secondary" id="preview-exam-btn" type="button"><span>👁</span> Visualizar prévia</button>
+            <button class="button primary" id="publish-exam" type="button"><span>◉</span> Publicar teste</button>
           </div>
         </div>
 
@@ -158,6 +159,40 @@
                   <label class="toggle-field" for="allow-resume"><span class="metric-icon">↻</span><span><b>Permitir retomada</b><small>Continua de onde parou</small></span><input id="allow-resume" type="checkbox" checked><i></i></label>
                   <label class="toggle-field" for="show-answer-details"><span class="metric-icon">▤</span><span><b>Mostrar detalhes após liberação</b><small>Exibe respostas revisadas</small></span><input id="show-answer-details" type="checkbox"><i></i></label>
                 </div>
+
+                <!-- Envio do acesso ao candidato -->
+                <div class="email-send-section">
+                  <div class="email-send-heading">
+                    <span class="metric-icon">✉</span>
+                    <div>
+                      <strong>Envio do acesso ao candidato</strong>
+                      <small>Escolha quando o participante receberá o e-mail com login, senha e link do exame.</small>
+                    </div>
+                  </div>
+                  <label class="field" for="email-send-option">
+                    <span>Forma de envio</span>
+                    <select id="email-send-option">
+                      <option value="on_save">Enviar ao concluir o cadastro do exame</option>
+                      <option value="scheduled">Enviar minutos antes do início</option>
+                      <option value="manual" selected>Não enviar agora (envio manual)</option>
+                      <option value="none">Não enviar</option>
+                    </select>
+                    <small>O e-mail inclui login, senha, data, horário e link do exame.</small>
+                  </label>
+                  <div id="email-schedule-minutes-field" class="field" hidden>
+                    <label for="email-schedule-minutes">Minutos antes do início do exame <b>*</b></label>
+                    <div class="input-with-count">
+                      <input id="email-schedule-minutes" type="number" min="1" step="1" placeholder="Ex: 60" style="max-width: 140px">
+                      <span>min</span>
+                    </div>
+                    <small>O horário de início ("Disponível a partir de") deve ser preenchido.</small>
+                  </div>
+                </div>
+
+                <!-- Painel de status do envio (atualizado após salvar) -->
+                <div id="email-status-panel" class="email-status-panel" hidden aria-live="polite">
+                  <!-- Preenchido dinamicamente pelo JavaScript -->
+                </div>
               </div>
             </section>
           </div>
@@ -215,7 +250,52 @@
     </main>
   </div>
 
-  <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <!-- Modal de Prévia Completa do Candidato (Visualizar sem publicar) -->
+  <div class="modal-backdrop full-preview-backdrop" id="preview-modal" hidden>
+    <section class="preview-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-preview-exam-title">
+      <div class="preview-modal-banner">
+        <div>
+          <span class="preview-banner-badge">👁 PRÉVIA DO CANDIDATO</span>
+          <span>Visão exata de como o participante responderá a este teste.</span>
+        </div>
+        <button class="modal-close" id="close-preview-modal" type="button" aria-label="Fechar prévia">×</button>
+      </div>
+
+      <div class="candidate-preview-container" id="candidate-preview-container">
+        <header class="candidate-header">
+          <div class="candidate-logo-area">
+            <img id="modal-preview-logo" src="./assets/images/Logo.png" alt="Logo">
+            <span id="modal-preview-company">SUA EMPRESA</span>
+          </div>
+          <div class="candidate-timer-mock">
+            <span class="timer-icon">◷</span>
+            <span>Tempo restante: <strong id="modal-preview-timer">60:00</strong></span>
+          </div>
+        </header>
+
+        <main class="candidate-body">
+          <div class="candidate-exam-header">
+            <h1 id="modal-preview-exam-title">Avaliação de Competências</h1>
+            <p id="modal-preview-instructions">Leia as instruções com atenção antes de iniciar a avaliação.</p>
+            <div class="candidate-exam-tags">
+              <span>◷ <b id="modal-preview-duration-tag">60 min</b></span>
+              <span>▤ <b id="modal-preview-questions-tag">3 questões</b></span>
+              <span>♜ <b id="modal-preview-points-tag">100 pontos</b></span>
+            </div>
+          </div>
+
+          <div class="candidate-questions-feed" id="modal-preview-questions-feed">
+            <!-- Questões renderizadas em formato de prévia do candidato -->
+          </div>
+        </main>
+      </div>
+
+      <div class="preview-modal-footer">
+        <button class="button secondary" id="close-preview-btn" type="button">← Voltar para edição</button>
+        <button class="button primary" id="publish-from-preview-btn" type="button"><span>◉</span> Publicar este teste</button>
+      </div>
+    </section>
+  </div>
 
   <div class="modal-backdrop" id="publish-modal" hidden>
     <section class="publish-modal" role="dialog" aria-modal="true" aria-labelledby="publish-title">
@@ -235,7 +315,7 @@
       <span class="question-number"></span>
       <div class="question-body">
         <div class="question-toolbar">
-          <select class="question-type" aria-label="Tipo da questão"><option value="multiple_choice">Múltipla escolha</option><option value="true_false">Verdadeiro ou falso</option><option value="essay">Dissertativa</option></select>
+          <select class="question-type" aria-label="Tipo da questão"><option value="multiple_choice">Múltipla escolha</option><option value="multiple_select">Múltiplas respostas permitidas</option><option value="true_false">Verdadeiro ou falso</option><option value="essay">Dissertativa</option></select>
           <label class="points-field">Pontos <input class="question-points" type="number" min="0" max="1000" value="10"></label>
           <label class="mini-toggle">Obrigatória <input class="question-required" type="checkbox" checked><i></i></label>
           <button class="icon-button duplicate-question" type="button" title="Duplicar questão" aria-label="Duplicar questão">▣</button>
