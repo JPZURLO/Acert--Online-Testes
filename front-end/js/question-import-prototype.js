@@ -458,10 +458,17 @@ Questão 4: Verdadeiro</div>
 
   // --- Event Bindings ---
   function bindEvents() {
-    // Abrir Modal
-    const btnOpen = document.getElementById('btn-test-new-import');
-    if (btnOpen) {
-      btnOpen.addEventListener('click', openModal);
+    // Abrir Modal por qualquer um dos botões da página
+    ['btn-test-new-import', 'btn-test-new-import-top', 'btn-test-new-import-banner'].forEach(id => {
+      const btn = document.getElementById(id);
+      if (btn) btn.addEventListener('click', openModal);
+    });
+
+    document.querySelectorAll('[data-open-qimp]').forEach(btn => btn.addEventListener('click', openModal));
+
+    // Se o hash da URL for #import-proto, abre automaticamente
+    if (window.location.hash === '#import-proto' || window.location.search.includes('proto=1')) {
+      setTimeout(openModal, 200);
     }
 
     // Fechar Modal
