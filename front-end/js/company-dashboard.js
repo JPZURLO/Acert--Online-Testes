@@ -251,6 +251,7 @@ function renderOptions(question, container, questionIndex = 0) {
         question.correctAnswers = [question.options[0]];
       }
     }
+  }
   if (question.type === 'binary_choice') {
     if (!Array.isArray(question.options) || question.options.length !== 2) {
       question.options = ['Conforme', 'Não conforme'];
