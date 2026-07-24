@@ -445,6 +445,27 @@
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.05);
 }
 
+.kb-step-figure-badge {
+  padding: 8px 14px;
+  background: #0f172a;
+  color: #38bdf8;
+  font-size: 12px;
+  font-weight: 700;
+  border-bottom: 1px solid #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.kb-step-figure-badge code {
+  background: rgba(255,255,255,0.15);
+  color: #ffffff;
+  padding: 2px 7px;
+  border-radius: 4px;
+  font-family: monospace;
+  font-size: 11px;
+}
+
 .kb-image-zoom-btn {
   display: block;
   width: 100%;
