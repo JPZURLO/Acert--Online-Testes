@@ -193,6 +193,24 @@
                 <div id="email-status-panel" class="email-status-panel" hidden aria-live="polite">
                   <!-- Preenchido dinamicamente pelo JavaScript -->
                 </div>
+
+                <!-- Gestão de Documentos Gerais e Termos do Exame -->
+                <div class="exam-documents-section" style="grid-column: 1 / -1; margin-top: 1.5rem; padding-top: 1.5rem; border-top: 1px solid var(--border, #E2E8F0);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem;">
+                    <div>
+                      <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
+                        <span>📄</span> Documentos, Regras e Termos do Exame
+                      </h3>
+                      <small style="color: var(--text-muted, #64748B);">Anexe regras, termos de aceite com leitura obrigatória ou devolução assinada.</small>
+                    </div>
+                    <button class="button secondary" id="btn-add-document" type="button" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
+                      <span>+</span> Anexar Documento / Termo
+                    </button>
+                  </div>
+                  <div id="exam-documents-list" class="exam-documents-list">
+                    <p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento ou termo anexado a este exame.</p>
+                  </div>
+                </div>
               </div>
             </section>
           </div>
@@ -309,13 +327,80 @@
     </section>
   </div>
 
+  <!-- Modal de Anexo de Documento / Termo de Aceite -->
+  <div class="modal-backdrop" id="document-modal" hidden>
+    <section class="publish-modal" role="dialog" aria-modal="true" aria-labelledby="doc-modal-title" style="max-width: 580px; text-align: left;">
+      <button class="modal-close" id="close-document-modal" type="button" aria-label="Fechar">×</button>
+      <span class="modal-icon">📄</span>
+      <p class="eyebrow">DOCUMENTOS E REGRAS</p>
+      <h2 id="doc-modal-title">Anexar Documento ou Termo ao Exame</h2>
+      
+      <form id="document-upload-form" style="display: flex; flex-direction: column; gap: 1rem; margin-top: 1rem;">
+        <label class="field">
+          <span>Título do Documento *</span>
+          <input id="doc-title-input" type="text" placeholder="Ex: Regras da Prova e Termo de Sigilo" required>
+        </label>
+        
+        <label class="field">
+          <span>Tipo de Documento</span>
+          <select id="doc-type-select">
+            <option value="rules">Regras do Exame</option>
+            <option value="general_instructions">Instruções Gerais</option>
+            <option value="terms">Termo de Aceite</option>
+            <option value="support_material">Material de Apoio</option>
+            <option value="other">Outro Documento</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Arquivo (PDF, DOCX, TXT, XLSX, PNG, JPG, ZIP até 25MB) *</span>
+          <input id="doc-file-input" type="file" required accept=".pdf,.docx,.doc,.xlsx,.xls,.csv,.txt,.png,.jpg,.jpeg,.zip">
+        </label>
+
+        <label class="field">
+          <span>Descrição Opcional</span>
+          <textarea id="doc-desc-input" rows="2" placeholder="Instruções adicionais para o candidato..."></textarea>
+        </label>
+
+        <div style="display: flex; flex-direction: column; gap: 0.5rem; background: var(--bg-alt, #F8FAFC); padding: 1rem; border-radius: 8px; border: 1px solid #E2E8F0;">
+          <strong>Exigências e Regras para o Candidato:</strong>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+            <input id="doc-download-allowed" type="checkbox" checked> Permitir download pelo candidato
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+            <input id="doc-require-read" type="checkbox"> Exigir confirmação de leitura antes de iniciar
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+            <input id="doc-require-acceptance" type="checkbox"> Exigir aceite digital do termo (com registro de IP)
+          </label>
+          <label style="display: flex; align-items: center; gap: 0.5rem; font-size: 0.9rem;">
+            <input id="doc-require-return-signed" type="checkbox"> Exigir devolução do documento assinado pelo participante
+          </label>
+        </div>
+
+        <div class="modal-actions" style="margin-top: 0.5rem;">
+          <button class="button secondary" id="cancel-document-modal" type="button">Cancelar</button>
+          <button class="button primary" id="submit-document-modal" type="submit">Enviar e Salvar Documento</button>
+        </div>
+      </form>
+    </section>
+  </div>
+
   <template id="question-template">
     <article class="question-card" draggable="true">
       <button class="drag-handle" type="button" aria-label="Arrastar questão">⠿</button>
       <span class="question-number"></span>
       <div class="question-body">
         <div class="question-toolbar">
-          <select class="question-type" aria-label="Tipo da questão"><option value="single_choice">Múltipla escolha (resposta única)</option><option value="multiple_choice">Múltipla seleção (várias respostas)</option><option value="true_false">Verdadeiro ou falso</option><option value="short_answer">Resposta curta</option><option value="long_answer">Dissertativa</option></select>
+          <select class="question-type" aria-label="Tipo da questão">
+            <option value="single_choice">Múltipla escolha (resposta única)</option>
+            <option value="multiple_choice">Múltipla seleção (várias respostas)</option>
+            <option value="true_false">Verdadeiro ou falso</option>
+            <option value="binary_choice">Escolha binária (Sim/Não, Conforme/Não conforme)</option>
+            <option value="fill_blank">Preenchimento de lacunas (______)</option>
+            <option value="short_answer">Resposta curta</option>
+            <option value="long_answer">Dissertativa</option>
+          </select>
           <label class="points-field">Pontos <input class="question-points" type="number" min="0" max="1000" value="10"></label>
           <label class="mini-toggle">Obrigatória <input class="question-required" type="checkbox" checked><i></i></label>
           <button class="icon-button duplicate-question" type="button" title="Duplicar questão" aria-label="Duplicar questão">▣</button>

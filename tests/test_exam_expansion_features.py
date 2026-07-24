@@ -156,8 +156,46 @@ Explique o conceito de REST. {}
     def test_document_security_and_file_extensions(self):
         self.assertTrue(is_allowed_file("regras.pdf", "application/pdf"))
         self.assertTrue(is_allowed_file("termo.docx", "application/vnd.openxmlformats-officedocument.wordprocessingml.document"))
+        self.assertTrue(is_allowed_file("instrucoes.txt", "text/plain"))
+        self.assertTrue(is_allowed_file("material_apoio.zip", "application/zip"))
         self.assertFalse(is_allowed_file("script.exe", "application/octet-stream"))
         self.assertFalse(is_allowed_file("malicious.php", "text/plain"))
+
+    def test_document_types_and_pending_gating(self):
+        from exam_documents import ALLOWED_DOC_TYPES, check_pending_mandatory_documents
+
+        # Valida que todos os tipos de documentos solicitados estão suportados
+        expected_types = {"rules", "general_instructions", "terms", "support_material", "other"}
+        self.assertEqual(ALLOWED_DOC_TYPES, expected_types)
+
+        # Mock de conexão para testar check_pending_mandatory_documents
+        class MockCursor:
+            def execute(self, query, params):
+                pass
+            def fetchall(self):
+                return [
+                    {
+                        "id": 1,
+                        "title": "Regras do Exame",
+                        "doc_type": "rules",
+                        "acceptance_status": None,
+                        "require_acceptance": True,
+                        "require_read": False,
+                        "require_return_signed": False,
+                    }
+                ]
+            def close(self):
+                pass
+
+        class MockConn:
+            def cursor(self, dictionary=False):
+                return MockCursor()
+
+        has_pending, pending_docs = check_pending_mandatory_documents(MockConn(), exam_id=10, participant_id=5)
+        self.assertTrue(has_pending)
+        self.assertEqual(len(pending_docs), 1)
+        self.assertEqual(pending_docs[0]["title"], "Regras do Exame")
+        self.assertEqual(pending_docs[0]["docType"], "rules")
 
 
 if __name__ == "__main__":

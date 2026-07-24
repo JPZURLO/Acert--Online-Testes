@@ -661,6 +661,7 @@ function fillExam(exam) {
   state.dirty = false;
   renderQuestions();
   updatePreview();
+  loadExamDocuments(state.examId);
   setSaveStatus(state.examId ? 'Alterações salvas' : 'Rascunho local', state.examId ? 'saved' : '');
 }
 
@@ -1215,10 +1216,126 @@ async function loadWorkspace() {
   }
 }
 
+async function loadExamDocuments(examId) {
+  const container = document.getElementById('exam-documents-list');
+  if (!container) return;
+  if (!examId) {
+    container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Salve o exame primeiro para conseguir anexar documentos e termos de aceite.</p>';
+    return;
+  }
+  try {
+    const res = await api(`/api/company/exams/${examId}/documents`);
+    if (!res.documents || res.documents.length === 0) {
+      container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento ou termo anexado a este exame.</p>';
+      return;
+    }
+    const docTypeLabels = {
+      rules: 'Regras do Exame',
+      general_instructions: 'Instruções Gerais',
+      terms: 'Termo de Aceite',
+      support_material: 'Material de Apoio',
+      other: 'Outro Documento',
+    };
+    container.innerHTML = res.documents.map(doc => `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 0.5rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem;">
+            <span style="font-weight: 600; color: #1E293B;">${doc.title}</span>
+            <span style="background: #E2E8F0; color: #475569; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">${docTypeLabels[doc.docType] || doc.docType}</span>
+          </div>
+          <div style="font-size: 0.8rem; color: #64748B; margin-top: 2px;">
+            ${doc.originalName} (${(doc.sizeBytes / 1024).toFixed(1)} KB)
+            ${doc.requireAcceptance ? ' · <b style="color:#D97706;">Exige aceite digital</b>' : ''}
+            ${doc.requireReturnSigned ? ' · <b style="color:#DC2626;">Exige envio assinado</b>' : ''}
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href="/api/company/documents/${doc.id}/download" target="_blank" class="button secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Baixar</a>
+          <button onclick="deleteExamDocument(${doc.id})" class="button danger" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+  } catch (err) {
+    container.innerHTML = '<p style="color: #EF4444; font-size: 0.9rem;">Erro ao carregar documentos do exame.</p>';
+  }
+}
+
+async function deleteExamDocument(docId) {
+  if (!confirm('Deseja realmente excluir este documento do exame?')) return;
+  try {
+    await api(`/api/company/documents/${docId}`, { method: 'DELETE' });
+    toast('Documento removido com sucesso.', 'success');
+    if (state.examId) loadExamDocuments(state.examId);
+  } catch (err) {
+    toast(err.message || 'Erro ao excluir documento.', 'error');
+  }
+}
+
+function initDocumentManagerUI() {
+  const btnAdd = document.getElementById('btn-add-document');
+  const modal = document.getElementById('document-modal');
+  const closeBtn = document.getElementById('close-document-modal');
+  const cancelBtn = document.getElementById('cancel-document-modal');
+  const form = document.getElementById('document-upload-form');
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', () => {
+      if (!state.examId) {
+        toast('Salve o exame antes de anexar documentos ou termos.', 'warning');
+        return;
+      }
+      modal.hidden = false;
+    });
+  }
+  if (closeBtn) closeBtn.addEventListener('click', () => { modal.hidden = true; });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => { modal.hidden = true; });
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.examId) return;
+
+      const fileInput = document.getElementById('doc-file-input');
+      if (!fileInput.files || !fileInput.files[0]) {
+        toast('Selecione um arquivo.', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('title', document.getElementById('doc-title-input').value.trim());
+      formData.append('docType', document.getElementById('doc-type-select').value);
+      formData.append('description', document.getElementById('doc-desc-input').value.trim());
+      formData.append('downloadAllowed', document.getElementById('doc-download-allowed').checked);
+      formData.append('requireRead', document.getElementById('doc-require-read').checked);
+      formData.append('requireAcceptance', document.getElementById('doc-require-acceptance').checked);
+      formData.append('requireReturnSigned', document.getElementById('doc-require-return-signed').checked);
+
+      try {
+        const res = await fetch(`/api/company/exams/${state.examId}/documents`, {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': getCsrfToken() },
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Erro no envio do documento.');
+        
+        toast('Documento anexado com sucesso!', 'success');
+        modal.hidden = true;
+        form.reset();
+        loadExamDocuments(state.examId);
+      } catch (err) {
+        toast(err.message || 'Erro ao enviar documento.', 'error');
+      }
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   cacheElements();
   state.questions = defaultQuestions();
   bindEvents();
+  initDocumentManagerUI();
   renderQuestions();
   applyBranding();
   updatePreview();
