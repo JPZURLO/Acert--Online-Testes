@@ -295,6 +295,22 @@
                 </div>
               </div>
 
+              <div class="qimp-scoring-card">
+                <div class="qimp-scoring-copy">
+                  <strong>Pontuação automática</strong>
+                  <span>Informe a pontuação total e o sistema divide igualmente entre as questões importadas.</span>
+                </div>
+                <label class="qimp-score-field" for="qimp-total-points-input">
+                  <span>Pontuação total do teste</span>
+                  <input id="qimp-total-points-input" type="number" min="0" max="1000" step="0.01" value="100">
+                </label>
+                <label class="qimp-score-toggle" for="qimp-override-file-points">
+                  <input id="qimp-override-file-points" type="checkbox" checked>
+                  <span>Substituir pontuação do arquivo</span>
+                </label>
+                <small id="qimp-score-preview">Ex.: 40 questões com 100 pontos = 2,5 por questão.</small>
+              </div>
+
               <!-- Área de Upload Modo Único -->
               <div id="qimp-single-upload-area" class="qimp-dropzone-group">
                 <div>
@@ -346,7 +362,9 @@
                 <div class="qimp-summary-stats">
                   <span class="qimp-stat-pill total">Total: <b id="qimp-count-total">0</b></span>
                   <span class="qimp-stat-pill excluded">Excluídas: <b id="qimp-count-excluded">0</b></span>
+                  <span class="qimp-stat-pill points">Pontos: <b id="qimp-total-score">0</b></span>
                 </div>
+                <button class="qimp-redistribute-btn" id="qimp-btn-redistribute-points" type="button">Redistribuir pontos</button>
               </div>
 
               <!-- Lista Dinâmica de Cartões -->
@@ -484,9 +502,16 @@ Questão 4: Verdadeiro</div>
     setupDropzone('qimp-dropzone-single', 'qimp-file-single', (file) => handleFileSelected('singleFile', file));
     setupDropzone('qimp-dropzone-questions', 'qimp-file-questions', (file) => handleFileSelected('questionFile', file));
     setupDropzone('qimp-dropzone-answers', 'qimp-file-answers', (file) => handleFileSelected('answerKeyFile', file));
+    document.getElementById('qimp-total-points-input').addEventListener('input', validateStep1);
+    document.getElementById('qimp-override-file-points').addEventListener('change', updateScorePreview);
 
     // Botão Analisar -> envia o arquivo ao backend real e avança para Etapa 2
     document.getElementById('qimp-btn-analyze').addEventListener('click', analyzeSelectedFile);
+    document.getElementById('qimp-btn-redistribute-points').addEventListener('click', () => {
+      applyImportPointStrategy(true);
+      renderQuestionsList();
+      updateSummaryStats();
+    });
 
     // Botão Voltar para Etapa 1
     document.getElementById('qimp-btn-back-step1').addEventListener('click', goToStep1);
@@ -644,6 +669,7 @@ Questão 4: Verdadeiro</div>
       state.questions = [];
       clearFileInput(fileKey);
       updateFileCardsUI();
+      updateScorePreview();
       validateStep1();
     }
   };
@@ -681,7 +707,8 @@ Questão 4: Verdadeiro</div>
       valid = Boolean(state.files.questionFile);
     }
 
-    btnAnalyze.disabled = !valid;
+    btnAnalyze.disabled = !valid || configuredImportTotalPoints() <= 0;
+    updateScorePreview();
   }
 
   // --- Navegação entre Etapas ---
@@ -714,6 +741,7 @@ Questão 4: Verdadeiro</div>
     document.getElementById('qimp-btn-back-step1').hidden = true;
     document.getElementById('qimp-btn-confirm-import').hidden = true;
     document.getElementById('qimp-btn-analyze').hidden = false;
+    validateStep1();
   }
 
   async function analyzeSelectedFile() {
@@ -721,6 +749,10 @@ Questão 4: Verdadeiro</div>
     const file = selectedQuestionFile();
     if (!file) {
       showInlineImportError('Selecione o arquivo antes de analisar.');
+      return;
+    }
+    if (configuredImportTotalPoints() <= 0) {
+      showInlineImportError('Informe uma pontuação total maior que zero para distribuir entre as questões.');
       return;
     }
 
@@ -744,7 +776,7 @@ Questão 4: Verdadeiro</div>
       if (!state.questions.length) {
         throw new Error('Nenhuma questão foi encontrada no arquivo.');
       }
-      distributePointsIfNeeded();
+      applyImportPointStrategy(false);
       goToStep2();
     } catch (error) {
       showInlineImportError(error.message || 'Falha ao analisar o arquivo.');
@@ -808,13 +840,44 @@ Questão 4: Verdadeiro</div>
     return [];
   }
 
-  function distributePointsIfNeeded() {
+  function configuredImportTotalPoints() {
+    const input = document.getElementById('qimp-total-points-input');
+    const number = Number(String(input?.value || '100').replace(',', '.'));
+    if (!Number.isFinite(number)) return 100;
+    return Math.max(0, Math.min(1000, Math.round(number * 100) / 100));
+  }
+
+  function shouldOverrideFilePoints() {
+    return document.getElementById('qimp-override-file-points')?.checked !== false;
+  }
+
+  function formatNumber(value) {
+    return Number(value || 0).toLocaleString('pt-BR', { maximumFractionDigits: 2 });
+  }
+
+  function updateScorePreview() {
+    const total = configuredImportTotalPoints();
+    const count = Math.max(1, state.questions.filter(q => !q.isExcluded).length || 40);
+    const perQuestion = Math.round((total / count) * 100) / 100;
+    const preview = document.getElementById('qimp-score-preview');
+    if (preview) {
+      preview.textContent = shouldOverrideFilePoints()
+        ? `Ex.: ${count} questões com ${formatNumber(total)} pontos = ${formatNumber(perQuestion)} por questão.`
+        : 'Se o arquivo não trouxer pontuação válida, o sistema distribui o total informado.';
+    }
+  }
+
+  function applyImportPointStrategy(force = false) {
     const validQuestions = state.questions.filter(q => !q.isExcluded);
     if (!validQuestions.length) return;
+    const override = force || shouldOverrideFilePoints();
     const allSameDefault = validQuestions.every(q => Number(q.points) === 10 || Number(q.points) === 0);
-    if (!allSameDefault) return;
-    const basePoints = Math.round((100 / validQuestions.length) * 100) / 100;
+    if (!override && !allSameDefault) return;
+    const totalPoints = configuredImportTotalPoints();
+    if (totalPoints <= 0) return;
+    const basePoints = Math.round((totalPoints / validQuestions.length) * 100) / 100;
     validQuestions.forEach(q => { q.points = basePoints; });
+    updateScorePreview();
   }
 
   function goToStep2() {
@@ -1094,12 +1157,17 @@ Questão 4: Verdadeiro</div>
     const warning = state.questions.filter(q => q.status === 'warning' && !q.isExcluded).length;
     const error = state.questions.filter(q => q.status === 'error' && !q.isExcluded).length;
     const excluded = state.questions.filter(q => q.isExcluded).length;
+    const totalScore = state.questions
+      .filter(q => !q.isExcluded)
+      .reduce((sum, q) => sum + (Number(q.points) || 0), 0);
 
     setText('qimp-count-total', total);
     setText('qimp-count-ready', ready);
     setText('qimp-count-warning', warning);
     setText('qimp-count-error', error);
     setText('qimp-count-excluded', excluded);
+    setText('qimp-total-score', formatNumber(totalScore));
+    updateScorePreview();
 
     const btnConfirm = document.getElementById('qimp-btn-confirm-import');
     if (btnConfirm) {

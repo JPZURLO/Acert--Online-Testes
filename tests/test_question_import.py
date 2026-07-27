@@ -131,6 +131,9 @@ class QuestionImportTests(unittest.TestCase):
         self.assertIn("qimp-qcard-edit-toggle", import_assistant)
         self.assertIn("Excluir arquivo", import_assistant)
         self.assertIn("qimp-question-image-preview", import_assistant)
+        self.assertIn("qimp-total-points-input", import_assistant)
+        self.assertIn("Redistribuir pontos", import_assistant)
+        self.assertIn("applyImportPointStrategy", import_assistant)
 
     def test_valid_gift_normalizes_supported_question_types(self):
         payload = """// Banco exportado do Moodle

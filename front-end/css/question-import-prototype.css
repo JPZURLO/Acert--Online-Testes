@@ -287,6 +287,72 @@
   display: block;
 }
 
+.qimp-scoring-card {
+  margin: -8px 0 22px;
+  padding: 16px;
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 190px minmax(180px, auto);
+  gap: 14px;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--primary, #0f7977) 28%, #dfe5ee);
+  border-radius: 14px;
+  background: linear-gradient(135deg, color-mix(in srgb, var(--primary, #0f7977) 7%, white), #ffffff);
+}
+
+.qimp-scoring-copy strong,
+.qimp-score-field span,
+.qimp-score-toggle span {
+  display: block;
+  color: var(--navy, #0b1f3a);
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.qimp-scoring-copy span,
+.qimp-scoring-card small {
+  color: var(--muted, #68758a);
+  font-size: 11px;
+  line-height: 1.45;
+}
+
+.qimp-score-field input {
+  width: 100%;
+  height: 42px;
+  margin-top: 6px;
+  padding: 0 12px;
+  border: 1px solid var(--line, #dfe5ee);
+  border-radius: 10px;
+  color: var(--navy, #0b1f3a);
+  font-weight: 800;
+}
+
+.qimp-score-field input:focus {
+  outline: 2px solid color-mix(in srgb, var(--primary, #0f7977) 22%, transparent);
+  border-color: var(--primary, #0f7977);
+}
+
+.qimp-score-toggle {
+  min-height: 42px;
+  padding: 10px 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+  border: 1px solid var(--line, #dfe5ee);
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.qimp-score-toggle input {
+  width: 16px;
+  height: 16px;
+  accent-color: var(--primary, #0f7977);
+}
+
+.qimp-scoring-card small {
+  grid-column: 1 / -1;
+  padding-top: 2px;
+}
+
 /* Área de Dropzone / Seleção de Arquivo */
 .qimp-dropzone-group {
   display: grid;
@@ -452,6 +518,23 @@
 .qimp-stat-pill.warning { background: #fef3c7; color: #b45309; }
 .qimp-stat-pill.error { background: #fee2e2; color: #b91c1c; }
 .qimp-stat-pill.excluded { background: #e2e8f0; color: #64748b; }
+.qimp-stat-pill.points { background: #ccfbf1; color: #0f766e; }
+
+.qimp-redistribute-btn {
+  min-height: 34px;
+  padding: 0 12px;
+  border: 1px solid color-mix(in srgb, var(--primary, #0f7977) 38%, #dfe5ee);
+  border-radius: 10px;
+  background: #ffffff;
+  color: var(--primary, #0f7977);
+  font-size: 12px;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.qimp-redistribute-btn:hover {
+  background: color-mix(in srgb, var(--primary, #0f7977) 8%, white);
+}
 
 .qimp-filter-group {
   display: flex;
@@ -932,6 +1015,15 @@
   }
   .qimp-mode-grid {
     grid-template-columns: 1fr;
+  }
+  .qimp-scoring-card {
+    grid-template-columns: 1fr;
+  }
+  .qimp-summary-bar {
+    align-items: stretch;
+  }
+  .qimp-redistribute-btn {
+    width: 100%;
   }
   .qimp-header,
   .qimp-body,
