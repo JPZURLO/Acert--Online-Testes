@@ -667,6 +667,23 @@
   min-height: 64px;
 }
 
+.qimp-question-image-preview {
+  margin: 8px 0 0;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+}
+
+.qimp-question-image-preview img {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 /* Edição de Alternativas */
 .qimp-options-block {
   display: grid;

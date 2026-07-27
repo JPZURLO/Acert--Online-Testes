@@ -400,10 +400,27 @@ function renderQuestions() {
     card.querySelector('.question-points').value = question.points;
     card.querySelector('.question-required').checked = question.required;
     card.querySelector('.question-prompt').value = question.prompt;
+    renderQuestionImageEditor(question, card);
     renderOptions(question, card.querySelector('.question-options'), index);
   elements['questions-list'].appendChild(fragment);
   });
   updateSummary();
+}
+
+function renderQuestionImageEditor(question, card) {
+  const preview = card.querySelector('.question-image-preview');
+  const image = preview?.querySelector('img');
+  const upload = card.querySelector('.question-image-upload');
+  const altInput = card.querySelector('.question-image-alt');
+  if (!preview || !image || !upload || !altInput) return;
+
+  const source = question.imageData || question.imageUrl || '';
+  preview.hidden = !source;
+  image.src = source || '';
+  image.alt = question.imageAlt || question.imageName || 'Imagem da questão';
+  upload.hidden = Boolean(source);
+  altInput.value = question.imageAlt || '';
+  altInput.hidden = !source;
 }
 
 function updateSummary() {
@@ -551,6 +568,8 @@ function syncQuestionFromTarget(target) {
   const index = Number(card.dataset.index);
   const question = state.questions[index];
   if (!question) return null;
+  if (target.classList.contains('question-image-input')) return null;
+  if (target.classList.contains('question-image-alt')) question.imageAlt = target.value;
   if (target.classList.contains('question-prompt')) question.prompt = target.value;
   if (target.classList.contains('question-points')) question.points = Math.round(Math.max(0, Number(target.value) || 0) * 100) / 100;
   if (target.classList.contains('question-required')) question.required = target.checked;
@@ -631,6 +650,40 @@ function syncQuestionFromTarget(target) {
   return { question, index };
 }
 
+function readImageAsDataUrl(file) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(String(reader.result || ''));
+    reader.onerror = () => reject(new Error('Não foi possível ler a imagem.'));
+    reader.readAsDataURL(file);
+  });
+}
+
+async function handleQuestionImageUpload(target) {
+  const card = target.closest('.question-card');
+  if (!card) return;
+  const index = Number(card.dataset.index);
+  const question = state.questions[index];
+  const file = target.files?.[0];
+  if (!question || !file) return;
+
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    toast('Use uma imagem PNG, JPG ou WEBP de até 2 MB.', 'error');
+    target.value = '';
+    return;
+  }
+
+  try {
+    question.imageData = await readImageAsDataUrl(file);
+    question.imageName = file.name;
+    question.imageAlt = question.imageAlt || file.name.replace(/\.[^.]+$/, '');
+    renderQuestions();
+    markDirty();
+  } catch (error) {
+    toast(error.message || 'Não foi possível carregar a imagem da questão.', 'error');
+  }
+}
+
 function addQuestion() {
   state.questions.push({
     id: newId(),
@@ -644,6 +697,23 @@ function addQuestion() {
   renderQuestions();
   markDirty();
   requestAnimationFrame(() => elements['questions-list'].lastElementChild?.querySelector('.question-prompt')?.focus());
+}
+
+function questionImageSource(question) {
+  return question?.imageData || question?.imageUrl || '';
+}
+
+function appendQuestionImage(parent, question, className = 'question-visual') {
+  const source = questionImageSource(question);
+  if (!source) return;
+  const figure = document.createElement('figure');
+  figure.className = className;
+  const image = document.createElement('img');
+  image.src = source;
+  image.alt = question.imageAlt || question.imageName || 'Imagem da questão';
+  image.loading = 'lazy';
+  figure.appendChild(image);
+  parent.appendChild(figure);
 }
 
 function handleQuestionClick(event) {
@@ -662,6 +732,13 @@ function handleQuestionClick(event) {
     markDirty();
   } else if (event.target.closest('.save-question-bank')) {
     saveQuestionToBank(index);
+  } else if (event.target.closest('.remove-question-image')) {
+    delete state.questions[index].imageData;
+    delete state.questions[index].imageUrl;
+    delete state.questions[index].imageName;
+    delete state.questions[index].imageAlt;
+    renderQuestions();
+    markDirty();
   } else if (event.target.matches('[data-add-option]')) {
     state.questions[index].options.push(`Opção ${String.fromCharCode(65 + state.questions[index].options.length)}`);
     renderQuestions();
@@ -1315,7 +1392,9 @@ function openCandidatePreviewModal() {
           });
         }
 
-        card.append(head, prompt, optionsDiv);
+        card.append(head, prompt);
+        appendQuestionImage(card, q, 'candidate-question-image');
+        card.appendChild(optionsDiv);
         feed.appendChild(card);
       });
     }
@@ -1365,7 +1444,13 @@ function bindEvents() {
     markDirty();
   });
   elements['questions-list'].addEventListener('input', event => syncQuestionFromTarget(event.target));
-  elements['questions-list'].addEventListener('change', event => syncQuestionFromTarget(event.target));
+  elements['questions-list'].addEventListener('change', event => {
+    if (event.target.classList.contains('question-image-input')) {
+      handleQuestionImageUpload(event.target);
+      return;
+    }
+    syncQuestionFromTarget(event.target);
+  });
   elements['questions-list'].addEventListener('click', handleQuestionClick);
   elements['questions-list'].addEventListener('dragstart', handleDragStart);
   elements['questions-list'].addEventListener('dragover', handleDragOver);
@@ -1802,7 +1887,11 @@ window.importQuestionsToExam = function(importedQuestions, importMode = 'replace
     options: Array.isArray(q.options) && q.options.length > 0 ? q.options : ['Opção A', 'Opção B'],
     correctAnswer: q.correctAnswer || (q.options && q.options[0]) || 'Opção A',
     correctAnswers: Array.isArray(q.correctAnswers) ? q.correctAnswers : [],
-    explanation: q.explanation || ''
+    explanation: q.explanation || '',
+    imageData: q.imageData || '',
+    imageUrl: q.imageUrl || '',
+    imageName: q.imageName || '',
+    imageAlt: q.imageAlt || ''
   }));
 
   if (importMode === 'append') {

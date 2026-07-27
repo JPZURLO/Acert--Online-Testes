@@ -159,6 +159,14 @@ input:not([type="radio"]):not([type="checkbox"]):focus, textarea:focus, select:f
 .icon-button:hover { color: var(--primary); border-color: color-mix(in srgb, var(--primary) 35%, var(--line)); }
 .icon-button.danger:hover { color: var(--danger); border-color: color-mix(in srgb, var(--danger) 35%, var(--line)); }
 .question-prompt { margin-top: 8px; min-height: 52px; border-color: transparent; background: var(--surface-soft); font-size: 12px; }
+.question-image-editor { margin-top: 8px; display: grid; gap: 8px; }
+.question-image-preview { position: relative; width: min(420px, 100%); padding: 8px; background: #f8fafc; border: 1px solid var(--line); border-radius: 10px; }
+.question-image-preview img { display: block; width: 100%; max-height: 260px; object-fit: contain; border-radius: 8px; background: #fff; }
+.question-image-preview .remove-question-image { position: absolute; top: 12px; right: 12px; background: #fff; }
+.question-image-upload { min-height: 46px; padding: 10px 12px; display: flex; align-items: center; justify-content: space-between; gap: 12px; color: var(--primary); background: color-mix(in srgb, var(--primary) 4%, white); border: 1px dashed color-mix(in srgb, var(--primary) 44%, var(--line)); border-radius: 10px; cursor: pointer; font-size: 11px; font-weight: 800; }
+.question-image-upload input { position: absolute; opacity: 0; pointer-events: none; }
+.question-image-upload small { color: var(--muted); font-size: 9px; font-weight: 650; }
+.question-image-alt { height: 34px; font-size: 11px; }
 .question-options { margin-top: 8px; display: grid; gap: 6px; }
 .options-helper-text { margin-bottom: 2px; font-size: 10px; font-weight: 750; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
 .option-row { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border: 1.5px solid transparent; border-radius: 8px; transition: background .15s, border-color .15s; }
@@ -565,6 +573,22 @@ body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }
   font-weight: 600;
   color: #1e293b;
   white-space: pre-wrap;
+}
+.candidate-question-image,
+.question-visual {
+  margin: 0;
+  padding: 10px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+}
+.candidate-question-image img,
+.question-visual img {
+  display: block;
+  width: 100%;
+  max-height: 360px;
+  object-fit: contain;
+  border-radius: 9px;
 }
 .question-card-options {
   display: grid;

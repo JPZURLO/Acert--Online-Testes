@@ -282,7 +282,7 @@
                   <input type="radio" name="qimpMode" class="qimp-mode-radio" checked>
                   <div class="qimp-mode-info">
                     <strong>Um único arquivo</strong>
-                    <span>As perguntas, alternativas e respostas corretas estão reunidas no mesmo arquivo (.docx, .xlsx, .csv, .gift ou .txt).</span>
+                    <span>As perguntas, alternativas, respostas corretas e imagens estão reunidas no mesmo arquivo (.xlsx, .gift ou .txt).</span>
                   </div>
                 </div>
 
@@ -306,8 +306,8 @@
                   <div class="qimp-dropzone-text">
                     Arraste e solte o arquivo aqui ou <span>clique para navegar</span>
                   </div>
-                  <div class="qimp-dropzone-hint">Formatos aceitos: .docx, .xlsx, .csv, .gift, .txt</div>
-                  <input type="file" id="qimp-file-single" accept=".docx,.xlsx,.csv,.gift,.txt" hidden>
+                  <div class="qimp-dropzone-hint">Formatos aceitos: .xlsx, .gift, .txt</div>
+                  <input type="file" id="qimp-file-single" accept=".xlsx,.gift,.txt" hidden>
                 </div>
                 <div id="qimp-single-file-card" hidden></div>
               </div>
@@ -320,8 +320,8 @@
                   <div class="qimp-dropzone" id="qimp-dropzone-questions">
                     <span class="qimp-dropzone-icon">📝</span>
                     <div class="qimp-dropzone-text">Arraste ou <span>selecione o arquivo de perguntas</span></div>
-                    <div class="qimp-dropzone-hint">.docx, .xlsx, .csv, .gift, .txt</div>
-                    <input type="file" id="qimp-file-questions" accept=".docx,.xlsx,.csv,.gift,.txt" hidden>
+                    <div class="qimp-dropzone-hint">.xlsx, .gift, .txt</div>
+                    <input type="file" id="qimp-file-questions" accept=".xlsx,.gift,.txt" hidden>
                   </div>
                   <div id="qimp-questions-file-card" hidden></div>
                 </div>
@@ -393,10 +393,11 @@ Questão 4: Verdadeiro</div>
             </div>
 
             <div class="qimp-help-section">
-              <h4>3. Preenchimento de Lacunas, Resposta Curta e Formato GIFT</h4>
+              <h4>3. Imagens, gráficos e Formato GIFT</h4>
               <div class="qimp-code-box">Exemplo GIFT:
 ::Questão 5:: Qual é a capital do Brasil? {=Brasília =Brasilia}
-::Questão 6:: A terra é plana? {FALSE#Incorreto}</div>
+::Questão 6:: Observe o gráfico:&lt;br&gt;&lt;img src="https://exemplo.com/grafico.png" alt="Gráfico"&gt; Qual alternativa está correta? {=A ~B}</div>
+              <p>No Excel, use as colunas <b>Imagem</b> e <b>Texto alternativo</b>. Também é possível anexar imagem manualmente ao editar a questão.</p>
             </div>
 
             <div class="qimp-help-section">
@@ -772,6 +773,10 @@ Questão 4: Verdadeiro</div>
       num: index + 1,
       type,
       prompt: question.prompt || question.title || 'Questão sem enunciado',
+      imageData: question.imageData || '',
+      imageUrl: question.imageUrl || '',
+      imageName: question.imageName || '',
+      imageAlt: question.imageAlt || '',
       options,
       correctAnswers: correctAnswers.length ? correctAnswers : fallbackCorrectAnswers(question, options, type),
       points: Number(question.points) || 0,
@@ -886,6 +891,11 @@ Questão 4: Verdadeiro</div>
             <div class="qimp-field-group">
               <label>Enunciado da questão</label>
               <textarea class="qimp-textarea" onchange="window.QImpProto.updatePrompt('${q.id}', this.value)">${escapeHTML(q.prompt)}</textarea>
+              ${q.imageData || q.imageUrl ? `
+                <figure class="qimp-question-image-preview">
+                  <img src="${escapeAttribute(q.imageData || q.imageUrl)}" alt="${escapeAttribute(q.imageAlt || q.imageName || 'Imagem da questão')}">
+                </figure>
+              ` : ''}
             </div>
 
             <div class="qimp-field-group">
@@ -1166,6 +1176,10 @@ Questão 4: Verdadeiro</div>
       id: q.id,
       type: q.type,
       prompt: q.prompt,
+      imageData: q.imageData || '',
+      imageUrl: q.imageUrl || '',
+      imageName: q.imageName || '',
+      imageAlt: q.imageAlt || '',
       points: Number(q.points) || 0,
       required: true,
       options: Array.isArray(q.options) ? q.options : [],

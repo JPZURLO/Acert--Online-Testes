@@ -51,11 +51,21 @@ def safe_questions(raw_questions):
     for item in raw_questions:
         if not isinstance(item, dict):
             continue
+        image_data = clean_text(item.get("imageData"), 2_800_000)
+        image_url = clean_text(item.get("imageUrl"), 1000)
+        if image_data and not image_data.startswith(("data:image/png;base64,", "data:image/jpeg;base64,", "data:image/webp;base64,")):
+            image_data = ""
+        if image_url and not image_url.lower().startswith(("http://", "https://")):
+            image_url = ""
         questions.append(
             {
                 "id": str(item.get("id") or "")[:80],
                 "type": item.get("type") if item.get("type") in {"single_choice", "multiple_choice", "true_false", "binary_choice", "fill_blank", "short_answer", "long_answer", "essay", "multiple_select", "numeric_answer", "matching"} else "single_choice",
                 "prompt": str(item.get("prompt") or "")[:3000],
+                "imageData": image_data,
+                "imageUrl": image_url,
+                "imageName": clean_text(item.get("imageName"), 180),
+                "imageAlt": clean_text(item.get("imageAlt"), 180),
                 "points": round(max(0, min(1000, float(item.get("points") or 0))), 2),
                 "required": bool(item.get("required", True)),
                 "options": [str(option)[:500] for option in (item.get("options") or [])[:10]],

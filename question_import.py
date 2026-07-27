@@ -12,6 +12,7 @@ MAX_IMPORTED_QUESTIONS = 200
 MAX_IMPORT_FILE_BYTES = 5 * 1024 * 1024
 MAX_UNCOMPRESSED_BYTES = 50 * 1024 * 1024
 ALTERNATIVE_PATTERN = re.compile(r"^alternativa\s+([a-j])$")
+IMAGE_COLUMNS = {"imagem", "image", "url da imagem", "image url", "imagem url", "link da imagem"}
 
 
 class QuestionImportError(ValueError):
@@ -122,6 +123,10 @@ def locate_headers(sheet):
                 columns["required"] = column_index
             elif normalized in {"resposta correta", "gabarito"}:
                 columns["correct"] = column_index
+            elif normalized in IMAGE_COLUMNS:
+                columns["image"] = column_index
+            elif normalized in {"descricao da imagem", "texto alternativo", "alt da imagem", "image alt"}:
+                columns["imageAlt"] = column_index
             else:
                 match = ALTERNATIVE_PATTERN.fullmatch(normalized)
                 if match:
@@ -138,6 +143,17 @@ def cell(row, column_index):
     if column_index is None or column_index >= len(row):
         return None
     return row[column_index]
+
+
+def clean_imported_image(value):
+    source = display_text(value, 2_800_000)
+    if not source:
+        return "", ""
+    if re.match(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$", source):
+        return source, ""
+    if re.match(r"^https?://", source, flags=re.I):
+        return "", source
+    return "", ""
 
 
 def parse_question_workbook(stream):
@@ -177,6 +193,8 @@ def parse_question_workbook(stream):
                 break
 
             prompt = display_text(cell(row, columns.get("prompt")))
+            image_data, image_url = clean_imported_image(cell(row, columns.get("image")))
+            image_alt = display_text(cell(row, columns.get("imageAlt")), 180)
             imported_type = question_type(cell(row, columns.get("type")))
             if not prompt:
                 errors.append(f"Linha {row_number}: informe o enunciado da questão.")
@@ -208,6 +226,10 @@ def parse_question_workbook(stream):
                     "id": f"imported-{uuid.uuid4()}",
                     "type": imported_type or "multiple_choice",
                     "prompt": prompt,
+                    "imageData": image_data,
+                    "imageUrl": image_url,
+                    "imageName": "",
+                    "imageAlt": image_alt,
                     "points": points_value(cell(row, columns.get("points")), row_number, errors),
                     "required": boolean_value(cell(row, columns.get("required")), row_number, errors),
                     "options": options,

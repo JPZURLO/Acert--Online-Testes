@@ -13,3 +13,9 @@ $CATEGORY: Demonstração
 ::Questão 3::Explique por que a segurança da informação é importante. {}
 
 ::Questão 4::Qual linguagem é utilizada para estruturar páginas web? {=HTML}
+
+::Questão com imagem::Observe o gráfico abaixo:<br><img src="https://exemplo.com/grafico.png" alt="Gráfico de desempenho"> Qual item apresenta o maior resultado? {
+=Item A
+~Item B
+~Item C
+}

@@ -18,6 +18,8 @@ HEADERS = [
     "Alternativa A",
     "Alternativa B",
     "Alternativa C",
+    "Imagem",
+    "Texto alternativo",
     "Resposta correta",
 ]
 
@@ -39,9 +41,9 @@ class QuestionImportTests(unittest.TestCase):
     def test_valid_workbook_normalizes_all_question_types(self):
         stream = workbook_bytes(
             [
-                ["Múltipla escolha", "Pergunta objetiva", 20, "Sim", "Certa", "Errada", "", "A"],
-                ["Verdadeiro ou falso", "Afirmação", 10, "Não", "", "", "", "Falso"],
-                ["Dissertativa", "Explique o processo", 30, "Sim", "", "", "", "Critério esperado"],
+                ["Múltipla escolha", "Pergunta objetiva", 20, "Sim", "Certa", "Errada", "", "", "", "A"],
+                ["Verdadeiro ou falso", "Afirmação", 10, "Não", "", "", "", "", "", "Falso"],
+                ["Dissertativa", "Explique o processo", 30, "Sim", "", "", "", "", "", "Critério esperado"],
             ]
         )
         questions = parse_question_workbook(stream)
@@ -52,7 +54,7 @@ class QuestionImportTests(unittest.TestCase):
         self.assertEqual(questions[2]["points"], 30)
 
     def test_invalid_rows_return_line_specific_errors(self):
-        stream = workbook_bytes([["Múltipla escolha", "Sem alternativas", 10, "Talvez", "", "", "", "Z"]])
+        stream = workbook_bytes([["Múltipla escolha", "Sem alternativas", 10, "Talvez", "", "", "", "", "", "Z"]])
         with self.assertRaises(QuestionImportError) as context:
             parse_question_workbook(stream)
         self.assertTrue(any("Linha 2" in error for error in context.exception.errors))
@@ -72,7 +74,7 @@ class QuestionImportTests(unittest.TestCase):
             "/api/company/question-imports",
             data={
                 "file": (
-                    workbook_bytes([["Verdadeiro ou falso", "Afirmação", 15, "Sim", "", "", "", "Verdadeiro"]]),
+                    workbook_bytes([["Verdadeiro ou falso", "Afirmação", 15, "Sim", "", "", "", "", "", "Verdadeiro"]]),
                     "questoes.xlsx",
                 )
             },
@@ -99,9 +101,21 @@ class QuestionImportTests(unittest.TestCase):
             self.assertIn("Questões", workbook.sheetnames)
             headers = [cell.value for cell in next(workbook["Questões"].iter_rows(min_row=4, max_row=4))]
             self.assertEqual(headers[0:4], ["Tipo", "Enunciado", "Pontos", "Obrigatória"])
+            self.assertIn("Imagem", headers)
+            self.assertIn("Texto alternativo", headers)
             self.assertEqual(headers[-1], "Resposta correta")
         finally:
             workbook.close()
+
+    def test_workbook_import_preserves_question_image_metadata(self):
+        image_url = "https://exemplo.com/grafico.png"
+        stream = workbook_bytes(
+            [["Múltipla escolha", "Pergunta com gráfico", 20, "Sim", "A", "B", "", image_url, "Gráfico da questão", "A"]]
+        )
+        [question] = parse_question_workbook(stream)
+        self.assertEqual(question["imageUrl"], image_url)
+        self.assertEqual(question["imageData"], "")
+        self.assertEqual(question["imageAlt"], "Gráfico da questão")
 
     def test_editor_exposes_download_and_upload_controls(self):
         html = Path("front-end/login_cliente.html").read_text(encoding="utf-8")
@@ -116,6 +130,7 @@ class QuestionImportTests(unittest.TestCase):
         self.assertIn("fetch('/api/company/question-imports'", import_assistant)
         self.assertIn("qimp-qcard-edit-toggle", import_assistant)
         self.assertIn("Excluir arquivo", import_assistant)
+        self.assertIn("qimp-question-image-preview", import_assistant)
 
     def test_valid_gift_normalizes_supported_question_types(self):
         payload = """// Banco exportado do Moodle
@@ -153,6 +168,14 @@ $CATEGORY: Demonstração
         self.assertIn("_____", question["prompt"])
         self.assertEqual(question["correctAnswer"], "= 4")
         self.assertEqual(question["options"], ["= 5", "= 4", "= 3"])
+
+    def test_gift_import_preserves_img_tag_as_question_image(self):
+        payload = """::Grafico::Observe:<br><img src="https://exemplo.com/grafico.png" alt="Gráfico de barras"> Qual alternativa está correta? {=A ~B}
+"""
+        [question] = parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertEqual(question["imageUrl"], "https://exemplo.com/grafico.png")
+        self.assertEqual(question["imageAlt"], "Gráfico de barras")
+        self.assertNotIn("<img", question["prompt"].lower())
 
     def test_gift_rejects_unsupported_numerical_and_matching_questions(self):
         payload = """::Número::Quanto é dois mais dois? {#4}

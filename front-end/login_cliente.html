@@ -130,7 +130,7 @@
                 <span class="question-import-icon" aria-hidden="true">⇩</span>
                 <div class="question-import-copy">
                   <strong>Importar questões</strong>
-                  <span>Importe questões utilizando Excel, Word, CSV, GIFT ou outros formatos suportados.</span>
+                  <span>Importe questões utilizando Excel ou GIFT, inclusive com imagens e gráficos.</span>
                 </div>
                 <label class="question-import-mode" for="question-import-mode">
                   <span>Ao importar</span>
@@ -451,7 +451,7 @@
       <span class="modal-icon" style="background: var(--primary);">⇩</span>
       <p class="eyebrow">MODELOS E FORMATOS SUPORTADOS</p>
       <h2 id="models-modal-title">Modelos para Importação de Questões</h2>
-      <p style="margin-bottom: 1rem;">Baixe os modelos ou veja exemplos de estrutura para importar suas questões em poucos segundos.</p>
+      <p style="margin-bottom: 1rem;">Baixe os modelos ou veja exemplos para importar questões, alternativas, respostas corretas e imagens em poucos segundos.</p>
       
       <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-bottom: 1.2rem;">
         <a href="./assets/templates/modelo-importacao-questoes.xlsx" download class="button secondary" style="justify-content: flex-start; gap: 10px; padding: 12px 14px; height: auto;">
@@ -523,6 +523,18 @@ Questão 4: Caixa branca</pre>
           <button class="icon-button danger delete-question" type="button" title="Excluir questão" aria-label="Excluir questão">⌫</button>
         </div>
         <textarea class="question-prompt" rows="2" maxlength="3000" placeholder="Digite o enunciado da questão"></textarea>
+        <div class="question-image-editor" data-question-image-editor>
+          <div class="question-image-preview" hidden>
+            <img alt="">
+            <button class="icon-button danger remove-question-image" type="button" title="Remover imagem" aria-label="Remover imagem">×</button>
+          </div>
+          <label class="question-image-upload">
+            <span>🖼️ Adicionar imagem ou gráfico</span>
+            <small>PNG, JPG ou WEBP até 2 MB</small>
+            <input class="question-image-input" type="file" accept="image/png,image/jpeg,image/webp">
+          </label>
+          <input class="question-image-alt" type="text" maxlength="180" placeholder="Descrição da imagem para acessibilidade">
+        </div>
         <div class="question-options"></div>
       </div>
     </article>

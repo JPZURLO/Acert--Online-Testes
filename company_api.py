@@ -139,6 +139,15 @@ def clean_question(question, index):
     if not prompt:
         prompt = f"Questão {index + 1}"
 
+    image_data = clean_text(question.get("imageData"), 2_800_000)
+    image_url = clean_text(question.get("imageUrl"), 1000)
+    image_name = clean_text(question.get("imageName"), 180)
+    image_alt = clean_text(question.get("imageAlt"), 180)
+    if image_data and not re.match(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$", image_data):
+        image_data = ""
+    if image_url and not re.match(r"^https?://", image_url, flags=re.I):
+        image_url = ""
+
     points = clamp_number(question.get("points"), 0, 1000, 10)
     required = bool(question.get("required", True))
     q_id = clean_text(question.get("id"), 80, f"question-{index + 1}")
@@ -298,6 +307,10 @@ def clean_question(question, index):
         "id": q_id,
         "type": question_type,
         "prompt": prompt,
+        "imageData": image_data,
+        "imageUrl": image_url,
+        "imageName": image_name,
+        "imageAlt": image_alt,
         "points": points,
         "required": required,
         "options": simple_options,

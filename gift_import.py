@@ -31,6 +31,21 @@ def gift_unescape(value):
     return "".join(output).strip()
 
 
+def extract_prompt_image(prompt):
+    match = re.search(r"<img\b[^>]*\bsrc=[\"']([^\"']+)[\"'][^>]*>", prompt, flags=re.I)
+    if not match:
+        return prompt, "", "", ""
+    source = match.group(1).strip()
+    alt_match = re.search(r"\balt=[\"']([^\"']*)[\"']", match.group(0), flags=re.I)
+    alt = gift_unescape(alt_match.group(1).strip()) if alt_match else ""
+    cleaned_prompt = (prompt[:match.start()] + prompt[match.end():]).strip()
+    if re.match(r"^data:image/(png|jpeg|webp);base64,[A-Za-z0-9+/=\s]+$", source):
+        return cleaned_prompt, source, "", alt
+    if re.match(r"^https?://", source, flags=re.I):
+        return cleaned_prompt, "", source, alt
+    return cleaned_prompt, "", "", alt
+
+
 def unescaped_index(value, target, start=0):
     escaped = False
     for index in range(start, len(value)):
@@ -209,6 +224,7 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
         before = block[:start].strip()
         after = block[end + 1:].strip()
         prompt = gift_unescape(f"{before} {'_____' if after else ''} {after}".strip())
+        prompt, image_data, image_url, image_alt = extract_prompt_image(prompt)
         content = block[start + 1:end].strip()
 
         if not prompt:
@@ -299,6 +315,10 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
                 "title": question_title,
                 "category": current_category,
                 "prompt": display_text(prompt),
+                "imageData": image_data,
+                "imageUrl": image_url,
+                "imageName": "",
+                "imageAlt": image_alt,
                 "points": 10,
                 "required": True,
                 "options": options,
