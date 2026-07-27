@@ -30,6 +30,7 @@ load_dotenv()
 app = Flask(__name__, static_folder="front-end")
 JWT_COOKIE_NAME = "acert_access_token"
 CSRF_COOKIE_NAME = "acert_csrf_token"
+ADMIN_RETURN_COOKIE_NAME = "acert_admin_return_token"
 JWT_TTL = timedelta(hours=1)
 PARTICIPANT_JWT_TTL = timedelta(hours=max(2, int(os.getenv("PARTICIPANT_SESSION_HOURS", "12"))))
 COOKIE_SECURE = os.getenv("COOKIE_SECURE", "false").lower() == "true"
@@ -138,10 +139,13 @@ def account_ttl(account_type):
     return PARTICIPANT_JWT_TTL if account_type == "user" else JWT_TTL
 
 
-def issue_token(account_id, account_type):
+def issue_token(account_id, account_type, extra_claims=None):
     now = datetime.now(timezone.utc)
+    payload = {"sub": str(account_id), "account_type": account_type, "iat": now, "exp": now + account_ttl(account_type)}
+    if isinstance(extra_claims, dict):
+        payload.update(extra_claims)
     return jwt.encode(
-        {"sub": str(account_id), "account_type": account_type, "iat": now, "exp": now + account_ttl(account_type)},
+        payload,
         required_setting("JWT_SECRET"),
         algorithm="HS256",
     )
@@ -199,9 +203,43 @@ def token_payload(expected_account_type):
     return payload, None
 
 
+def decode_cookie_token(cookie_name=JWT_COOKIE_NAME):
+    token = request.cookies.get(cookie_name)
+    if not token:
+        return None
+    try:
+        return jwt.decode(
+            token,
+            required_setting("JWT_SECRET"),
+            algorithms=["HS256"],
+            options={"require": ["sub", "account_type", "exp"]},
+        )
+    except (jwt.ExpiredSignatureError, jwt.InvalidTokenError, RuntimeError):
+        return None
+
+
+def set_access_cookie(response, token, ttl=JWT_TTL):
+    response.set_cookie(
+        JWT_COOKIE_NAME,
+        token,
+        max_age=int(ttl.total_seconds()),
+        httponly=True,
+        secure=COOKIE_SECURE,
+        samesite="Strict",
+        path="/",
+    )
+    set_csrf_cookie(response, ttl)
+    return response
+
+
 def request_json():
     data = request.get_json(silent=True)
     return data if isinstance(data, dict) else {}
+
+
+def current_impersonation_payload():
+    payload = decode_cookie_token()
+    return payload if payload and payload.get("admin_impersonation") else None
 
 
 COMPANY_FEATURE_ROUTES = (
@@ -244,6 +282,25 @@ def enforce_company_license():
                 cursor.close()
     finally:
         connection.close()
+    return None
+
+
+@app.before_request
+def block_impersonation_writes():
+    if request.method in {"GET", "HEAD", "OPTIONS"}:
+        return None
+    if request.path in {"/api/admin/impersonation/stop", "/logout"}:
+        return None
+    payload = current_impersonation_payload()
+    if not payload:
+        return None
+    protected_prefixes = ("/api/company/", "/api/participant/", "/api/exam-documents/")
+    if request.path.startswith(protected_prefixes):
+        return jsonify({
+            "success": False,
+            "message": "Modo administrador de visualização: nenhuma alteração pode ser salva nesta simulação.",
+            "impersonation": True,
+        }), 423
     return None
 
 @app.before_request
@@ -453,11 +510,173 @@ def obter_razao_social():
         connection.close()
 
 
+@app.get("/api/impersonation/status")
+def impersonation_status():
+    payload = current_impersonation_payload()
+    if not payload:
+        return jsonify({"active": False})
+    return jsonify({
+        "active": True,
+        "mode": payload.get("impersonation_mode"),
+        "targetName": payload.get("target_name") or "Conta",
+        "adminId": payload.get("impersonated_by"),
+        "readOnly": True,
+    })
+
+
+@app.get("/api/admin/impersonation/targets")
+def admin_impersonation_targets():
+    _admin_payload, error = token_payload("admin")
+    if error:
+        return error
+    company_filter = request.args.get("companyId", "").strip()
+    connection = open_database()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            "SELECT e.id, e.RazaoSocial, e.CNPJ, COALESCE(l.status,'legacy') AS license_status, "
+            "COALESCE(p.name,'Acesso legado') AS plan_name "
+            "FROM empresas e "
+            "LEFT JOIN company_licenses l ON l.company_id=e.id "
+            "LEFT JOIN license_plans p ON p.id=l.plan_id "
+            "ORDER BY e.RazaoSocial LIMIT 1000"
+        )
+        companies = [
+            {
+                "id": row["id"],
+                "name": row["RazaoSocial"],
+                "cnpj": row.get("CNPJ") or "",
+                "status": row.get("license_status") or "legacy",
+                "planName": row.get("plan_name") or "Acesso legado",
+            }
+            for row in cursor.fetchall()
+        ]
+        participants = []
+        if company_filter.isdigit():
+            cursor.execute(
+                "SELECT p.id, p.company_id, p.full_name, p.email, p.status, e.title AS exam_title, u.id AS user_id "
+                "FROM company_participants p "
+                "LEFT JOIN company_exams e ON e.id=p.exam_id AND e.company_id=p.company_id "
+                "LEFT JOIN users u ON LOWER(u.email)=LOWER(p.email) "
+                "WHERE p.company_id=%s ORDER BY p.full_name LIMIT 300",
+                (int(company_filter),),
+            )
+            participants = [
+                {
+                    "id": row["id"],
+                    "companyId": row["company_id"],
+                    "name": row["full_name"],
+                    "email": row["email"],
+                    "status": row.get("status") or "",
+                    "examTitle": row.get("exam_title") or "Sem teste atribuído",
+                    "hasUser": bool(row.get("user_id")),
+                }
+                for row in cursor.fetchall()
+            ]
+        return jsonify({"companies": companies, "participants": participants})
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.post("/api/admin/impersonation/start")
+def admin_impersonation_start():
+    admin_payload, error = token_payload("admin")
+    if error:
+        return error
+    data = request_json()
+    mode = str(data.get("mode") or "").strip().lower()
+    company_id = data.get("companyId")
+    participant_id = data.get("participantId")
+    if mode not in {"company", "participant"}:
+        return jsonify({"success": False, "message": "Escolha Empresa ou Participante para visualizar."}), 400
+    connection = open_database()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        target_id = None
+        target_type = None
+        target_name = ""
+        redirect_url = "VisaoGeral.html"
+        if mode == "company":
+            if not str(company_id or "").isdigit():
+                return jsonify({"success": False, "message": "Selecione uma empresa."}), 400
+            cursor.execute("SELECT id, RazaoSocial FROM empresas WHERE id=%s LIMIT 1", (int(company_id),))
+            company = cursor.fetchone()
+            if not company:
+                return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
+            target_id = company["id"]
+            target_type = "company"
+            target_name = company["RazaoSocial"]
+        else:
+            if not str(participant_id or "").isdigit():
+                return jsonify({"success": False, "message": "Selecione um participante."}), 400
+            cursor.execute(
+                "SELECT p.id, p.full_name, p.email, p.company_id, u.id AS user_id "
+                "FROM company_participants p "
+                "LEFT JOIN users u ON LOWER(u.email)=LOWER(p.email) "
+                "WHERE p.id=%s LIMIT 1",
+                (int(participant_id),),
+            )
+            participant = cursor.fetchone()
+            if not participant:
+                return jsonify({"success": False, "message": "Participante não encontrado."}), 404
+            if not participant.get("user_id"):
+                return jsonify({"success": False, "message": "Este participante ainda não possui usuário de login vinculado."}), 409
+            target_id = participant["user_id"]
+            target_type = "user"
+            target_name = participant["full_name"]
+            redirect_url = "AreaParticipante.html"
+
+        simulation_token = issue_token(
+            target_id,
+            target_type,
+            {
+                "admin_impersonation": True,
+                "impersonated_by": str(admin_payload["sub"]),
+                "impersonation_mode": mode,
+                "target_name": target_name,
+            },
+        )
+        admin_return_token = issue_token(admin_payload["sub"], "admin")
+        response = make_response(jsonify({
+            "success": True,
+            "mode": mode,
+            "targetName": target_name,
+            "redirectUrl": redirect_url,
+        }))
+        response.set_cookie(
+            ADMIN_RETURN_COOKIE_NAME,
+            admin_return_token,
+            max_age=int(JWT_TTL.total_seconds()),
+            httponly=True,
+            secure=COOKIE_SECURE,
+            samesite="Strict",
+            path="/",
+        )
+        set_access_cookie(response, simulation_token, account_ttl(target_type))
+        return response
+    finally:
+        cursor.close()
+        connection.close()
+
+
+@app.post("/api/admin/impersonation/stop")
+def admin_impersonation_stop():
+    admin_payload = decode_cookie_token(ADMIN_RETURN_COOKIE_NAME)
+    if not admin_payload or admin_payload.get("account_type") != "admin":
+        return jsonify({"success": False, "message": "Sessão administrativa de retorno não encontrada."}), 401
+    response = make_response(jsonify({"success": True, "redirectUrl": "Admin.html"}))
+    set_access_cookie(response, issue_token(admin_payload["sub"], "admin"), JWT_TTL)
+    response.delete_cookie(ADMIN_RETURN_COOKIE_NAME, path="/", samesite="Strict")
+    return response
+
+
 @app.post("/logout")
 def logout():
     response = make_response(jsonify({"success": True}))
     response.delete_cookie(JWT_COOKIE_NAME, path="/", samesite="Strict")
     response.delete_cookie(CSRF_COOKIE_NAME, path="/", samesite="Strict")
+    response.delete_cookie(ADMIN_RETURN_COOKIE_NAME, path="/", samesite="Strict")
     return response
 
 
