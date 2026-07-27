@@ -54,7 +54,7 @@ def safe_questions(raw_questions):
         questions.append(
             {
                 "id": str(item.get("id") or "")[:80],
-                "type": item.get("type") if item.get("type") in {"multiple_choice", "multiple_select", "true_false", "essay"} else "multiple_choice",
+                "type": item.get("type") if item.get("type") in {"single_choice", "multiple_choice", "true_false", "binary_choice", "fill_blank", "short_answer", "long_answer", "essay", "multiple_select", "numeric_answer", "matching"} else "single_choice",
                 "prompt": str(item.get("prompt") or "")[:3000],
                 "points": max(0, min(1000, int(item.get("points") or 0))),
                 "required": bool(item.get("required", True)),
@@ -81,11 +81,80 @@ def score_answers(questions, supplied):
         points = max(0, min(1000, int(question.get("points") or 0)))
         value = str(supplied.get(question_id, ""))[:10000]
         total_points += points
-        if kind == "essay":
+        if kind in {"long_answer", "essay"}:
             has_essay = True
             is_correct = None
             earned = 0
-        elif kind == "multiple_select":
+            correction_status = "aguardando_correcao"
+        elif kind == "binary_choice":
+            correct_opt = question.get("correctOption") or question.get("correctAnswer") or ""
+            is_correct = bool(value) and normalize_answer(value) == normalize_answer(correct_opt)
+            earned = points if is_correct else 0
+            objective_points += earned
+            correct_answers += int(is_correct)
+            correction_status = "automatico"
+        elif kind == "fill_blank":
+            blanks = question.get("blanks") or []
+            user_blanks = {}
+            if isinstance(value, str):
+                try:
+                    user_blanks = json.loads(value)
+                    if not isinstance(user_blanks, dict):
+                        user_blanks = {}
+                except (json.JSONDecodeError, TypeError):
+                    user_blanks = {}
+            elif isinstance(value, dict):
+                user_blanks = value
+
+            blank_results = []
+            for b in blanks:
+                b_id = str(b.get("id") or "")
+                u_val = str(user_blanks.get(b_id, "")).strip()
+                accepted = b.get("acceptedAnswers") or []
+                
+                b_correct = False
+                if b.get("accentInsensitive", True):
+                    u_norm = normalize_answer(u_val)
+                    acc_norm = [normalize_answer(x) for x in accepted]
+                else:
+                    u_norm = u_val.lower() if not b.get("caseSensitive") else u_val
+                    acc_norm = [x.lower() if not b.get("caseSensitive") else x for x in accepted]
+                
+                if u_norm in acc_norm:
+                    b_correct = True
+                elif b.get("numericMargin") is not None:
+                    try:
+                        u_num = float(u_val)
+                        target_num = float(accepted[0]) if accepted else 0.0
+                        margin = float(b["numericMargin"])
+                        if abs(u_num - target_num) <= margin:
+                            b_correct = True
+                    except (ValueError, TypeError, IndexError):
+                        pass
+
+                blank_results.append(b_correct)
+
+            is_correct = bool(blank_results) and all(blank_results)
+            earned = points if is_correct else 0
+            objective_points += earned
+            correct_answers += int(is_correct)
+            correction_status = "automatico"
+        elif kind == "short_answer":
+            raw_accepted = question.get("acceptedAnswers") or question.get("correctAnswer") or []
+            if isinstance(raw_accepted, list):
+                accepted_list = [normalize_answer(x) for x in raw_accepted if normalize_answer(x)]
+            elif isinstance(raw_accepted, str):
+                accepted_list = [normalize_answer(x) for x in raw_accepted.split(",") if normalize_answer(x)]
+            else:
+                accepted_list = []
+            
+            user_val = normalize_answer(value)
+            is_correct = bool(user_val) and (user_val in accepted_list)
+            earned = points if is_correct else 0
+            objective_points += earned
+            correct_answers += int(is_correct)
+            correction_status = "automatico"
+        elif kind in {"multiple_choice", "multiple_select"}:
             raw_correct = question.get("correctAnswers") or question.get("correctAnswer") or []
             if isinstance(raw_correct, str):
                 try:
@@ -115,15 +184,33 @@ def score_answers(questions, supplied):
             norm_correct = {normalize_answer(x) for x in correct_list if normalize_answer(x)}
             norm_user = {normalize_answer(x) for x in user_list if normalize_answer(x)}
 
-            is_correct = bool(norm_correct) and (norm_user == norm_correct)
+            # Verifica limites de seleção (minSelections, maxSelections, exactSelections)
+            exact_sel = question.get("exactSelections")
+            min_sel = question.get("minSelections")
+            max_sel = question.get("maxSelections")
+            user_count = len(norm_user)
+
+            limit_valid = True
+            if exact_sel and user_count != exact_sel:
+                limit_valid = False
+            if min_sel and user_count < min_sel:
+                limit_valid = False
+            if max_sel and user_count > max_sel:
+                limit_valid = False
+
+            is_correct = limit_valid and bool(norm_correct) and (norm_user == norm_correct)
             earned = points if is_correct else 0
             objective_points += earned
             correct_answers += int(is_correct)
+            correction_status = "automatico"
         else:
+            # single_choice, true_false e questões legadas
             is_correct = bool(value) and normalize_answer(value) == normalize_answer(question.get("correctAnswer"))
             earned = points if is_correct else 0
             objective_points += earned
             correct_answers += int(is_correct)
+            correction_status = "automatico"
+
         answers.append(
             {
                 "number": index + 1,
@@ -134,6 +221,7 @@ def score_answers(questions, supplied):
                 "points": points,
                 "earnedPoints": earned,
                 "isCorrect": is_correct,
+                "correctionStatus": correction_status,
             }
         )
     percentage = round((objective_points / total_points * 100) if total_points else 0, 2)
@@ -419,6 +507,15 @@ def create_participant_blueprint(open_database, token_payload):
                 )
                 if not code_valid:
                     return jsonify({"success": False, "message": "Informe o código especial enviado pela empresa. Ele deve estar válido e ainda não utilizado."}), 409
+            from exam_documents import check_pending_mandatory_documents
+            has_pending, pending_docs = check_pending_mandatory_documents(connection, row["exam_id"], row["participant_id"])
+            if has_pending:
+                return jsonify({
+                    "success": False,
+                    "message": "Você possui documentos obrigatórios pendentes. Conclua as etapas abaixo antes de iniciar a prova.",
+                    "pendingDocuments": pending_docs
+                }), 409
+
             if row.get("require_identity"):
                 cursor.execute("SELECT COUNT(*) AS total FROM attempt_identity_files WHERE attempt_id = %s", (attempt_id,))
                 if int(cursor.fetchone()["total"] or 0) < 2:

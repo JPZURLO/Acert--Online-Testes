@@ -281,7 +281,7 @@ def create_results_blueprint(open_database, token_payload):
                     continue
                 points = max(0.0, float(answer.get("points") or 0))
                 earned = max(0.0, min(points, float(answer.get("earnedPoints") or 0)))
-                if answer.get("type") == "essay":
+                if answer.get("type") in {"long_answer", "essay"}:
                     value = manual_scores.get(str(answer.get("questionId") or ""), earned)
                     try:
                         earned = max(0.0, min(points, float(value)))
@@ -289,6 +289,10 @@ def create_results_blueprint(open_database, token_payload):
                         earned = 0.0
                     answer["earnedPoints"] = round(earned, 2)
                     answer["isCorrect"] = earned >= points if points else None
+                    answer["correctionStatus"] = "corrigido" if release else "em_correcao"
+                    feedback_val = data.get("feedback", {}).get(str(answer.get("questionId") or "")) if isinstance(data.get("feedback"), dict) else None
+                    if feedback_val:
+                        answer["feedback"] = clean_text(feedback_val, 2000)
                     manual_total += earned
                 total_points += points
                 earned_points += earned

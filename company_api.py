@@ -21,7 +21,19 @@ from exam_email_service import (
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
 ALLOWED_FONTS = {"Inter", "Manrope", "Montserrat", "Poppins", "Roboto"}
 ALLOWED_RADII = {"small", "medium", "large"}
-ALLOWED_QUESTION_TYPES = {"multiple_choice", "multiple_select", "true_false", "essay"}
+ALLOWED_QUESTION_TYPES = {
+    "single_choice",
+    "multiple_choice",
+    "true_false",
+    "binary_choice",
+    "fill_blank",
+    "short_answer",
+    "long_answer",
+    "essay",
+    "multiple_select",
+    "numeric_answer",
+    "matching",
+}
 ALLOWED_STATUSES = {"draft", "published"}
 ALLOWED_RESULT_DELIVERY = {"automatic", "manual"}
 # on_save: envia ao concluir o cadastro | scheduled: envia X min antes | manual: não envia (botão manual) | none: não envia
@@ -92,47 +104,211 @@ def clean_branding(data):
 
 
 def clean_question(question, index):
-    question_type = clean_text(question.get("type"), 32, "multiple_choice")
-    if question_type not in ALLOWED_QUESTION_TYPES:
+    raw_type = clean_text(question.get("type"), 32, "single_choice")
+
+    # Mapeamento de tipos legados
+    if raw_type == "essay":
+        question_type = "long_answer"
+    elif raw_type == "multiple_select":
         question_type = "multiple_choice"
-
-    raw_options = question.get("options") if isinstance(question.get("options"), list) else []
-    options = [clean_text(option, 500) for option in raw_options[:10] if clean_text(option, 500)]
-    if question_type == "true_false":
-        options = ["Verdadeiro", "Falso"]
-    elif question_type in {"multiple_choice", "multiple_select"} and len(options) < 2:
-        options = ["Opção A", "Opção B"]
-    elif question_type == "essay":
-        options = []
-
-    raw_correct_answers = question.get("correctAnswers")
-    if isinstance(raw_correct_answers, list):
-        correct_answers = [clean_text(ans, 500) for ans in raw_correct_answers if clean_text(ans, 500)]
+    elif raw_type == "multiple_choice":
+        raw_struct = question.get("structuredOptions") if isinstance(question.get("structuredOptions"), list) else []
+        struct_correct_count = sum(1 for item in raw_struct if isinstance(item, dict) and item.get("isCorrect"))
+        raw_correct_list = question.get("correctAnswers") if isinstance(question.get("correctAnswers"), list) else []
+        if struct_correct_count > 1 or len(raw_correct_list) > 1:
+            question_type = "multiple_choice"
+        elif struct_correct_count == 1:
+            question_type = "single_choice"
+        elif question.get("correctAnswer") and not question.get("correctAnswers"):
+            question_type = "single_choice"
+        else:
+            question_type = "multiple_choice"
+    elif raw_type not in ALLOWED_QUESTION_TYPES:
+        question_type = "single_choice"
     else:
-        correct_answers = []
+        question_type = raw_type
 
-    correct_answer = clean_text(question.get("correctAnswer"), 500)
-    if question_type == "multiple_select":
-        if not correct_answers and correct_answer:
-            try:
-                parsed = json.loads(correct_answer)
-                if isinstance(parsed, list):
-                    correct_answers = [clean_text(ans, 500) for ans in parsed if clean_text(ans, 500)]
-            except (json.JSONDecodeError, TypeError):
-                correct_answers = [ans.strip() for ans in correct_answer.split(",") if ans.strip()]
-        if not correct_answers and options:
-            correct_answers = [options[0]]
-        correct_answer = json.dumps(correct_answers, ensure_ascii=False)
+    prompt = clean_text(question.get("prompt"), 3000)
+    if not prompt:
+        prompt = f"Questão {index + 1}"
+
+    points = clamp_integer(question.get("points"), 0, 1000, 10)
+    required = bool(question.get("required", True))
+    q_id = clean_text(question.get("id"), 80, f"question-{index + 1}")
+
+    cleaned_options = []
+    correct_answers_list = []
+    accepted_answers_list = []
+    min_chars = None
+    max_chars = None
+    parsed_blanks = None
+    legacy_correct_answer = ""
+    manual_correction = False
+
+    if question_type in {"single_choice", "multiple_choice", "true_false"}:
+        raw_options = question.get("structuredOptions") or question.get("options")
+        if not isinstance(raw_options, list):
+            raw_options = []
+
+        if question_type == "true_false":
+            raw_options = ["Verdadeiro", "Falso"]
+        elif not raw_options and question_type in {"single_choice", "multiple_choice"}:
+            raw_options = ["Opção A", "Opção B"]
+
+        for opt_idx, item in enumerate(raw_options[:10]):
+            if isinstance(item, dict):
+                opt_text = clean_text(item.get("text"), 500)
+                opt_id = clean_text(item.get("id"), 80, f"opt-{opt_idx + 1}")
+                is_correct = bool(item.get("isCorrect", False))
+                try:
+                    weight = float(item.get("weight", 1.0 if is_correct else 0.0))
+                except (TypeError, ValueError):
+                    weight = 1.0 if is_correct else 0.0
+            else:
+                opt_text = clean_text(item, 500)
+                opt_id = f"opt-{opt_idx + 1}"
+                is_correct = False
+                weight = 1.0
+
+            if not opt_text and question_type != "true_false":
+                raise ValueError("Não é permitido salvar alternativa vazia.")
+
+            cleaned_options.append({
+                "id": opt_id,
+                "text": opt_text,
+                "order": opt_idx + 1,
+                "isCorrect": is_correct,
+                "weight": weight,
+            })
+
+        has_any_correct = any(opt["isCorrect"] for opt in cleaned_options)
+        if not has_any_correct:
+            raw_correct = question.get("correctAnswers") or question.get("correctAnswer")
+            if isinstance(raw_correct, list):
+                correct_texts = {clean_text(x, 500) for x in raw_correct if clean_text(x, 500)}
+            elif isinstance(raw_correct, str) and raw_correct.startswith("["):
+                try:
+                    correct_texts = {clean_text(x, 500) for x in json.loads(raw_correct) if isinstance(x, str)}
+                except Exception:
+                    correct_texts = {clean_text(raw_correct, 500)}
+            elif isinstance(raw_correct, str) and raw_correct:
+                correct_texts = {clean_text(raw_correct, 500)}
+            else:
+                correct_texts = set()
+
+            for opt in cleaned_options:
+                if opt["text"] in correct_texts:
+                    opt["isCorrect"] = True
+
+        correct_count = sum(1 for opt in cleaned_options if opt["isCorrect"])
+        if question_type in {"single_choice", "true_false"}:
+            if correct_count == 0 and cleaned_options:
+                cleaned_options[0]["isCorrect"] = True
+                correct_count = 1
+            if correct_count != 1:
+                raise ValueError("Questões de resposta única devem possuir exatamente uma alternativa correta.")
+        elif question_type == "multiple_choice":
+            if correct_count == 0 and cleaned_options:
+                cleaned_options[0]["isCorrect"] = True
+                correct_count = 1
+            if correct_count < 1:
+                raise ValueError("Questões de múltipla seleção devem possuir pelo menos uma alternativa correta.")
+
+        correct_answers_list = [opt["text"] for opt in cleaned_options if opt["isCorrect"]]
+        legacy_correct_answer = correct_answers_list[0] if correct_answers_list else ""
+        if question_type == "multiple_choice":
+            legacy_correct_answer = json.dumps(correct_answers_list, ensure_ascii=False)
+
+    elif question_type == "short_answer":
+        raw_accepted = question.get("acceptedAnswers")
+        if isinstance(raw_accepted, list):
+            accepted_answers_list = [clean_text(ans, 500) for ans in raw_accepted if clean_text(ans, 500)]
+        elif isinstance(raw_accepted, str) and raw_accepted:
+            accepted_answers_list = [ans.strip() for ans in raw_accepted.split(",") if ans.strip()]
+        else:
+            legacy_correct = clean_text(question.get("correctAnswer"), 500)
+            accepted_answers_list = [legacy_correct] if legacy_correct else []
+
+        if not accepted_answers_list:
+            raise ValueError("Questão de resposta curta deve possuir pelo menos uma resposta aceita.")
+
+        legacy_correct_answer = accepted_answers_list[0]
+
+    elif question_type == "binary_choice":
+        opt1 = clean_text(question.get("option1Text") or question.get("option1"), 200, "Sim")
+        opt2 = clean_text(question.get("option2Text") or question.get("option2"), 200, "Não")
+        correct_opt = clean_text(question.get("correctOption") or question.get("correctAnswer"), 200, opt1)
+        if correct_opt not in {opt1, opt2}:
+            correct_opt = opt1
+        cleaned_options = [
+            {"id": "opt-1", "text": opt1, "order": 1, "isCorrect": (correct_opt == opt1), "weight": 1.0},
+            {"id": "opt-2", "text": opt2, "order": 2, "isCorrect": (correct_opt == opt2), "weight": 1.0},
+        ]
+        correct_answers_list = [correct_opt]
+        legacy_correct_answer = correct_opt
+        simple_options = [opt1, opt2]
+
+    elif question_type == "fill_blank":
+        raw_blanks = question.get("blanks") if isinstance(question.get("blanks"), list) else []
+        blanks = []
+        for idx, b in enumerate(raw_blanks):
+            if not isinstance(b, dict):
+                continue
+            b_id = clean_text(b.get("id"), 80, f"blank-{idx + 1}")
+            raw_acc = b.get("acceptedAnswers")
+            if isinstance(raw_acc, list):
+                b_accepted = [clean_text(x, 200) for x in raw_acc if clean_text(x, 200)]
+            elif isinstance(raw_acc, str):
+                b_accepted = [x.strip() for x in raw_acc.split(",") if x.strip()]
+            else:
+                b_accepted = []
+            blanks.append({
+                "id": b_id,
+                "acceptedAnswers": b_accepted,
+                "caseSensitive": bool(b.get("caseSensitive", False)),
+                "accentInsensitive": bool(b.get("accentInsensitive", True)),
+                "ignoreExtraSpaces": bool(b.get("ignoreExtraSpaces", True)),
+                "isRegex": bool(b.get("isRegex", False)),
+                "numericMargin": float(b.get("numericMargin") or 0) if b.get("numericMargin") is not None else None,
+                "displayType": clean_text(b.get("displayType"), 32, "text_input"),
+            })
+        parsed_blanks = blanks
+        legacy_correct_answer = ""
+
+    elif question_type in {"long_answer", "essay"}:
+        manual_correction = True
+        min_chars = clamp_integer(question.get("minChars"), 0, 5000, None)
+        max_chars = clamp_integer(question.get("maxChars"), 0, 5000, None)
+
+    min_selections = clamp_integer(question.get("minSelections"), 0, 10, None)
+    max_selections = clamp_integer(question.get("maxSelections"), 0, 10, None)
+    exact_selections = clamp_integer(question.get("exactSelections"), 0, 10, None)
+    show_selection_hint = bool(question.get("showSelectionHint", True))
+
+    simple_options = [opt["text"] for opt in cleaned_options] if cleaned_options else []
 
     return {
-        "id": clean_text(question.get("id"), 80, f"question-{index + 1}"),
+        "id": q_id,
         "type": question_type,
-        "prompt": clean_text(question.get("prompt"), 3000, f"Questão {index + 1}"),
-        "points": clamp_integer(question.get("points"), 0, 1000, 10),
-        "required": bool(question.get("required", True)),
-        "options": options,
-        "correctAnswer": correct_answer,
-        "correctAnswers": correct_answers if question_type == "multiple_select" else None,
+        "prompt": prompt,
+        "points": points,
+        "required": required,
+        "options": simple_options,
+        "structuredOptions": cleaned_options,
+        "correctAnswer": legacy_correct_answer,
+        "correctAnswers": correct_answers_list,
+        "acceptedAnswers": accepted_answers_list,
+        "blanks": parsed_blanks,
+        "minCharacters": min_chars,
+        "maxCharacters": max_chars,
+        "minSelections": min_selections,
+        "maxSelections": max_selections,
+        "exactSelections": exact_selections,
+        "showSelectionHint": show_selection_hint,
+        "option1Text": question.get("option1Text") or question.get("option1"),
+        "option2Text": question.get("option2Text") or question.get("option2"),
+        "correctOption": question.get("correctOption"),
+        "manualCorrection": manual_correction,
     }
 
 
@@ -143,15 +319,22 @@ def clean_exam(data):
         for index, question in enumerate(raw_questions[:MAX_QUESTIONS])
         if isinstance(question, dict)
     ]
+    status = clean_text(data.get("status"), 16, "draft")
+    status = status if status in ALLOWED_STATUSES else "draft"
+    is_draft = (status == "draft")
+
     title = clean_text(data.get("title"), 180)
     if not title:
-        raise ValueError("Informe o título do teste.")
-    status = clean_text(data.get("status"), 16, "draft")
+        if not is_draft:
+            raise ValueError("Informe o título do teste.")
+        title = "Rascunho sem título"
+
     result_delivery = clean_text(data.get("resultDelivery"), 16, "manual")
     available_from = clean_datetime(data.get("availableFrom"))
     available_until = clean_datetime(data.get("availableUntil"))
     if available_from and available_until and available_until <= available_from:
         raise ValueError("A data final deve ser posterior à data inicial.")
+
     email_send_option = clean_text(data.get("emailSendOption"), 16, "manual")
     email_schedule_minutes = data.get("emailScheduleMinutesBefore")
     try:
@@ -163,7 +346,10 @@ def clean_exam(data):
             raise
         email_schedule_minutes = None
     if email_send_option == "scheduled" and email_schedule_minutes is None:
-        raise ValueError("Informe os minutos antes do início para o envio agendado.")
+        if not is_draft:
+            raise ValueError("Informe os minutos antes do início para o envio agendado.")
+        email_send_option = "manual"
+
     return {
         "title": title,
         "description": clean_text(data.get("description"), 3000),
@@ -171,7 +357,7 @@ def clean_exam(data):
         "passingScore": clamp_integer(data.get("passingScore"), 0, 100, 60),
         "gradingScale": normalize_grading_scale(data.get("gradingScale")),
         "shuffleQuestions": bool(data.get("shuffleQuestions", False)),
-        "status": status if status in ALLOWED_STATUSES else "draft",
+        "status": status,
         "resultDelivery": result_delivery if result_delivery in ALLOWED_RESULT_DELIVERY else "manual",
         "availableFrom": available_from,
         "availableUntil": available_until,
@@ -652,5 +838,135 @@ def create_company_blueprint(open_database, token_payload):
             cursor_dict.close()
 
         return result
+
+    @blueprint.post("/api/company/exams/import-draft")
+    def create_import_draft():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+
+        file_main = request.files.get("file") or request.files.get("examFile")
+        file_gabarito = request.files.get("gabaritoFile")
+
+        if not file_main or not file_main.filename:
+            return jsonify({"success": False, "message": "Selecione o arquivo da prova ou arquivo GIFT para importação."}), 400
+
+        filename = Path(file_main.filename).name
+        ext = (filename.rsplit(".", 1)[1] if "." in filename else "").lower()
+
+        parsed_questions = []
+        errors = []
+        warnings = []
+        confidence_score = 100.00
+        source_type = "file_single"
+
+        try:
+            if ext in {"gift", "txt"}:
+                source_type = "moodle_gift"
+                from gift_import import parse_gift_questions
+                gift_res = parse_gift_questions(file_main.stream, return_dict=True)
+                parsed_questions = gift_res["questions"]
+                errors = gift_res.get("errors", [])
+                warnings = gift_res.get("warnings", [])
+                confidence_score = gift_res.get("confidenceScore", 100.00)
+            elif ext in {"xlsx", "csv"}:
+                from question_import import parse_question_sheet
+                parsed_questions = parse_question_sheet(file_main.stream)
+            else:
+                source_type = "file_split" if file_gabarito else "file_single"
+                content_text = ""
+                if ext == "docx":
+                    from zipfile import ZipFile
+                    with ZipFile(file_main.stream) as zf:
+                        xml_content = zf.read("word/document.xml").decode("utf-8", errors="ignore")
+                        content_text = " ".join(re.findall(r"<w:t[^>]*>(.*?)</w:t>", xml_content))
+                else:
+                    content_text = file_main.stream.read().decode("utf-8", errors="ignore")
+
+                raw_blocks = re.split(r"(?i)(?:questã|questao|q\.)\s*(\d+)[\s.:\-–]", content_text)
+                if len(raw_blocks) > 1:
+                    for i in range(1, len(raw_blocks), 2):
+                        q_num = raw_blocks[i]
+                        q_body = raw_blocks[i + 1] if i + 1 < len(raw_blocks) else ""
+                        parsed_questions.append({
+                            "id": f"imported-q-{q_num}",
+                            "type": "single_choice",
+                            "prompt": f"Questão {q_num}: {q_body[:200]}",
+                            "points": 10,
+                            "required": True,
+                            "options": ["Opção A", "Opção B", "Opção C", "Opção D"],
+                            "correctAnswer": "Opção A",
+                            "number": q_num,
+                        })
+
+                if file_gabarito and file_gabarito.filename:
+                    gab_text = file_gabarito.stream.read().decode("utf-8", errors="ignore")
+                    gab_matches = re.findall(r"(\d+)[\s.:\-–=]+([A-Ea-e1-5])", gab_text)
+                    gab_map = {num: ans.upper() for num, ans in gab_matches}
+                    for q in parsed_questions:
+                        num = q.get("number")
+                        if num and num in gab_map:
+                            letter = gab_map[num]
+                            opt_index = ord(letter) - ord('A') if 'A' <= letter <= 'E' else 0
+                            if 0 <= opt_index < len(q["options"]):
+                                q["correctAnswer"] = q["options"][opt_index]
+
+        except Exception as exc:
+            return jsonify({"success": False, "message": f"Erro no processamento do arquivo: {str(exc)}"}), 400
+
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "INSERT INTO exam_import_drafts (company_id, source_type, original_filename, gabarito_filename, "
+                "parsed_questions_json, review_status, confidence_score, warnings_json, errors_json) "
+                "VALUES (%s, %s, %s, %s, %s, 'draft', %s, %s, %s)",
+                (
+                    company_id, source_type, filename, Path(file_gabarito.filename).name if file_gabarito else None,
+                    json.dumps(parsed_questions, ensure_ascii=False), confidence_score,
+                    json.dumps(warnings, ensure_ascii=False), json.dumps(errors, ensure_ascii=False),
+                ),
+            )
+            connection.commit()
+            draft_id = cursor.lastrowid
+            return jsonify({
+                "success": True,
+                "draftId": draft_id,
+                "confidenceScore": confidence_score,
+                "questionCount": len(parsed_questions),
+                "warnings": warnings,
+                "errors": errors,
+                "questions": parsed_questions,
+            })
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.get("/api/company/import-drafts/<int:draft_id>")
+    def get_import_draft(draft_id):
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT * FROM exam_import_drafts WHERE id=%s AND company_id=%s", (draft_id, company_id))
+            row = cursor.fetchone()
+            if not row:
+                return jsonify({"success": False, "message": "Rascunho não encontrado."}), 404
+            return jsonify({
+                "id": row["id"],
+                "sourceType": row["source_type"],
+                "originalFilename": row["original_filename"],
+                "gabaritoFilename": row.get("gabarito_filename"),
+                "questions": json.loads(row.get("parsed_questions_json") or "[]"),
+                "confidenceScore": float(row.get("confidence_score") or 100),
+                "warnings": json.loads(row.get("warnings_json") or "[]"),
+                "errors": json.loads(row.get("errors_json") or "[]"),
+                "reviewStatus": row["review_status"],
+            })
+        finally:
+            cursor.close()
+            connection.close()
 
     return blueprint

@@ -684,4 +684,163 @@ def create_admin_blueprint(open_database, token_payload):
         finally:
             connection.close()
 
+    @blueprint.get("/api/admin/knowledge-base")
+    def list_admin_knowledge_base():
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        kb_file = os.path.join(current_app.root_path, "data", "knowledge_base_articles.json")
+        if os.path.exists(kb_file):
+            try:
+                with open(kb_file, "r", encoding="utf-8") as f:
+                    articles = json.load(f)
+                return jsonify({"success": True, "articles": articles})
+            except Exception as exc:
+                return jsonify({"success": False, "message": str(exc)}), 500
+        return jsonify({"success": True, "articles": []})
+
+    @blueprint.post("/api/admin/knowledge-base/upload-image")
+    def upload_admin_knowledge_base_image():
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        if "file" not in request.files:
+            return jsonify({"success": False, "message": "Nenhum arquivo enviado."}), 400
+        up_file = request.files["file"]
+        if not up_file or not up_file.filename:
+            return jsonify({"success": False, "message": "Nome de arquivo inválido."}), 400
+
+        from werkzeug.utils import secure_filename
+        import uuid
+
+        raw_filename = secure_filename(os.path.basename(up_file.filename)) or "image.png"
+        ext = os.path.splitext(raw_filename)[1].lower()
+        if ext not in {".png", ".jpg", ".jpeg", ".webp"}:
+            return jsonify({"success": False, "message": "Formato de imagem não suportado. Use PNG, JPG, JPEG ou WEBP."}), 400
+
+        content_type = (up_file.content_type or "").lower()
+        allowed_mimes = {"image/png", "image/jpeg", "image/pjpeg", "image/webp"}
+        if content_type and content_type not in allowed_mimes:
+            return jsonify({"success": False, "message": "Tipo MIME inválido para imagem."}), 400
+
+        article_slug = text(request.form.get("slug"), 120) or "geral"
+        article_slug = slug(article_slug)
+
+        folder = os.path.join(current_app.root_path, "front-end", "assets", "images", "base-conhecimento", article_slug)
+        os.makedirs(folder, exist_ok=True)
+
+        unique_name = f"{uuid.uuid4().hex[:10]}_{raw_filename}"
+        file_path = os.path.join(folder, unique_name)
+        up_file.save(file_path)
+
+        relative_url = f"./assets/images/base-conhecimento/{article_slug}/{unique_name}"
+        return jsonify({
+            "success": True,
+            "url": relative_url,
+            "filename": unique_name,
+            "slug": article_slug
+        })
+
+    @blueprint.post("/api/admin/knowledge-base")
+    def save_admin_knowledge_base_article():
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        title = text(data.get("title"), 200)
+        if not title:
+            return jsonify({"success": False, "message": "Título é obrigatório."}), 400
+
+        article_id = text(data.get("id"), 120) or slug(title)
+        article_slug = slug(data.get("slug") or article_id)
+        category = text(data.get("category"), 100) or "Geral"
+        audience = text(data.get("audience"), 30) or "company"
+        read_time = text(data.get("readTime"), 50) or "3 min de leitura"
+        lead = text(data.get("lead") or data.get("summary"), 2000)
+        alert_tip = text(data.get("alertTip"), 2000)
+        status = text(data.get("status"), 20) or "published"
+        tags = data.get("tags") if isinstance(data.get("tags"), list) else []
+        cover_image = text(data.get("coverImage"), 500)
+        seo_title = text(data.get("seoTitle"), 200) or title
+        meta_description = text(data.get("metaDescription"), 500) or lead[:160]
+        related_ids = data.get("relatedIds") if isinstance(data.get("relatedIds"), list) else []
+        steps = data.get("steps") if isinstance(data.get("steps"), list) else []
+        blocks = data.get("blocks") if isinstance(data.get("blocks"), list) else []
+
+        kb_dir = os.path.join(current_app.root_path, "data")
+        os.makedirs(kb_dir, exist_ok=True)
+        kb_file = os.path.join(kb_dir, "knowledge_base_articles.json")
+
+        articles = []
+        if os.path.exists(kb_file):
+            try:
+                with open(kb_file, "r", encoding="utf-8") as f:
+                    articles = json.load(f)
+            except Exception:
+                articles = []
+
+        existing_article = next((a for a in articles if a.get("id") == article_id), None)
+        history = list(existing_article.get("history", [])) if existing_article else []
+
+        # Adiciona ao histórico de versões se for alteração significativa
+        if existing_article:
+            history.append({
+                "savedAt": datetime.now().isoformat(),
+                "adminId": _admin_id,
+                "status": existing_article.get("status", "published"),
+                "title": existing_article.get("title")
+            })
+
+        article_obj = {
+            "id": article_id,
+            "slug": article_slug,
+            "title": title,
+            "summary": lead[:160],
+            "category": category,
+            "audience": audience,
+            "readTime": read_time,
+            "updatedAt": datetime.now().strftime("%d/%m/%Y"),
+            "lead": lead,
+            "alertTip": alert_tip,
+            "status": status,
+            "tags": tags,
+            "coverImage": cover_image,
+            "seoTitle": seo_title,
+            "metaDescription": meta_description,
+            "relatedIds": related_ids,
+            "steps": steps,
+            "blocks": blocks,
+            "history": history[-20:] # mantém até 20 revisões
+        }
+
+        existing_index = next((i for i, a in enumerate(articles) if a.get("id") == article_id), None)
+        if existing_index is not None:
+            articles[existing_index] = article_obj
+        else:
+            articles.append(article_obj)
+
+        with open(kb_file, "w", encoding="utf-8") as f:
+            json.dump(articles, f, ensure_ascii=False, indent=2)
+
+        return jsonify({"success": True, "article": article_obj})
+
+    @blueprint.delete("/api/admin/knowledge-base/<article_id>")
+    def delete_admin_knowledge_base_article(article_id):
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        kb_file = os.path.join(current_app.root_path, "data", "knowledge_base_articles.json")
+        if not os.path.exists(kb_file):
+            return jsonify({"success": False, "message": "Artigo não encontrado."}), 404
+
+        try:
+            with open(kb_file, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            articles = [a for a in articles if a.get("id") != article_id]
+            with open(kb_file, "w", encoding="utf-8") as f:
+                json.dump(articles, f, ensure_ascii=False, indent=2)
+            return jsonify({"success": True})
+        except Exception as exc:
+            return jsonify({"success": False, "message": str(exc)}), 500
+
     return blueprint

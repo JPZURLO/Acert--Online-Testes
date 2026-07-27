@@ -256,6 +256,8 @@ def protect_cookie_authenticated_writes():
         return None
     if not request.cookies.get(JWT_COOKIE_NAME):
         return None
+    if not request.cookies.get(JWT_COOKIE_NAME):
+        return None
     cookie_token = request.cookies.get(CSRF_COOKIE_NAME, "")
     header_token = request.headers.get("X-CSRF-Token", "")
     if not cookie_token or not header_token or not hmac.compare_digest(cookie_token, header_token):
@@ -292,6 +294,8 @@ def request_too_large(_error):
     return "Arquivo muito grande.", 413
 
 
+from exam_documents import create_exam_documents_blueprint
+app.register_blueprint(create_exam_documents_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_operations_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
@@ -303,7 +307,6 @@ app.register_blueprint(create_support_finance_blueprint(open_database, token_pay
 app.register_blueprint(create_error_monitoring_blueprint(open_database, token_payload))
 install_error_handlers(app, open_database, token_payload)
 recording_maintenance_thread = start_recording_maintenance(open_database)
-
 
 @app.post("/login")
 def login():
@@ -418,6 +421,20 @@ def obter_nome_completo():
         connection.close()
 
 
+@app.get("/api/knowledge-base/articles")
+def public_knowledge_base_articles():
+    import json, os
+    kb_file = os.path.join(app.root_path, "data", "knowledge_base_articles.json")
+    if os.path.exists(kb_file):
+        try:
+            with open(kb_file, "r", encoding="utf-8") as f:
+                articles = json.load(f)
+            return jsonify({"success": True, "articles": articles})
+        except Exception:
+            pass
+    return jsonify({"success": True, "articles": []})
+
+
 @app.get("/api/obterRazaoSocial")
 def obter_razao_social():
     payload, error = token_payload("company")
@@ -442,6 +459,7 @@ def logout():
     response.delete_cookie(JWT_COOKIE_NAME, path="/", samesite="Strict")
     response.delete_cookie(CSRF_COOKIE_NAME, path="/", samesite="Strict")
     return response
+
 
 
 @app.route("/", defaults={"path": ""})

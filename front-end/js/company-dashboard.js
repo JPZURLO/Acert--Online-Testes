@@ -81,6 +81,10 @@ async function api(url, options = {}) {
     data = {};
   }
   if (!response.ok) {
+    if (response.status === 401 || response.status === 403) {
+      window.location.replace('login_empresa.html');
+      return;
+    }
     const error = new Error(data.message || 'Não foi possível concluir a operação.');
     error.status = response.status;
     error.details = Array.isArray(data.errors) ? data.errors : [];
@@ -115,12 +119,37 @@ function initials(name) {
   return String(name || 'Empresa').split(/\s+/).filter(Boolean).slice(0, 2).map(part => part[0]).join('').toUpperCase();
 }
 
+function getToastRegion() {
+  let container = document.getElementById('toast-region') || elements['toast-region'];
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'toast-region';
+    container.className = 'toast-region';
+    container.setAttribute('aria-live', 'polite');
+    container.setAttribute('aria-atomic', 'true');
+    document.body.appendChild(container);
+  }
+  elements['toast-region'] = container;
+  return container;
+}
+
 function toast(message, type = 'success') {
-  const item = document.createElement('div');
-  item.className = `toast ${type === 'error' ? 'error' : ''}`;
-  item.textContent = message;
-  elements['toast-region'].appendChild(item);
-  setTimeout(() => item.remove(), 3600);
+  try {
+    const container = getToastRegion();
+    if (!container) {
+      console.warn('[Toast Fallback]', message);
+      return;
+    }
+    const item = document.createElement('div');
+    item.className = `toast ${type === 'error' ? 'error' : (type === 'warning' ? 'warning' : 'success')}`;
+    item.textContent = message;
+    container.appendChild(item);
+    setTimeout(() => {
+      try { item.remove(); } catch (_) {}
+    }, 4000);
+  } catch (err) {
+    console.error('[Toast Error]', err, message);
+  }
 }
 
 function setSaveStatus(label, kind = '') {
@@ -165,11 +194,71 @@ function applyBranding() {
 
 function renderOptions(question, container, questionIndex = 0) {
   container.replaceChildren();
-  if (question.type === 'essay') {
+
+  if (['long_answer', 'essay'].includes(question.type)) {
     const note = document.createElement('div');
     note.className = 'essay-note';
-    note.textContent = 'O candidato responderá em um campo de texto livre. Questões dissertativas são corrigidas no painel de Resultados.';
-    container.appendChild(note);
+    note.textContent = 'O candidato responderá em um campo de texto livre. Questões dissertativas exigem correção manual no painel de Resultados.';
+    
+    const charGrid = document.createElement('div');
+    charGrid.className = 'char-limits-grid';
+
+    const minLabel = document.createElement('label');
+    minLabel.className = 'char-limit-field';
+    minLabel.innerHTML = `<span>Mínimo de caracteres</span><input type="number" class="question-min-chars" min="0" max="10000" value="${question.minCharacters || 0}">`;
+
+    const maxLabel = document.createElement('label');
+    maxLabel.className = 'char-limit-field';
+    maxLabel.innerHTML = `<span>Máximo de caracteres</span><input type="number" class="question-max-chars" min="0" max="50000" value="${question.maxCharacters || 5000}">`;
+
+    charGrid.append(minLabel, maxLabel);
+    container.append(note, charGrid);
+    return;
+  }
+
+  if (question.type === 'short_answer') {
+    if (!Array.isArray(question.acceptedAnswers) || question.acceptedAnswers.length === 0) {
+      question.acceptedAnswers = question.correctAnswer ? [question.correctAnswer] : ['Resposta correta'];
+    }
+
+    const helper = document.createElement('div');
+    helper.className = 'options-helper-text';
+    helper.textContent = 'Cadastre as respostas aceitas para correção automática (sem diferenciar maiúsculas/minúsculas ou espaços nas pontas):';
+    container.appendChild(helper);
+
+    question.acceptedAnswers.forEach((ans, ansIndex) => {
+      const row = document.createElement('div');
+      row.className = 'option-row short-answer-row';
+
+      const marker = document.createElement('span');
+      marker.className = 'correct-badge';
+      marker.textContent = `Aceita ${ansIndex + 1}`;
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = ans;
+      input.maxLength = 500;
+      input.dataset.acceptedIndex = String(ansIndex);
+      input.setAttribute('placeholder', 'Digite o texto da resposta aceita');
+
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-option';
+      remove.dataset.removeAccepted = String(ansIndex);
+      remove.textContent = '×';
+
+      row.append(marker, input, remove);
+      container.appendChild(row);
+    });
+
+    if (question.acceptedAnswers.length < 10) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'add-option';
+      add.dataset.addAccepted = 'true';
+      add.textContent = '+ Adicionar resposta aceita';
+      container.appendChild(add);
+    }
     return;
   }
 
@@ -177,7 +266,7 @@ function renderOptions(question, container, questionIndex = 0) {
     question.options = ['Opção A', 'Opção B'];
   }
 
-  const isMultiSelect = question.type === 'multiple_select';
+  const isMultiSelect = question.type === 'multiple_choice';
   if (isMultiSelect) {
     if (!Array.isArray(question.correctAnswers)) {
       if (question.correctAnswer) {
@@ -191,16 +280,51 @@ function renderOptions(question, container, questionIndex = 0) {
         question.correctAnswers = [question.options[0]];
       }
     }
-  } else {
-    if (!question.correctAnswer && question.options.length > 0) {
-      question.correctAnswer = question.options[0];
+  }
+  if (question.type === 'binary_choice') {
+    if (!Array.isArray(question.options) || question.options.length !== 2) {
+      question.options = ['Conforme', 'Não conforme'];
     }
+    if (!question.correctOption) question.correctOption = question.options[0];
+    if (!question.correctAnswer) question.correctAnswer = question.options[0];
+  } else if (question.type === 'fill_blank') {
+    if (!Array.isArray(question.blanks) || question.blanks.length === 0) {
+      question.blanks = [{ id: 'blank-1', acceptedAnswers: ['palavra'], caseSensitive: false, accentInsensitive: true }];
+    }
+  }
+
+  if (question.type === 'fill_blank') {
+    const helper = document.createElement('div');
+    helper.className = 'options-helper-text';
+    helper.textContent = 'Lacunas configuradas no enunciado (use ______ para indicar onde fica cada lacuna):';
+    container.appendChild(helper);
+
+    question.blanks.forEach((blank, bIdx) => {
+      const row = document.createElement('div');
+      row.className = 'option-row';
+      row.style.flexDirection = 'column';
+      row.style.alignItems = 'flex-start';
+      row.style.gap = '0.4rem';
+
+      const title = document.createElement('div');
+      title.innerHTML = `<strong>Lacuna #${bIdx + 1}</strong> (${blank.id})`;
+      
+      const accInput = document.createElement('input');
+      accInput.type = 'text';
+      accInput.value = (blank.acceptedAnswers || []).join(', ');
+      accInput.placeholder = 'Respostas aceitas (separadas por vírgula)';
+      accInput.dataset.blankIndex = String(bIdx);
+
+      row.append(title, accInput);
+      container.appendChild(row);
+    });
+    return;
   }
 
   const helper = document.createElement('div');
   helper.className = 'options-helper-text';
   helper.textContent = isMultiSelect
-    ? 'Marque as alternativas corretas (gabarito — múltiplas respostas permitidas):'
+    ? 'Marque as alternativas corretas (gabarito — múltiplas respostas):'
     : 'Marque a alternativa correta (gabarito):';
   container.appendChild(helper);
 
@@ -218,7 +342,6 @@ function renderOptions(question, container, questionIndex = 0) {
     if (!isMultiSelect) markInput.name = `correct-option-${questionIndex}`;
     markInput.checked = isCorrect;
     markInput.dataset.correctOption = String(optionIndex);
-    markInput.setAttribute('title', isMultiSelect ? 'Marcar/desmarcar como resposta correta' : 'Marcar como resposta correta (gabarito)');
 
     const input = document.createElement('input');
     input.type = 'text';
@@ -236,18 +359,20 @@ function renderOptions(question, container, questionIndex = 0) {
       row.appendChild(badge);
     }
 
-    const remove = document.createElement('button');
-    remove.type = 'button';
-    remove.className = 'remove-option';
-    remove.dataset.removeOption = String(optionIndex);
-    remove.setAttribute('aria-label', `Remover opção ${optionIndex + 1}`);
-    remove.textContent = '×';
-    row.appendChild(remove);
+    if (!['true_false', 'binary_choice'].includes(question.type)) {
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove-option';
+      remove.dataset.removeOption = String(optionIndex);
+      remove.setAttribute('aria-label', `Remover opção ${optionIndex + 1}`);
+      remove.textContent = '×';
+      row.appendChild(remove);
+    }
 
     container.appendChild(row);
   });
 
-  if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 10) {
+  if (['single_choice', 'multiple_choice'].includes(question.type) && question.options.length < 10) {
     const add = document.createElement('button');
     add.type = 'button';
     add.className = 'add-option';
@@ -418,11 +543,24 @@ function syncQuestionFromTarget(target) {
   if (target.classList.contains('question-prompt')) question.prompt = target.value;
   if (target.classList.contains('question-points')) question.points = Math.max(0, Number(target.value) || 0);
   if (target.classList.contains('question-required')) question.required = target.checked;
+  if (target.classList.contains('question-min-chars')) {
+    question.minCharacters = Math.max(0, Number(target.value) || 0);
+  }
+  if (target.classList.contains('question-max-chars')) {
+    question.maxCharacters = Math.max(0, Number(target.value) || 0);
+  }
+  if (target.matches('[data-accepted-index]')) {
+    const accIdx = Number(target.dataset.acceptedIndex);
+    if (Array.isArray(question.acceptedAnswers)) {
+      question.acceptedAnswers[accIdx] = target.value;
+      question.correctAnswer = question.acceptedAnswers[0] || '';
+    }
+  }
   if (target.matches('[data-option-index]')) {
     const optIdx = Number(target.dataset.optionIndex);
     const oldVal = question.options[optIdx];
     question.options[optIdx] = target.value;
-    if (question.type === 'multiple_select') {
+    if (question.type === 'multiple_choice') {
       if (Array.isArray(question.correctAnswers)) {
         const cIndex = question.correctAnswers.indexOf(oldVal);
         if (cIndex >= 0) question.correctAnswers[cIndex] = target.value;
@@ -435,7 +573,7 @@ function syncQuestionFromTarget(target) {
   if (target.matches('[data-correct-option]')) {
     const optIdx = Number(target.dataset.correctOption);
     const optVal = question.options[optIdx] || '';
-    if (question.type === 'multiple_select') {
+    if (question.type === 'multiple_choice') {
       if (!Array.isArray(question.correctAnswers)) question.correctAnswers = [];
       if (target.checked) {
         if (!question.correctAnswers.includes(optVal)) question.correctAnswers.push(optVal);
@@ -450,15 +588,31 @@ function syncQuestionFromTarget(target) {
   }
   if (target.classList.contains('question-type')) {
     question.type = target.value;
-    if (question.type === 'true_false') question.options = ['Verdadeiro', 'Falso'];
-    if (['multiple_choice', 'multiple_select'].includes(question.type) && question.options.length < 2) {
-      question.options = ['Opção A', 'Opção B'];
+    if (question.type === 'true_false') {
+      question.options = ['Verdadeiro', 'Falso'];
+      question.correctAnswer = 'Verdadeiro';
+    } else if (['single_choice', 'multiple_choice'].includes(question.type)) {
+      if (!Array.isArray(question.options) || question.options.length < 2) {
+        question.options = ['Opção A', 'Opção B'];
+      }
+      if (question.type === 'multiple_choice') {
+        question.correctAnswers = [question.options[0]];
+        question.correctAnswer = JSON.stringify(question.correctAnswers);
+      } else {
+        question.correctAnswer = question.options[0];
+      }
+    } else if (question.type === 'short_answer') {
+      question.options = [];
+      question.acceptedAnswers = ['Resposta aceita'];
+      question.correctAnswer = 'Resposta aceita';
+    } else if (['long_answer', 'essay'].includes(question.type)) {
+      question.options = [];
+      question.acceptedAnswers = [];
+      question.correctAnswer = '';
+      question.minCharacters = 0;
+      question.maxCharacters = 5000;
+      question.manualCorrection = true;
     }
-    if (question.type === 'multiple_select') {
-      question.correctAnswers = [question.options[0]];
-      question.correctAnswer = JSON.stringify(question.correctAnswers);
-    }
-    if (question.type === 'essay') question.options = [];
     renderQuestions();
   }
   updateSummary();
@@ -571,13 +725,18 @@ function fillExam(exam) {
   state.dirty = false;
   renderQuestions();
   updatePreview();
+  loadExamDocuments(state.examId);
   setSaveStatus(state.examId ? 'Alterações salvas' : 'Rascunho local', state.examId ? 'saved' : '');
 }
 
 function updateEmailScheduleVisibility() {
   const sendOption = elements['email-send-option'] ? elements['email-send-option'].value : 'manual';
   if (elements['email-schedule-minutes-field']) {
-    elements['email-schedule-minutes-field'].hidden = sendOption !== 'scheduled';
+    const isScheduled = sendOption === 'scheduled';
+    elements['email-schedule-minutes-field'].hidden = !isScheduled;
+    if (!isScheduled && elements['email-schedule-minutes']) {
+      elements['email-schedule-minutes'].value = '';
+    }
   }
   if (elements['email-status-panel']) {
     elements['email-status-panel'].hidden = sendOption === 'none';
@@ -635,22 +794,33 @@ async function loadExam(examId) {
 async function saveExam(status = 'draft', silent = false) {
   const exam = collectExam();
   exam.status = status;
-  if (!exam.title) {
+  if (status === 'published' && !exam.title) {
     if (!silent) toast('Informe o título do teste.', 'error');
-    elements['exam-title'].focus();
+    elements['exam-title']?.focus();
     return false;
   }
+  if (!exam.title) {
+    exam.title = 'Rascunho sem título';
+  }
   // Valida minutos antes para envio agendado
-  if (exam.emailSendOption === 'scheduled' && !(exam.emailScheduleMinutesBefore > 0)) {
+  if (status === 'published' && exam.emailSendOption === 'scheduled' && !(exam.emailScheduleMinutesBefore > 0)) {
     if (!silent) toast('Informe os minutos antes do início para o envio agendado.', 'error');
     elements['email-schedule-minutes']?.focus();
     return false;
   }
   setSaveStatus('Salvando...', 'saving');
+
+  const method = state.examId ? 'PUT' : 'POST';
+  const url = state.examId ? `/api/company/exams/${state.examId}` : '/api/company/exams';
+
+  console.log('saveExam iniciado');
+  console.log('payload do exame:', exam);
+  console.log('endpoint utilizado:', url);
+
   try {
-    const method = state.examId ? 'PUT' : 'POST';
-    const url = state.examId ? `/api/company/exams/${state.examId}` : '/api/company/exams';
     const data = await api(url, { method, body: JSON.stringify(exam) });
+    console.log('resposta recebida:', data);
+
     state.examId = data.exam.id;
     state.status = data.exam.status;
     state.dirty = false;
@@ -663,27 +833,45 @@ async function saveExam(status = 'draft', silent = false) {
     elements['page-title'].textContent = 'Editar teste';
     elements['breadcrumb-mode'].textContent = 'Editar teste';
     setSaveStatus(status === 'published' ? 'Teste publicado' : 'Alterações salvas', 'saved');
-    if (!silent) toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+
+    if (!silent) {
+      try {
+        toast(status === 'published' ? 'Teste publicado com sucesso.' : 'Rascunho salvo com sucesso.');
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação toast:', tErr);
+      }
+    }
     // Exibe resultado do envio de e-mail
     const emailResult = data.emailResult;
     if (!silent && emailResult && emailResult.option !== 'none' && emailResult.option !== 'manual') {
-      if (emailResult.option === 'scheduled') {
-        const qtd = emailResult.queued || 0;
-        toast(`★ ${qtd} acesso(s) ao exame agendado(s) para envio automático.`);
-      } else if (emailResult.sent > 0) {
-        let msg = `✉ ${emailResult.sent} acesso(s) ao exame enviado(s) com sucesso.`;
-        if (emailResult.failed > 0) msg += ` ${emailResult.failed} falhou.`;
-        toast(msg, emailResult.failed > 0 ? 'error' : 'success');
-      } else if (emailResult.failed > 0) {
-        toast(`⚠ Falha ao enviar acesso ao exame: ${emailResult.error || 'Erro desconhecido.'}`, 'error');
+      try {
+        if (emailResult.option === 'scheduled') {
+          const qtd = emailResult.queued || 0;
+          toast(`★ ${qtd} acesso(s) ao exame agendado(s) para envio automático.`);
+        } else if (emailResult.sent > 0) {
+          let msg = `✉ ${emailResult.sent} acesso(s) ao exame enviado(s) com sucesso.`;
+          if (emailResult.failed > 0) msg += ` ${emailResult.failed} falhou.`;
+          toast(msg, emailResult.failed > 0 ? 'error' : 'success');
+        } else if (emailResult.failed > 0) {
+          toast(`⚠ Falha ao enviar acesso ao exame: ${emailResult.error || 'Erro desconhecido.'}`, 'error');
+        }
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação de e-mail:', tErr);
       }
     }
     // Atualiza painel de status do e-mail
     updateEmailStatusPanel(emailResult);
     return true;
   } catch (error) {
+    console.error('Erro ao salvar exame:', error);
     setSaveStatus('Falha ao salvar');
-    if (!silent) toast(error.message, 'error');
+    if (!silent) {
+      try {
+        toast(error.message || 'Não foi possível salvar o exame.', 'error');
+      } catch (tErr) {
+        console.error('Erro ao exibir notificação de erro:', tErr);
+      }
+    }
     return false;
   }
 }
@@ -756,8 +944,8 @@ async function importQuestionsFromFile() {
   elements['question-import-errors'].replaceChildren();
 
   const extension = file.name.toLowerCase().split('.').pop();
-  if (!['xlsx', 'gift', 'txt'].includes(extension)) {
-    showQuestionImportErrors('Selecione um arquivo Excel .xlsx ou GIFT .gift/.txt.');
+  if (!['xlsx', 'csv', 'gift', 'txt', 'docx'].includes(extension)) {
+    showQuestionImportErrors('Selecione um arquivo Excel (.xlsx, .csv), Word (.docx) ou GIFT (.gift, .txt).');
     elements['question-import-file'].value = '';
     return;
   }
@@ -1046,8 +1234,19 @@ function bindEvents() {
   elements['questions-list'].addEventListener('drop', handleDrop);
   elements['questions-list'].addEventListener('dragend', handleDragEnd);
   document.getElementById('add-question').addEventListener('click', addQuestion);
-  document.getElementById('import-questions').addEventListener('click', () => elements['question-import-file'].click());
-  elements['question-import-file'].addEventListener('change', importQuestionsFromFile);
+  
+  // Modal de Modelos de Importação
+  const btnModels = document.getElementById('btn-show-models');
+  const modelsModal = document.getElementById('models-modal');
+  if (btnModels && modelsModal) {
+    btnModels.addEventListener('click', () => { modelsModal.hidden = false; });
+    const closeModelsBtn = document.getElementById('close-models-modal');
+    const closeModelsBtnFooter = document.getElementById('close-models-modal-btn');
+    if (closeModelsBtn) closeModelsBtn.addEventListener('click', () => { modelsModal.hidden = true; });
+    if (closeModelsBtnFooter) closeModelsBtnFooter.addEventListener('click', () => { modelsModal.hidden = true; });
+    modelsModal.addEventListener('click', (e) => { if (e.target === modelsModal) modelsModal.hidden = true; });
+  }
+
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
   if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
@@ -1076,16 +1275,35 @@ function bindEvents() {
   }));
   window.addEventListener('scroll', scheduleStepUpdate, { passive: true });
   window.addEventListener('resize', scheduleStepUpdate);
+  document.querySelectorAll('.help-button').forEach(button => button.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (typeof window.openKnowledgeBaseModal === 'function') {
+      window.openKnowledgeBaseModal();
+    } else {
+      const modal = document.getElementById('kb-company-modal');
+      if (modal) modal.removeAttribute('hidden');
+    }
+  }));
   updateActiveStep();
-  document.querySelectorAll('[data-view="overview"], [data-view="results"]').forEach(button => button.addEventListener('click', () => toast('Este módulo será conectado na próxima etapa.')));
+  const btnAssign = document.getElementById('btn-assign-participants');
+  if (btnAssign) {
+    btnAssign.addEventListener('click', () => {
+      window.location.href = state.examId ? `Participante.html?examId=${state.examId}` : 'Participante.html';
+    });
+  }
+  document.querySelectorAll('[data-view="overview"]').forEach(button => button.addEventListener('click', () => window.location.href = 'VisaoGeral.html'));
+  document.querySelectorAll('[data-view="results"]').forEach(button => button.addEventListener('click', () => window.location.href = 'Resultados.html'));
   document.getElementById('collapse-sidebar').addEventListener('click', () => document.body.classList.toggle('sidebar-collapsed'));
   document.getElementById('mobile-menu').addEventListener('click', () => document.body.classList.toggle('menu-open'));
-  document.getElementById('botao-logout').addEventListener('click', async () => {
-    try { await fetch('/logout', { method: 'POST' }); } finally {
-      sessionStorage.removeItem(draftKey);
-      localStorage.removeItem('RazaoSocial');
-      window.location.replace('index.html');
-    }
+  document.querySelectorAll('#botao-logout, #logout-button, .logout-button').forEach(btn => {
+    btn.addEventListener('click', async (e) => {
+      e.preventDefault();
+      try { await fetch('/logout', { method: 'POST' }); } finally {
+        sessionStorage.removeItem(draftKey);
+        localStorage.removeItem('RazaoSocial');
+        window.location.replace('login_empresa.html');
+      }
+    });
   });
 }
 
@@ -1125,12 +1343,314 @@ async function loadWorkspace() {
   }
 }
 
+async function loadExamDocuments(examId) {
+  const container = document.getElementById('exam-documents-list');
+  const trackingContainer = document.getElementById('document-tracking-container');
+  if (!container) return;
+  if (!examId) {
+    container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento anexado. Clique em "+ Anexar Documento / Termo" acima para adicionar.</p>';
+    if (trackingContainer) trackingContainer.hidden = true;
+    return;
+  }
+  try {
+    const res = await api(`/api/company/exams/${examId}/documents`);
+    if (!res.documents || res.documents.length === 0) {
+      container.innerHTML = '<p style="color: #94A3B8; font-size: 0.9rem; font-style: italic;">Nenhum documento ou termo anexado a este exame.</p>';
+      if (trackingContainer) trackingContainer.hidden = true;
+      return;
+    }
+    const docTypeLabels = {
+      rules: 'Regras do Exame',
+      general_instructions: 'Instruções Gerais',
+      terms: 'Termo de Aceite',
+      support_material: 'Material de Apoio',
+      other: 'Outro Documento',
+    };
+    const actionLabels = {
+      view_only: 'Apenas visualizar',
+      confirm_read: 'Confirmar leitura',
+      accept_electronic: 'Aceite eletrônico',
+      download_sign_return: 'Assinar e reenviar',
+      upload_only: 'Enviar arquivo',
+      informative: 'Apenas informativo',
+    };
+
+    container.innerHTML = res.documents.map(doc => `
+      <div style="display: flex; justify-content: space-between; align-items: center; background: white; padding: 0.8rem 1rem; border-radius: 8px; border: 1px solid #E2E8F0; margin-bottom: 0.5rem;">
+        <div>
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <span style="font-weight: 600; color: #1E293B;">${doc.title}</span>
+            <span style="background: #E2E8F0; color: #475569; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">${docTypeLabels[doc.docType] || doc.docType}</span>
+            <span style="background: #FEF3C7; color: #92400E; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 500;">${actionLabels[doc.participantAction] || doc.participantAction}</span>
+            ${doc.mandatory ? '<span style="background: #FEE2E2; color: #991B1B; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Obrigatório</span>' : '<span style="background: #F1F5F9; color: #64748B; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px;">Opcional</span>'}
+            ${doc.blocksExamStart ? '<span style="background: #7F1D1D; color: white; font-size: 0.75rem; padding: 2px 8px; border-radius: 12px; font-weight: 600;">Bloqueia Início</span>' : ''}
+          </div>
+          <div style="font-size: 0.8rem; color: #64748B; margin-top: 4px;">
+            ${doc.originalName} (${(doc.sizeBytes / 1024).toFixed(1)} KB)
+            ${doc.requiresUploadApproval ? ' · <b style="color:#D97706;">Exige aprovação da empresa</b>' : ''}
+          </div>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <a href="/api/company/exams/${examId}/documents/${doc.id}/download" target="_blank" class="button secondary" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Baixar</a>
+          <button onclick="deleteExamDocument(${examId}, ${doc.id})" class="button danger" style="font-size: 0.8rem; padding: 0.3rem 0.6rem;">Excluir</button>
+        </div>
+      </div>
+    `).join('');
+
+    // Carrega acompanhamento por participante se contêiner existir
+    if (trackingContainer) {
+      trackingContainer.hidden = false;
+      loadDocumentTracking(examId);
+    }
+  } catch (err) {
+    container.innerHTML = '<p style="color: #EF4444; font-size: 0.9rem;">Erro ao carregar documentos do exame.</p>';
+  }
+}
+
+async function deleteExamDocument(examId, docId) {
+  if (!confirm('Deseja realmente excluir este documento do exame?')) return;
+  try {
+    await api(`/api/company/exams/${examId}/documents/${docId}`, { method: 'DELETE' });
+    toast('Documento removido com sucesso.', 'success');
+    loadExamDocuments(examId);
+  } catch (err) {
+    toast(err.message || 'Erro ao excluir documento.', 'error');
+  }
+}
+
+async function loadDocumentTracking(examId) {
+  const container = document.getElementById('doc-tracking-list');
+  const filterSelect = document.getElementById('doc-tracking-filter');
+  if (!container) return;
+  const statusFilter = filterSelect ? filterSelect.value : '';
+
+  try {
+    const url = `/api/company/exams/${examId}/documents/participants${statusFilter ? `?status=${encodeURIComponent(statusFilter)}` : ''}`;
+    const res = await api(url);
+    if (!res.items || res.items.length === 0) {
+      container.innerHTML = '<p style="color: #64748B; font-style: italic;">Nenhum registro de participante encontrado para os documentos.</p>';
+      return;
+    }
+
+    const statusBadges = {
+      pendente: '<span style="background:#F1F5F9; color:#475569; padding:2px 8px; border-radius:12px; font-weight:500;">Pendente</span>',
+      visualizado: '<span style="background:#E0F2FE; color:#0369A1; padding:2px 8px; border-radius:12px; font-weight:500;">Visualizado</span>',
+      baixado: '<span style="background:#E0F2FE; color:#0369A1; padding:2px 8px; border-radius:12px; font-weight:500;">Baixado</span>',
+      leitura_confirmada: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:500;">Leitura Confirmada</span>',
+      aceito: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:600;">Aceito Eletronicamente</span>',
+      enviado: '<span style="background:#FEF3C7; color:#B45309; padding:2px 8px; border-radius:12px; font-weight:600;">Aguardando Análise</span>',
+      aprovado: '<span style="background:#DCFCE7; color:#15803D; padding:2px 8px; border-radius:12px; font-weight:600;">Aprovado</span>',
+      recusado: '<span style="background:#FEE2E2; color:#B91C1C; padding:2px 8px; border-radius:12px; font-weight:600;">Recusado</span>',
+    };
+
+    container.innerHTML = `
+      <table style="width: 100%; border-collapse: collapse; background: white; border: 1px solid #E2E8F0; border-radius: 8px; overflow: hidden;">
+        <thead>
+          <tr style="background: #F8FAFC; border-bottom: 1px solid #E2E8F0; text-align: left; color: #475569; font-size: 0.8rem;">
+            <th style="padding: 0.6rem 0.8rem;">Participante</th>
+            <th style="padding: 0.6rem 0.8rem;">Documento</th>
+            <th style="padding: 0.6rem 0.8rem;">Status</th>
+            <th style="padding: 0.6rem 0.8rem;">Registros / Arquivo</th>
+            <th style="padding: 0.6rem 0.8rem; text-align: right;">Ações</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${res.items.map(item => `
+            <tr style="border-bottom: 1px solid #F1F5F9;">
+              <td style="padding: 0.6rem 0.8rem;">
+                <b>${item.participantName}</b><br>
+                <small style="color: #64748B;">${item.participantEmail}</small>
+              </td>
+              <td style="padding: 0.6rem 0.8rem;">
+                ${item.documentTitle}
+                ${item.blocksExamStart ? ' <b style="color:#DC2626;">(Bloqueante)</b>' : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem;">
+                ${statusBadges[item.status] || item.status}
+                ${item.rejectionReason ? `<br><small style="color:#DC2626;">Motivo: ${item.rejectionReason}</small>` : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem; color: #64748B;">
+                ${item.acceptedAt ? `Aceito em: ${new Date(item.acceptedAt).toLocaleString('pt-BR')}` : ''}
+                ${item.returnedOriginalName ? `Enviado: ${item.returnedOriginalName}` : ''}
+                ${!item.acceptedAt && !item.returnedOriginalName ? '—' : ''}
+              </td>
+              <td style="padding: 0.6rem 0.8rem; text-align: right;">
+                ${item.status === 'enviado' ? `
+                  <button onclick="reviewParticipantDoc(${examId}, ${item.documentId}, ${item.participantId}, 'aprovado')" class="button secondary" style="font-size: 0.75rem; padding: 0.2rem 0.5rem; background:#DCFCE7; color:#15803D; border-color:#86EFAC;">Aprovar</button>
+                  <button onclick="reviewParticipantDoc(${examId}, ${item.documentId}, ${item.participantId}, 'recusado')" class="button danger" style="font-size: 0.75rem; padding: 0.2rem 0.5rem;">Recusar</button>
+                ` : '—'}
+              </td>
+            </tr>
+          `).join('')}
+        </tbody>
+      </table>
+    `;
+  } catch (err) {
+    container.innerHTML = '<p style="color: #EF4444;">Erro ao carregar acompanhamento de participantes.</p>';
+  }
+}
+
+async function reviewParticipantDoc(examId, docId, participantId, decision) {
+  let rejectionReason = null;
+  if (decision === 'recusado') {
+    rejectionReason = prompt('Informe o motivo da recusa para o participante:');
+    if (!rejectionReason || !rejectionReason.trim()) {
+      toast('A recusa exige um motivo justificado.', 'error');
+      return;
+    }
+  }
+  try {
+    await api(`/api/company/exams/${examId}/documents/${docId}/participants/${participantId}/review`, {
+      method: 'POST',
+      body: JSON.stringify({ decision, rejectionReason })
+    });
+    toast(`Documento marcado como ${decision}.`, 'success');
+    loadDocumentTracking(examId);
+  } catch (err) {
+    toast(err.message || 'Erro ao processar análise.', 'error');
+  }
+}
+
+function initDocumentManagerUI() {
+  const btnAdd = document.getElementById('btn-add-document');
+  const modal = document.getElementById('document-modal');
+  const closeBtn = document.getElementById('close-document-modal');
+  const cancelBtn = document.getElementById('cancel-document-modal');
+  const form = document.getElementById('document-upload-form');
+
+  const actionSelect = document.getElementById('doc-participant-action');
+  const blocksField = document.getElementById('field-doc-blocks-start');
+  const approvalField = document.getElementById('field-doc-requires-approval');
+  const deadlineTypeSelect = document.getElementById('doc-deadline-type-select');
+  const deadlineAtField = document.getElementById('field-doc-deadline-at');
+  const filterTrackingSelect = document.getElementById('doc-tracking-filter');
+  const refreshTrackingBtn = document.getElementById('refresh-doc-tracking');
+
+  if (actionSelect) {
+    actionSelect.addEventListener('change', () => {
+      const val = actionSelect.value;
+      const requiresAction = val !== 'informative' && val !== 'view_only';
+      const isFileUpload = val === 'download_sign_return' || val === 'upload_only';
+      if (blocksField) blocksField.hidden = !requiresAction;
+      if (approvalField) approvalField.hidden = !isFileUpload;
+    });
+  }
+
+  if (deadlineTypeSelect) {
+    deadlineTypeSelect.addEventListener('change', () => {
+      if (deadlineAtField) deadlineAtField.hidden = deadlineTypeSelect.value !== 'specific_datetime';
+    });
+  }
+
+  if (filterTrackingSelect) {
+    filterTrackingSelect.addEventListener('change', () => {
+      if (state.examId) loadDocumentTracking(state.examId);
+    });
+  }
+  if (refreshTrackingBtn) {
+    refreshTrackingBtn.addEventListener('click', () => {
+      if (state.examId) loadDocumentTracking(state.examId);
+    });
+  }
+
+  if (btnAdd) {
+    btnAdd.addEventListener('click', async () => {
+      if (!state.examId) {
+        // Auto-salva como rascunho silenciosamente para criar examId antes de anexar documentos (Item 2)
+        const saved = await saveExam('draft', true);
+        if (!saved || !state.examId) {
+          toast('Informe ao menos um título ou adicione dados para salvar o rascunho antes de anexar.', 'error');
+          return;
+        }
+      }
+      modal.hidden = false;
+    });
+  }
+  if (closeBtn) closeBtn.addEventListener('click', () => { modal.hidden = true; });
+  if (cancelBtn) cancelBtn.addEventListener('click', () => { modal.hidden = true; });
+
+  if (form) {
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      if (!state.examId) return;
+
+      const fileInput = document.getElementById('doc-file-input');
+      if (!fileInput.files || !fileInput.files[0]) {
+        toast('Selecione um arquivo.', 'error');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', fileInput.files[0]);
+      formData.append('title', document.getElementById('doc-title-input').value.trim());
+      formData.append('docType', document.getElementById('doc-type-select').value);
+      formData.append('description', document.getElementById('doc-desc-input').value.trim());
+      formData.append('participantAction', document.getElementById('doc-participant-action').value);
+      formData.append('mandatory', document.getElementById('doc-mandatory-select').value);
+      formData.append('blocksExamStart', document.getElementById('doc-blocks-start-select').value);
+      formData.append('requiresUploadApproval', document.getElementById('doc-requires-approval-select').value);
+      formData.append('deadlineType', document.getElementById('doc-deadline-type-select').value);
+      formData.append('deadlineAt', document.getElementById('doc-deadline-at-input').value);
+      formData.append('downloadAllowed', document.getElementById('doc-download-allowed').checked);
+      formData.append('version', (document.getElementById('doc-version-input')?.value || '').trim());
+
+      try {
+        const res = await fetch(`/api/company/exams/${state.examId}/documents`, {
+          method: 'POST',
+          headers: { 'X-CSRF-Token': getCsrfToken() },
+          body: formData,
+        });
+        const data = await res.json();
+        if (!res.ok || !data.success) throw new Error(data.message || 'Erro no envio do documento.');
+        
+        toast('Documento anexado com sucesso!', 'success');
+        modal.hidden = true;
+        form.reset();
+        loadExamDocuments(state.examId);
+      } catch (err) {
+        toast(err.message || 'Erro ao enviar documento.', 'error');
+      }
+    });
+  }
+}
+
 document.addEventListener('DOMContentLoaded', async () => {
   cacheElements();
   state.questions = defaultQuestions();
   bindEvents();
-  renderQuestions();
-  applyBranding();
-  updatePreview();
-  await loadWorkspace();
+  initDocumentManagerUI();
+  updateEmailScheduleVisibility();
+  await loadState();
+  observeScrollSpy();
 });
+
+window.importQuestionsToExam = function(importedQuestions, importMode = 'replace') {
+  if (!Array.isArray(importedQuestions) || importedQuestions.length === 0) return;
+
+  const formatted = importedQuestions.map(q => ({
+    id: q.id || newId(),
+    type: q.type || 'multiple_choice',
+    prompt: q.prompt || 'Questão sem enunciado',
+    points: typeof q.points === 'number' ? q.points : 10,
+    required: q.required !== false,
+    options: Array.isArray(q.options) && q.options.length > 0 ? q.options : ['Opção A', 'Opção B'],
+    correctAnswer: q.correctAnswer || (q.options && q.options[0]) || 'Opção A',
+    correctAnswers: Array.isArray(q.correctAnswers) ? q.correctAnswers : [],
+    explanation: q.explanation || ''
+  }));
+
+  if (importMode === 'append') {
+    state.questions.push(...formatted);
+  } else {
+    state.questions = formatted;
+  }
+
+  renderQuestions();
+  updatePreview();
+  markDirty();
+
+  const count = formatted.length;
+  if (typeof toast === 'function') {
+    toast(`Sucesso: ${count} questão(ões) importada(s) com sucesso para o teste!`, 'success');
+  }
+};

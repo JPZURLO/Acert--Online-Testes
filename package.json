@@ -1,0 +1,13 @@
+{
+  "name": "acert-online-testes",
+  "version": "1.0.0",
+  "description": "Plataforma Online Teste — Estúdio de Avaliações",
+  "main": "secure_app.py",
+  "scripts": {
+    "test": "python -m unittest discover tests",
+    "docs:screenshots": "node scripts/generate_knowledge_base_screenshots.js"
+  },
+  "devDependencies": {
+    "playwright": "^1.50.0"
+  }
+}

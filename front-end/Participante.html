@@ -20,7 +20,8 @@
         <a class="nav-item active" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
         <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
         <a class="nav-item" href="./Monitoramento.html"><span class="nav-icon">◉</span><span>Monitoramento</span></a>
-        <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">?</span><span>Suporte</span></a>
+        <a class="nav-item" href="./login_cliente.html#kb"><span class="nav-icon">📖</span><span>Base de Conhecimento</span></a>
+        <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">💬</span><span>Suporte</span></a>
       </nav>
       <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
     </aside>
@@ -30,7 +31,6 @@
         <button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button>
         <div class="breadcrumb"><span>Participantes</span><b>/</b><strong>Gestão</strong></div>
         <div class="account-area">
-          <button class="help-button" type="button" aria-label="Ajuda">?</button>
           <div class="account-badge" id="company-initials">AC</div>
           <span id="company-name">Empresa</span>
           <button class="logout-button" id="logout-button" type="button">Sair</button>
@@ -93,22 +93,48 @@
     </main>
   </div>
 
-  <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
-  <aside class="participant-drawer" id="participant-drawer" aria-labelledby="drawer-title" aria-hidden="true">
-    <header><div><p class="eyebrow" id="drawer-eyebrow">NOVO ACESSO</p><h2 id="drawer-title">Novo participante</h2><span id="drawer-description">Preencha os dados para criar o acesso.</span></div><button id="close-drawer" type="button" aria-label="Fechar">×</button></header>
-    <form id="participant-form">
-      <div class="drawer-fields">
-        <label>Nome completo <b>*</b><input id="participant-name" name="fullName" type="text" maxlength="180" required placeholder="Digite o nome completo"></label>
-        <label>E-mail <b>*</b><input id="participant-email" name="email" type="email" maxlength="180" required placeholder="exemplo@email.com"></label>
-        <label>Senha de acesso<input id="participant-password" name="accessPassword" type="text" minlength="8" maxlength="128" placeholder="Deixe vazio para gerar automaticamente"><small>A senha será mostrada uma única vez após o cadastro.</small></label>
-        <div class="field-pair"><label>CPF<input id="participant-cpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label><label>Telefone<input id="participant-phone" name="phone" type="tel" maxlength="16" placeholder="(00) 00000-0000"></label></div>
-        <label>Cidade/Município<input id="participant-city" name="city" type="text" maxlength="120" placeholder="Digite a cidade"></label>
-        <label>Teste inicial<select id="participant-exam" name="examId"><option value="">Selecione um teste</option></select></label>
-        <label class="invite-toggle"><input id="send-invite" name="sendInvite" type="checkbox" checked><i></i><span><b>Enviar convite por e-mail</b><small>O participante ficará com status de convite pendente.</small></span></label>
-      </div>
-      <footer><button class="button secondary" id="cancel-drawer" type="button">Cancelar</button><button class="button primary" id="submit-participant" type="submit">Criar participante</button></footer>
-    </form>
-  </aside>
+  <!-- Modal Centralizado de Criar/Editar Participante -->
+  <div class="participant-modal-backdrop" id="participant-modal-backdrop" aria-hidden="true" hidden>
+    <div class="participant-modal" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+      <header class="participant-modal-header">
+        <div>
+          <p class="eyebrow" id="drawer-eyebrow">NOVO ACESSO</p>
+          <h2 id="drawer-title">Novo participante</h2>
+          <span id="drawer-description">Preencha os dados para criar o acesso.</span>
+        </div>
+        <button class="participant-modal-close" id="close-drawer" type="button" aria-label="Fechar modal">×</button>
+      </header>
+
+      <form id="participant-form">
+        <div class="participant-modal-body">
+          <label>Nome completo <b>*</b><input id="participant-name" name="fullName" type="text" maxlength="180" required placeholder="Digite o nome completo"></label>
+          <label>E-mail <b>*</b><input id="participant-email" name="email" type="email" maxlength="180" required placeholder="exemplo@email.com"></label>
+          <label>Senha de acesso<input id="participant-password" name="accessPassword" type="text" minlength="8" maxlength="128" placeholder="Deixe vazio para gerar automaticamente"><small>A senha será mostrada uma única vez após o cadastro.</small></label>
+          <div class="field-pair">
+            <label>CPF<input id="participant-cpf" name="cpf" type="text" inputmode="numeric" maxlength="14" placeholder="000.000.000-00"></label>
+            <label>Telefone<input id="participant-phone" name="phone" type="tel" maxlength="16" placeholder="(00) 00000-0000"></label>
+          </div>
+          <div class="field-pair">
+            <label>Cidade/Município<input id="participant-city" name="city" type="text" maxlength="120" placeholder="Digite a cidade"></label>
+            <label>Teste inicial<select id="participant-exam" name="examId"><option value="">Selecione um teste</option></select></label>
+          </div>
+          <label class="invite-toggle">
+            <input id="send-invite" name="sendInvite" type="checkbox" checked>
+            <i></i>
+            <span>
+              <b>Enviar convite por e-mail</b>
+              <small>O participante ficará com status de convite pendente.</small>
+            </span>
+          </label>
+        </div>
+
+        <footer class="participant-modal-footer">
+          <button class="button secondary" id="cancel-drawer" type="button">Cancelar</button>
+          <button class="button primary" id="submit-participant" type="submit">Criar participante</button>
+        </footer>
+      </form>
+    </div>
+  </div>
 
   <div class="action-menu" id="action-menu" hidden><button type="button" data-row-action="edit">Editar participante</button><button type="button" data-row-action="resend_invite">Reenviar convite</button><button type="button" data-row-action="activate">Ativar participante</button><button class="danger" type="button" data-row-action="deactivate">Desativar participante</button><button class="danger" type="button" data-row-action="delete">Excluir definitivamente</button></div>
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
@@ -126,7 +152,7 @@
   </template>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/participants-dashboard.js?v=3"></script>
+  <script src="./js/participants-dashboard.js?v=7"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>

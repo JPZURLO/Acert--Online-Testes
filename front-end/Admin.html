@@ -9,13 +9,14 @@
   <link rel="stylesheet" href="./css/admin-dashboard.css?v=4">
   <link rel="stylesheet" href="./css/company-activation.css?v=1">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
+  <link rel="stylesheet" href="./css/knowledge-base.css?v=4">
 </head>
 <body>
   <div class="admin-app">
     <aside class="admin-sidebar" id="admin-sidebar">
       <a class="admin-logo" href="./index.html"><span><i class="fa-solid fa-shield-halved"></i></span><div><strong>Online Teste</strong><small>Console Admin</small></div></a>
       <span class="admin-nav-label">OPERAÇÃO</span>
-      <nav class="admin-nav"><button class="active" data-admin-view="overview"><i class="fa-solid fa-chart-pie"></i><span>Visão geral</span></button><button data-admin-view="requests"><i class="fa-regular fa-folder-open"></i><span>Solicitações</span><b id="pending-badge">0</b></button><button data-admin-view="licenses"><i class="fa-solid fa-key"></i><span>Clientes e licenças</span></button><button data-admin-view="operations"><i class="fa-solid fa-tower-broadcast"></i><span>Operações</span></button><button data-admin-view="plans"><i class="fa-solid fa-layer-group"></i><span>Planos</span></button><button data-admin-view="support"><i class="fa-solid fa-headset"></i><span>Suporte</span><b id="support-badge">0</b></button><button data-admin-view="errors"><i class="fa-solid fa-shield-virus"></i><span>Erros do sistema</span><b id="errors-badge">0</b></button><button data-admin-view="finance"><i class="fa-solid fa-circle-dollar-to-slot"></i><span>Financeiro</span></button></nav>
+      <nav class="admin-nav"><button class="active" data-admin-view="overview"><i class="fa-solid fa-chart-pie"></i><span>Visão geral</span></button><button data-admin-view="requests"><i class="fa-regular fa-folder-open"></i><span>Solicitações</span><b id="pending-badge">0</b></button><button data-admin-view="licenses"><i class="fa-solid fa-key"></i><span>Clientes e licenças</span></button><button data-admin-view="operations"><i class="fa-solid fa-tower-broadcast"></i><span>Operações</span></button><button data-admin-view="plans"><i class="fa-solid fa-layer-group"></i><span>Planos</span></button><button data-admin-view="knowledge-base"><i class="fa-solid fa-book-open"></i><span>Base de Conhecimento</span></button><button data-admin-view="support"><i class="fa-solid fa-headset"></i><span>Suporte</span><b id="support-badge">0</b></button><button data-admin-view="errors"><i class="fa-solid fa-shield-virus"></i><span>Erros do sistema</span><b id="errors-badge">0</b></button><button data-admin-view="finance"><i class="fa-solid fa-circle-dollar-to-slot"></i><span>Financeiro</span></button></nav>
       <div class="admin-sidebar-footer"><button id="admin-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sair</span></button></div>
     </aside>
     <main class="admin-workspace">
@@ -45,6 +46,46 @@
           <div class="admin-heading"><div><span class="admin-eyebrow">PRODUTOS E RECURSOS</span><h1>Construtor de planos</h1><p>Escolha os limites e recursos incluídos em cada licença.</p></div><button class="admin-primary" id="new-plan"><i class="fa-solid fa-plus"></i> Novo plano</button></div>
           <div class="admin-split plans-layout"><article class="admin-panel"><div class="admin-panel-heading"><div><h2>Planos cadastrados</h2><p>Selecione um plano para editar.</p></div></div><div class="plan-list" id="plan-list"></div></article><aside class="admin-panel plan-editor"><form id="plan-form"><input type="hidden" id="plan-id"><div class="admin-panel-heading"><div><span class="admin-status" id="plan-editor-status">Novo plano</span><h2 id="plan-editor-title">Configuração</h2></div></div><label>Nome do plano<input id="plan-name" maxlength="120" required></label><label>Descrição<textarea id="plan-description" rows="2" maxlength="500"></textarea></label><label>Valor mensal do plano (R$)<input id="plan-monthly-price" type="number" min="0" step="0.01" placeholder="0,00"></label><div class="admin-form-grid"><label>Status<select id="plan-status" class="admin-select"><option value="active">Ativo</option><option value="draft">Rascunho</option><option value="archived">Arquivado</option></select></label><label>Testes ativos<input id="plan-max-exams" type="number" min="0" placeholder="Sem limite"></label><label>Participantes/mês<input id="plan-max-participants" type="number" min="0" placeholder="Sem limite"></label><label>Usuários gestores<input id="plan-max-admins" type="number" min="0" placeholder="Sem limite"></label><label>Retenção de resultados (meses)<input id="plan-retention" type="number" min="1" placeholder="Sem limite"></label><label>Retenção das gravações (dias)<input id="plan-recording-retention" type="number" min="1" max="365" value="5" required></label></div><fieldset><legend>Recursos incluídos</legend><div class="feature-grid" id="plan-features"><label><input type="checkbox" value="exams"> Criação e edição de testes</label><label><input type="checkbox" value="excel_import"> Importação por Excel e GIFT</label><label><input type="checkbox" value="branding"> Logo e cores da empresa</label><label><input type="checkbox" value="participants"> Gestão de participantes</label><label><input type="checkbox" value="results"> Painel de resultados</label><label><input type="checkbox" value="export_results"> Exportação avançada</label><label><input type="checkbox" value="api_access"> Integração via API</label><label><input type="checkbox" value="priority_support"> Suporte prioritário</label></div></fieldset><div id="plan-message" class="admin-form-message"></div><button class="admin-primary" type="submit">Salvar plano</button></form></aside></div>
         </section>
+        <section class="admin-view" data-admin-section="knowledge-base" hidden>
+          <div class="admin-heading"><div><span class="admin-eyebrow">CENTRAL DE TUTORIAIS</span><h1>Base de Conhecimento</h1><p>Crie, edite ou remova tutoriais, passos orientados e prints de telas exibidos na plataforma.</p></div><button class="admin-primary" id="btn-admin-kb-new" type="button"><i class="fa-solid fa-plus"></i> Novo artigo</button></div>
+          <div class="admin-panel" style="margin-bottom: 20px; padding: 16px;">
+            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+              <input type="text" id="admin-kb-search" class="admin-input" placeholder="Buscar artigo por título ou categoria..." style="flex: 1; min-width: 250px;">
+              <select id="admin-kb-category-filter" class="admin-select">
+                <option value="">Todas as categorias</option>
+                <option value="Primeiros passos">Primeiros passos</option>
+                <option value="Criação de exames">Criação de exames</option>
+                <option value="Questões e importação">Questões e importação</option>
+                <option value="Participantes">Participantes</option>
+                <option value="Documentos e termos">Documentos e termos</option>
+                <option value="Convites e acessos">Convites e acessos</option>
+                <option value="Monitoramento">Monitoramento</option>
+                <option value="Resultados">Resultados</option>
+                <option value="Personalização">Personalização</option>
+                <option value="Conheça a plataforma">Conheça a plataforma</option>
+              </select>
+            </div>
+          </div>
+          <article class="admin-panel">
+            <div class="admin-panel-heading"><div><h2>Artigos Cadastrados</h2><p id="admin-kb-count">Carregando artigos...</p></div></div>
+            <div class="admin-table-wrap">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Título do Artigo</th>
+                    <th>Categoria</th>
+                    <th>Público-Alvo</th>
+                    <th>Passos</th>
+                    <th>Leitura</th>
+                    <th>Atualizado</th>
+                    <th>Ações</th>
+                  </tr>
+                </thead>
+                <tbody id="admin-kb-table-body"></tbody>
+              </table>
+            </div>
+          </article>
+        </section>
         <section class="admin-view" data-admin-section="errors" hidden>
           <div class="admin-heading"><div><span class="admin-eyebrow">MONITORAMENTO AUTOMÁTICO</span><h1>Central de erros</h1><p>Acompanhe falhas, impacto nos clientes e andamento das correções em tempo real.</p></div><button class="admin-secondary" id="refresh-errors"><i class="fa-solid fa-rotate"></i> Atualizar</button></div>
           <div class="admin-stats error-stats"><article><span class="stat-icon red"><i class="fa-solid fa-triangle-exclamation"></i></span><div><small>Erros críticos</small><strong id="error-stat-critical">0</strong><span>Requerem atenção imediata</span></div></article><article><span class="stat-icon amber"><i class="fa-regular fa-clock"></i></span><div><small>Em análise</small><strong id="error-stat-analysis">0</strong><span>Aguardando correção</span></div></article><article><span class="stat-icon green"><i class="fa-regular fa-circle-check"></i></span><div><small>Resolvidos hoje</small><strong id="error-stat-resolved">0</strong><span>Incidentes finalizados</span></div></article><article><span class="stat-icon blue"><i class="fa-solid fa-wave-square"></i></span><div><small>Ocorrências em 24h</small><strong id="error-stat-24h">0</strong><span>Monitoradas automaticamente</span></div></article></div>
@@ -68,10 +109,93 @@
         </section>      </div>
     </main>
   </div>
-  <div class="admin-modal" id="payment-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="payment-title"><header><div><span class="admin-eyebrow">FINANCEIRO</span><h2 id="payment-title">Registrar pagamento</h2></div><button type="button" id="close-payment" aria-label="Fechar">×</button></header><form id="payment-form"><label>Cliente<select id="payment-company" class="admin-select" required></select></label><div class="admin-form-grid"><label>Competência<input id="payment-competence" type="month" required></label><label>Valor recebido (R$)<input id="payment-amount" type="number" min="0.01" step="0.01" required></label><label>Data do pagamento<input id="payment-date" type="date" required></label><label>Forma de pagamento<select id="payment-method" class="admin-select"><option>Transferência bancária</option><option>PIX</option><option>Boleto</option><option>Cartão</option><option>Outro</option></select></label></div><label>Observação<textarea id="payment-notes" rows="3" maxlength="1000"></textarea></label><label class="admin-check"><input id="payment-release" type="checkbox" checked> Liberar licença após confirmar</label><div id="payment-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-payment" type="button">Cancelar</button><button class="admin-primary" type="submit">Confirmar pagamento</button></footer></form></section></div>  <div id="admin-toast-region" class="admin-toast-region" aria-live="polite"></div>
+  <div class="admin-modal" id="payment-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="payment-title"><header><div><span class="admin-eyebrow">FINANCEIRO</span><h2 id="payment-title">Registrar pagamento</h2></div><button type="button" id="close-payment" aria-label="Fechar">×</button></header><form id="payment-form"><label>Cliente<select id="payment-company" class="admin-select" required></select></label><div class="admin-form-grid"><label>Competência<input id="payment-competence" type="month" required></label><label>Valor recebido (R$)<input id="payment-amount" type="number" min="0.01" step="0.01" required></label><label>Data do pagamento<input id="payment-date" type="date" required></label><label>Forma de pagamento<select id="payment-method" class="admin-select"><option>Transferência bancária</option><option>PIX</option><option>Boleto</option><option>Cartão</option><option>Outro</option></select></label></div><label>Observação<textarea id="payment-notes" rows="3" maxlength="1000"></textarea></label><label class="admin-check"><input id="payment-release" type="checkbox" checked> Liberar licença após confirmar</label><div id="payment-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-payment" type="button">Cancelar</button><button class="admin-primary" type="submit">Confirmar pagamento</button></footer></form></section></div>  <div class="admin-modal" id="admin-kb-modal" hidden>
+    <section role="dialog" aria-modal="true" aria-labelledby="admin-kb-modal-title" style="max-width: 850px; width: 95%;">
+      <header>
+        <div>
+          <span class="admin-eyebrow">EDITOR DA BASE DE CONHECIMENTO</span>
+          <h2 id="admin-kb-modal-title">Novo Artigo</h2>
+        </div>
+        <button type="button" id="close-admin-kb-modal" aria-label="Fechar">×</button>
+      </header>
+      <form id="admin-kb-form" style="max-height: 80vh; overflow-y: auto; padding: 20px;">
+        <input type="hidden" id="admin-kb-id">
+        
+        <div class="admin-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Título do Artigo *
+            <input id="admin-kb-title" class="admin-input" required placeholder="Ex: Como criar um novo participante">
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Categoria *
+            <select id="admin-kb-category" class="admin-select" required>
+              <option value="Primeiros passos">Primeiros passos</option>
+              <option value="Criação de exames">Criação de exames</option>
+              <option value="Questões e importação">Questões e importação</option>
+              <option value="Participantes">Participantes</option>
+              <option value="Documentos e termos">Documentos e termos</option>
+              <option value="Convites e acessos">Convites e acessos</option>
+              <option value="Monitoramento">Monitoramento</option>
+              <option value="Resultados">Resultados</option>
+              <option value="Personalização">Personalização</option>
+              <option value="Conheça a plataforma">Conheça a plataforma</option>
+            </select>
+          </label>
+        </div>
+
+        <div class="admin-form-grid" style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Público-Alvo
+            <select id="admin-kb-audience" class="admin-select">
+              <option value="company">Empresas (Painel da Empresa)</option>
+              <option value="participant">Participantes</option>
+              <option value="platform">Geral / Institucional</option>
+            </select>
+          </label>
+          <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Tempo de Leitura
+            <input id="admin-kb-readtime" class="admin-input" placeholder="Ex: 3 min de leitura" value="3 min de leitura">
+          </label>
+        </div>
+
+        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; margin-bottom: 12px;">Resumo / Apresentação (Lead) *
+          <textarea id="admin-kb-lead" class="admin-input" rows="2" required placeholder="Visão geral ou resumo curto do tutorial..."></textarea>
+        </label>
+
+        <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px; margin-bottom: 16px;">Dica Útil / Alerta (Opcional)
+          <textarea id="admin-kb-alert" class="admin-input" rows="2" placeholder="Dica importante exibida em destaque no final do artigo..."></textarea>
+        </label>
+
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--line, #e2e8f0);">
+
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+          <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Passos do Tutorial (com prints)</h3>
+          <button class="admin-secondary" id="btn-admin-kb-add-step" type="button">
+            <i class="fa-solid fa-plus"></i> Adicionar Passo
+          </button>
+        </div>
+
+        <div id="admin-kb-steps-container" style="display: grid; gap: 16px;"></div>
+
+        <div id="admin-kb-form-message" class="admin-form-message" style="margin-top: 16px;"></div>
+
+        <footer style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px;">
+          <button class="admin-secondary" id="cancel-admin-kb" type="button">Cancelar</button>
+          <button class="admin-primary" type="submit">Salvar Artigo</button>
+        </footer>
+      </form>
+    </section>
+  </div>
+
+  <!-- Overlay do Editor Visual da Base de Conhecimento (renderizado dentro do Admin) -->
+  <div id="kb-editor-overlay" style="display:none; position:fixed; inset:0; z-index:1500; background:#f1f5f9; overflow-y:auto;">
+    <div style="max-width:1100px; margin:0 auto; padding:24px 20px 60px;">
+      <div id="kb-article-view" style="min-height:400px;"></div>
+    </div>
+  </div>
+
+  <div id="admin-toast-region" class="admin-toast-region" aria-live="polite"></div>
   <script src="./js/admin-dashboard.js?v=6"></script>
   <script src="./js/admin-support-finance.js?v=1"></script>
   <script src="./js/admin-errors.js?v=1"></script>
+  <script src="./js/admin-knowledge-base.js?v=2"></script>
+  <script src="./js/knowledge-base-editor.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>

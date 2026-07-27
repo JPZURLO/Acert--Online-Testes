@@ -1,0 +1,906 @@
+/* ==========================================================================
+   Estilos do Protótipo de Importação de Questões (3 Etapas com Preview)
+   ========================================================================== */
+
+/* Overlay do Modal Centralizado */
+.qimp-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(7, 23, 45, 0.65);
+  backdrop-filter: blur(5px);
+  animation: qimp-fade-in 0.22s ease-out;
+}
+
+.qimp-modal-backdrop[hidden] {
+  display: none !important;
+}
+
+@keyframes qimp-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Janela Principal do Modal */
+.qimp-modal {
+  width: min(920px, 95vw);
+  height: min(860px, 92vh);
+  display: flex;
+  flex-direction: column;
+  background: #ffffff;
+  border: 1px solid var(--line, #dfe5ee);
+  border-radius: 16px;
+  box-shadow: 0 25px 50px -12px rgba(7, 23, 45, 0.3);
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.qimp-modal *,
+.qimp-modal *:before,
+.qimp-modal *:after {
+  box-sizing: border-box;
+}
+
+/* Cabeçalho Fixo do Modal */
+.qimp-header {
+  padding: 20px 26px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 16px;
+  border-bottom: 1px solid var(--line, #dfe5ee);
+  background: #ffffff;
+  flex-shrink: 0;
+}
+
+.qimp-header-title-group .eyebrow {
+  margin: 0 0 4px;
+  color: var(--primary, #2563eb);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+}
+
+.qimp-header-title-group h2 {
+  margin: 0;
+  font-size: 22px;
+  color: var(--navy, #0b1f3a);
+  letter-spacing: -0.02em;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+
+
+.qimp-header-title-group p {
+  margin: 4px 0 0;
+  color: var(--muted, #68758a);
+  font-size: 13px;
+}
+
+.qimp-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qimp-btn-help {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  border: 1px solid var(--line, #dfe5ee);
+  background: #f8fafc;
+  color: var(--navy, #0b1f3a);
+  font-weight: 800;
+  font-size: 14px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.18s ease;
+}
+
+.qimp-btn-help:hover {
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+  border-color: var(--primary, #2563eb);
+}
+
+.qimp-btn-close {
+  width: 34px;
+  height: 34px;
+  border: 0;
+  background: transparent;
+  color: #69768a;
+  font-size: 24px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: grid;
+  place-items: center;
+  transition: all 0.15s;
+}
+
+.qimp-btn-close:hover {
+  background: #f1f5f9;
+  color: var(--navy, #0b1f3a);
+}
+
+/* Stepper Bar de Progresso */
+.qimp-stepper-bar {
+  padding: 12px 26px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line, #dfe5ee);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+
+.qimp-step-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+}
+
+.qimp-step-item.active {
+  color: var(--primary, #2563eb);
+}
+
+.qimp-step-item.completed {
+  color: #10b981;
+}
+
+.qimp-step-num {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1.5px solid #cbd5e1;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  font-weight: 700;
+  background: #ffffff;
+}
+
+.qimp-step-item.active .qimp-step-num {
+  border-color: var(--primary, #2563eb);
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+}
+
+.qimp-step-item.completed .qimp-step-num {
+  border-color: #10b981;
+  background: #10b981;
+  color: #ffffff;
+}
+
+.qimp-step-divider {
+  flex: 1;
+  height: 2px;
+  background: #e2e8f0;
+  margin: 0 12px;
+}
+
+.qimp-step-divider.completed {
+  background: #10b981;
+}
+
+/* Corpo Rolável */
+.qimp-body {
+  flex: 1;
+  min-height: 0;
+  padding: 24px 26px;
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #ffffff;
+}
+
+/* Rodapé Fixo */
+.qimp-footer {
+  padding: 16px 26px;
+  border-top: 1px solid var(--line, #dfe5ee);
+  background: #f8fafc;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.qimp-footer-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.qimp-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+/* ==========================================================================
+   ETAPA 1 — Escolha dos Arquivos
+   ========================================================================== */
+
+.qimp-mode-title {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--navy, #0b1f3a);
+  margin: 0 0 14px 0;
+}
+
+.qimp-mode-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-bottom: 24px;
+}
+
+.qimp-mode-card {
+  padding: 18px 20px;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #ffffff;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+}
+
+.qimp-mode-card:hover {
+  border-color: #93c5fd;
+  background: #f8fafc;
+}
+
+.qimp-mode-card.selected {
+  border-color: var(--primary, #2563eb);
+  background: #eff6ff;
+  box-shadow: 0 4px 12px color-mix(in srgb, var(--primary, #2563eb) 12%, transparent);
+}
+
+.qimp-mode-radio {
+  margin-top: 3px;
+  accent-color: var(--primary, #2563eb);
+  width: 18px;
+  height: 18px;
+}
+
+.qimp-mode-info strong {
+  display: block;
+  font-size: 14px;
+  color: var(--navy, #0b1f3a);
+  margin-bottom: 4px;
+}
+
+.qimp-mode-info span {
+  font-size: 12px;
+  color: var(--muted, #68758a);
+  line-height: 1.4;
+  display: block;
+}
+
+/* Área de Dropzone / Seleção de Arquivo */
+.qimp-dropzone-group {
+  display: grid;
+  gap: 16px;
+}
+
+.qimp-field-label {
+  display: block;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--navy, #0b1f3a);
+  margin-bottom: 4px;
+}
+
+.qimp-field-desc {
+  font-size: 11px;
+  color: var(--muted, #68758a);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.qimp-dropzone {
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 24px;
+  text-align: center;
+  background: #f8fafc;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  position: relative;
+}
+
+.qimp-dropzone:hover,
+.qimp-dropzone.drag-over {
+  border-color: var(--primary, #2563eb);
+  background: #eff6ff;
+}
+
+.qimp-dropzone-icon {
+  font-size: 28px;
+  color: var(--primary, #2563eb);
+  margin-bottom: 8px;
+  display: block;
+}
+
+.qimp-dropzone-text {
+  font-size: 13px;
+  color: var(--navy, #0b1f3a);
+  font-weight: 600;
+}
+
+.qimp-dropzone-text span {
+  color: var(--primary, #2563eb);
+  text-decoration: underline;
+}
+
+.qimp-dropzone-hint {
+  font-size: 11px;
+  color: #94a3b8;
+  margin-top: 6px;
+}
+
+/* Arquivo Selecionado (Card de Arquivo) */
+.qimp-file-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px;
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  margin-top: 8px;
+}
+
+.qimp-file-info {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.qimp-file-icon {
+  font-size: 22px;
+  color: #16a34a;
+}
+
+.qimp-file-details strong {
+  font-size: 13px;
+  color: var(--navy, #0b1f3a);
+  display: block;
+}
+
+.qimp-file-details small {
+  font-size: 11px;
+  color: #15803d;
+}
+
+.qimp-file-actions {
+  display: flex;
+  gap: 8px;
+}
+
+.qimp-file-btn {
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.qimp-file-btn:hover {
+  background: #f1f5f9;
+}
+
+.qimp-file-btn.danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+.qimp-file-btn.danger:hover {
+  background: #fef2f2;
+}
+
+/* ==========================================================================
+   ETAPA 2 — Pré-Visualização Editável
+   ========================================================================== */
+
+/* Barra de Resumo no Topo */
+.qimp-summary-bar {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border: 1px solid var(--line, #dfe5ee);
+  border-radius: 12px;
+  margin-bottom: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.qimp-summary-stats {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.qimp-stat-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 12px;
+  border-radius: 99px;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.qimp-stat-pill.total { background: #f1f5f9; color: #334155; }
+.qimp-stat-pill.ready { background: #dcfce7; color: #15803d; }
+.qimp-stat-pill.warning { background: #fef3c7; color: #b45309; }
+.qimp-stat-pill.error { background: #fee2e2; color: #b91c1c; }
+.qimp-stat-pill.excluded { background: #e2e8f0; color: #64748b; }
+
+.qimp-filter-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.qimp-filter-btn {
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #475569;
+  cursor: pointer;
+}
+
+.qimp-filter-btn.active {
+  background: var(--primary, #2563eb);
+  color: #ffffff;
+  border-color: var(--primary, #2563eb);
+}
+
+/* Lista de Cartões de Questão */
+.qimp-questions-list {
+  display: grid;
+  gap: 16px;
+}
+
+/* Cartão da Questão */
+.qimp-qcard {
+  border: 1px solid var(--line, #dfe5ee);
+  border-radius: 12px;
+  background: #ffffff;
+  box-shadow: 0 2px 8px rgba(7, 23, 45, 0.03);
+  overflow: hidden;
+  transition: border-color 0.18s;
+}
+
+.qimp-qcard.status-error {
+  border-color: #fca5a5;
+  box-shadow: 0 0 0 1px #fca5a5;
+}
+
+.qimp-qcard.status-warning {
+  border-color: #fde047;
+}
+
+.qimp-qcard.is-excluded {
+  opacity: 0.6;
+  background: #f8fafc;
+}
+
+/* Cabeçalho do Cartão da Questão */
+.qimp-qcard-header {
+  padding: 14px 18px;
+  background: #f8fafc;
+  border-bottom: 1px solid var(--line, #dfe5ee);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+
+.qimp-qcard-header-left {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.qimp-qcard-num {
+  font-size: 13px;
+  font-weight: 800;
+  color: var(--navy, #0b1f3a);
+  white-space: nowrap;
+}
+
+.qimp-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.qimp-status-chip.ready { background: #dcfce7; color: #166534; }
+.qimp-status-chip.warning { background: #fef3c7; color: #92400e; }
+.qimp-status-chip.error { background: #fee2e2; color: #991b1b; }
+.qimp-status-chip.excluded { background: #e2e8f0; color: #475569; }
+
+.qimp-qcard-preview-text {
+  font-size: 12px;
+  color: #475569;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1;
+}
+
+.qimp-qcard-header-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qimp-qcard-btn-action {
+  padding: 4px 8px;
+  font-size: 11px;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+}
+
+.qimp-qcard-btn-action:hover {
+  background: #f1f5f9;
+}
+
+.qimp-qcard-btn-action.danger {
+  color: #dc2626;
+  border-color: #fca5a5;
+}
+
+/* Corpo do Cartão da Questão */
+.qimp-qcard-body {
+  padding: 18px;
+  display: grid;
+  gap: 16px;
+  background: #ffffff;
+}
+
+.qimp-qcard-body[hidden] {
+  display: none !important;
+}
+
+.qimp-qcard-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 640px) {
+  .qimp-qcard-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.qimp-field-group {
+  display: grid;
+  gap: 6px;
+}
+
+.qimp-field-group label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.qimp-input,
+.qimp-select,
+.qimp-textarea {
+  width: 100%;
+  padding: 8px 12px;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  font-size: 12px;
+  color: var(--navy, #0b1f3a);
+  background: #ffffff;
+  box-sizing: border-box;
+  font-family: inherit;
+}
+
+.qimp-input:focus,
+.qimp-select:focus,
+.qimp-textarea:focus {
+  outline: 0;
+  border-color: var(--primary, #2563eb);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary, #2563eb) 18%, transparent);
+}
+
+.qimp-textarea {
+  resize: vertical;
+  min-height: 64px;
+}
+
+/* Edição de Alternativas */
+.qimp-options-block {
+  display: grid;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.qimp-options-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.qimp-options-header label {
+  font-size: 11px;
+  font-weight: 700;
+  color: #334155;
+  text-transform: uppercase;
+}
+
+.qimp-btn-add-opt {
+  padding: 3px 9px;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--primary, #2563eb);
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.qimp-btn-add-opt:hover {
+  background: #dbeafe;
+}
+
+.qimp-option-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.qimp-option-check {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--primary, #2563eb);
+  cursor: pointer;
+  flex-shrink: 0;
+}
+
+.qimp-option-input {
+  flex: 1;
+  padding: 6px 10px;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 12px;
+  background: #ffffff;
+}
+
+.qimp-option-remove {
+  border: 0;
+  background: transparent;
+  color: #94a3b8;
+  font-size: 16px;
+  cursor: pointer;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.qimp-option-remove:hover {
+  color: #dc2626;
+  background: #fee2e2;
+}
+
+/* Alerta de Validação no Cartão */
+.qimp-card-alert {
+  padding: 10px 14px;
+  border-radius: 8px;
+  font-size: 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.qimp-card-alert.error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: #991b1b;
+}
+
+.qimp-card-alert.warning {
+  background: #fffbeb;
+  border: 1px solid #fde68a;
+  color: #92400e;
+}
+
+/* ==========================================================================
+   ETAPA 3 — Modal de Ajuda Contextual
+   ========================================================================== */
+
+.qimp-help-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1100;
+  background: rgba(7, 23, 45, 0.5);
+  backdrop-filter: blur(3px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.qimp-help-overlay[hidden] {
+  display: none !important;
+}
+
+.qimp-help-card {
+  width: min(780px, 94vw);
+  max-height: 85vh;
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line, #dfe5ee);
+  box-shadow: 0 20px 40px rgba(7, 23, 45, 0.25);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.qimp-help-header {
+  padding: 18px 24px;
+  border-bottom: 1px solid var(--line, #dfe5ee);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: #f8fafc;
+}
+
+.qimp-help-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--navy, #0b1f3a);
+}
+
+.qimp-help-body {
+  padding: 22px 24px;
+  overflow-y: auto;
+  display: grid;
+  gap: 18px;
+  font-size: 13px;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.qimp-help-section h4 {
+  margin: 0 0 6px 0;
+  font-size: 14px;
+  color: var(--primary, #2563eb);
+}
+
+.qimp-code-box {
+  background: #0f172a;
+  color: #f8fafc;
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* Modal de Confirmação Final (Etapa 3) */
+.qimp-confirm-card {
+  width: min(520px, 92vw);
+  background: #ffffff;
+  border-radius: 14px;
+  border: 1px solid var(--line, #dfe5ee);
+  box-shadow: 0 25px 50px -12px rgba(7, 23, 45, 0.3);
+  padding: 24px;
+  text-align: center;
+}
+
+.qimp-confirm-icon {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  background: #dcfce7;
+  color: #16a34a;
+  display: grid;
+  place-items: center;
+  font-size: 28px;
+  margin: 0 auto 16px;
+}
+
+.qimp-confirm-card h3 {
+  margin: 0 0 8px;
+  font-size: 20px;
+  color: var(--navy, #0b1f3a);
+}
+
+.qimp-confirm-card p {
+  margin: 0 0 16px;
+  font-size: 13px;
+  color: var(--muted, #68758a);
+}
+
+.qimp-confirm-summary {
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 14px;
+  font-size: 12px;
+  text-align: left;
+  margin-bottom: 20px;
+}
+
+.qimp-confirm-summary ul {
+  margin: 6px 0 0;
+  padding-left: 20px;
+}
+
+.qimp-confirm-notice {
+  font-size: 11px;
+  color: #0284c7;
+  background: #f0f9ff;
+  border: 1px solid #bae6fd;
+  padding: 8px 12px;
+  border-radius: 6px;
+  margin-bottom: 20px;
+
+}
+
+.qimp-confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+}
+
+/* Responsive ajustes */
+@media (max-width: 640px) {
+  .qimp-modal {
+    width: 98vw;
+    height: 96vh;
+    border-radius: 12px;
+  }
+  .qimp-mode-grid {
+    grid-template-columns: 1fr;
+  }
+  .qimp-header,
+  .qimp-body,
+  .qimp-footer {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+}
