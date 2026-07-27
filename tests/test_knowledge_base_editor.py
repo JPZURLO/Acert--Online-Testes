@@ -7,6 +7,8 @@ Testa rotas de upload seguro de imagens, salvamento de rascunhos, publicação e
 import json
 import io
 import os
+import shutil
+import tempfile
 import unittest
 
 import secure_app
@@ -16,6 +18,14 @@ from secure_app import app, issue_token, JWT_COOKIE_NAME, CSRF_COOKIE_NAME
 class TestKnowledgeBaseEditor(unittest.TestCase):
 
     def setUp(self):
+        self.original_root_path = app.root_path
+        self.tempdir = tempfile.mkdtemp(prefix="kb-editor-test-")
+        os.makedirs(os.path.join(self.tempdir, "data"), exist_ok=True)
+        os.makedirs(
+            os.path.join(self.tempdir, "front-end", "assets", "images", "base-conhecimento"),
+            exist_ok=True,
+        )
+        app.root_path = self.tempdir
         self.app = app.test_client()
         self.app.testing = True
         self.admin_token = issue_token(1, "admin")
@@ -23,6 +33,10 @@ class TestKnowledgeBaseEditor(unittest.TestCase):
         self.app.set_cookie(JWT_COOKIE_NAME, self.admin_token)
         self.app.set_cookie(CSRF_COOKIE_NAME, self.csrf_token)
         self.headers = {"X-CSRF-Token": self.csrf_token}
+
+    def tearDown(self):
+        app.root_path = self.original_root_path
+        shutil.rmtree(self.tempdir, ignore_errors=True)
 
     def test_list_knowledge_base_admin(self):
         res = self.app.get("/api/admin/knowledge-base")
