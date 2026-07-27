@@ -342,20 +342,10 @@
 
             <!-- ETAPA 2 (Pré-Visualização Editável) -->
             <div id="qimp-step-2-content" hidden>
-              <!-- Barra de Resumo no Topo -->
               <div class="qimp-summary-bar">
                 <div class="qimp-summary-stats">
                   <span class="qimp-stat-pill total">Total: <b id="qimp-count-total">0</b></span>
-                  <span class="qimp-stat-pill ready">Prontas: <b id="qimp-count-ready">0</b></span>
-                  <span class="qimp-stat-pill warning">Avisos: <b id="qimp-count-warning">0</b></span>
-                  <span class="qimp-stat-pill error">Com erros: <b id="qimp-count-error">0</b></span>
                   <span class="qimp-stat-pill excluded">Excluídas: <b id="qimp-count-excluded">0</b></span>
-                </div>
-                <div class="qimp-filter-group">
-                  <button class="qimp-filter-btn active" data-filter="all" type="button">Todas</button>
-                  <button class="qimp-filter-btn" data-filter="error" type="button">Apenas com Erro</button>
-                  <button class="qimp-filter-btn" data-filter="warning" type="button">Com Avisos</button>
-                  <button class="qimp-filter-btn" data-filter="ready" type="button">Prontas</button>
                 </div>
               </div>
 
@@ -503,6 +493,9 @@ Questão 4: Verdadeiro</div>
     // Botão Confirmar Importação (Abre Modal Etapa 3)
     document.getElementById('qimp-btn-confirm-import').addEventListener('click', openConfirmModal);
 
+    // Ações dos cartões de revisão
+    document.getElementById('qimp-questions-list').addEventListener('click', handleQuestionCardClick);
+
     // Modal de Ajuda
     document.getElementById('qimp-btn-help').addEventListener('click', openHelpModal);
     document.getElementById('qimp-btn-close-help').addEventListener('click', closeHelpModal);
@@ -510,16 +503,6 @@ Questão 4: Verdadeiro</div>
     // Modal de Confirmação (Etapa 3)
     document.getElementById('qimp-btn-confirm-back').addEventListener('click', closeConfirmModal);
     document.getElementById('qimp-btn-confirm-execute').addEventListener('click', executeSimulatedImport);
-
-    // Filtros da Etapa 2
-    document.querySelectorAll('.qimp-filter-btn').forEach(btn => {
-      btn.addEventListener('click', (e) => {
-        document.querySelectorAll('.qimp-filter-btn').forEach(b => b.classList.remove('active'));
-        e.target.classList.add('active');
-        state.filter = e.target.dataset.filter;
-        renderQuestionsList();
-      });
-    });
   }
 
   // --- Handlers de Dropzone e Seleção de Arquivo ---
@@ -855,41 +838,32 @@ Questão 4: Verdadeiro</div>
     const container = document.getElementById('qimp-questions-list');
     container.innerHTML = '';
 
-    const filtered = state.questions.filter(q => {
-      if (state.filter === 'all') return true;
-      if (state.filter === 'ready') return q.status === 'ready' && !q.isExcluded;
-      if (state.filter === 'warning') return q.status === 'warning' && !q.isExcluded;
-      if (state.filter === 'error') return q.status === 'error' && !q.isExcluded;
-      if (state.filter === 'excluded') return q.isExcluded;
-      return true;
-    });
-
-    if (filtered.length === 0) {
+    if (state.questions.length === 0) {
       container.innerHTML = `
         <div style="text-align: center; padding: 40px 20px; color: var(--muted, #68758a);">
-          Nenhuma questão encontrada para este filtro.
+          Nenhuma questão encontrada no arquivo importado.
         </div>
       `;
       return;
     }
 
-    filtered.forEach((q, index) => {
+    state.questions.forEach((q, index) => {
+      const questionId = escapeAttribute(q.id);
       const card = document.createElement('div');
       card.className = `qimp-qcard status-${q.status} ${q.isExcluded ? 'is-excluded' : ''}`;
       card.dataset.id = q.id;
 
       card.innerHTML = `
         <!-- Cabeçalho do Cartão -->
-        <div class="qimp-qcard-header" onclick="window.QImpProto.toggleExpand('${q.id}')">
+        <div class="qimp-qcard-header" data-qimp-action="toggle" data-qimp-id="${questionId}">
           <div class="qimp-qcard-header-left">
-            <button class="qimp-qcard-edit-toggle" type="button" onclick="event.stopPropagation(); window.QImpProto.toggleExpand('${q.id}')">✎ Editar</button>
+            <button class="qimp-qcard-edit-toggle" type="button" data-qimp-action="toggle" data-qimp-id="${questionId}">✎ Editar</button>
             <span class="qimp-qcard-num">Questão ${q.num}</span>
-            <span class="qimp-status-chip ${q.status}">${q.statusDetail}</span>
             <span class="qimp-qcard-preview-text">${escapeHTML(q.prompt)}</span>
           </div>
           <div class="qimp-qcard-header-right">
-            <button class="qimp-qcard-btn-action" type="button" onclick="event.stopPropagation(); window.QImpProto.duplicateQuestion('${q.id}')">📋 Duplicar</button>
-            <button class="qimp-qcard-btn-action ${q.isExcluded ? '' : 'danger'}" type="button" onclick="event.stopPropagation(); window.QImpProto.toggleExclude('${q.id}')">
+            <button class="qimp-qcard-btn-action" type="button" data-qimp-action="duplicate" data-qimp-id="${questionId}">📋 Duplicar</button>
+            <button class="qimp-qcard-btn-action ${q.isExcluded ? '' : 'danger'}" type="button" data-qimp-action="exclude" data-qimp-id="${questionId}">
               ${q.isExcluded ? 'Restaurar' : '🗑 Excluir'}
             </button>
             <span style="font-size: 14px; color: #94a3b8;">${q.isExpanded ? '▲' : '▼'}</span>
@@ -960,6 +934,27 @@ Questão 4: Verdadeiro</div>
 
       container.appendChild(card);
     });
+  }
+
+  function handleQuestionCardClick(event) {
+    const actionElement = event.target.closest('[data-qimp-action]');
+    if (!actionElement) return;
+
+    const id = actionElement.dataset.qimpId;
+    if (!id) return;
+
+    const action = actionElement.dataset.qimpAction;
+    if (action === 'toggle') {
+      window.QImpProto.toggleExpand(id);
+      return;
+    }
+    if (action === 'duplicate') {
+      window.QImpProto.duplicateQuestion(id);
+      return;
+    }
+    if (action === 'exclude') {
+      window.QImpProto.toggleExclude(id);
+    }
   }
 
   // --- Handlers Interativos dos Cartões ---
@@ -1090,11 +1085,11 @@ Questão 4: Verdadeiro</div>
     const error = state.questions.filter(q => q.status === 'error' && !q.isExcluded).length;
     const excluded = state.questions.filter(q => q.isExcluded).length;
 
-    document.getElementById('qimp-count-total').textContent = total;
-    document.getElementById('qimp-count-ready').textContent = ready;
-    document.getElementById('qimp-count-warning').textContent = warning;
-    document.getElementById('qimp-count-error').textContent = error;
-    document.getElementById('qimp-count-excluded').textContent = excluded;
+    setText('qimp-count-total', total);
+    setText('qimp-count-ready', ready);
+    setText('qimp-count-warning', warning);
+    setText('qimp-count-error', error);
+    setText('qimp-count-excluded', excluded);
 
     const btnConfirm = document.getElementById('qimp-btn-confirm-import');
     if (btnConfirm) {
@@ -1185,6 +1180,11 @@ Questão 4: Verdadeiro</div>
     return match ? decodeURIComponent(match[1]) : '';
   }
 
+  function setText(id, value) {
+    const element = document.getElementById(id);
+    if (element) element.textContent = value;
+  }
+
   function escapeHTML(str) {
     if (!str) return '';
     return String(str)
@@ -1193,6 +1193,10 @@ Questão 4: Verdadeiro</div>
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;')
       .replace(/'/g, '&#039;');
+  }
+
+  function escapeAttribute(str) {
+    return escapeHTML(str);
   }
 
   // Inicializa ao carregar o DOM
