@@ -153,6 +153,16 @@ def answer_value(raw_value):
         value = value.strip()[weight_match.end():]
     return gift_unescape(value), weight
 
+
+def distribute_default_points(questions):
+    if not questions:
+        return
+    default_points = round(100 / len(questions), 2)
+    for question in questions:
+        if question.get("points") in (None, 0, 10):
+            question["points"] = default_points
+
+
 def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
     payload = stream.read(MAX_IMPORT_FILE_BYTES + 1)
     if len(payload) > MAX_IMPORT_FILE_BYTES:
@@ -300,6 +310,7 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
 
     if not questions and not errors:
         raise QuestionImportError("Nenhuma questão foi encontrada no arquivo GIFT.")
+    distribute_default_points(questions)
 
     if not return_dict:
         if errors:

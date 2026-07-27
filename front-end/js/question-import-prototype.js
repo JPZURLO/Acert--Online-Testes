@@ -1,10 +1,10 @@
 /**
  * question-import-prototype.js
- * Protótipo funcional e visual do novo fluxo de importação em 3 etapas com pré-visualização editável.
+ * Assistente funcional do fluxo de importação em 3 etapas com pré-visualização editável.
  * 
  * IMPORTANTE:
- * - Apenas protótipo de frontend (sem chamadas ao backend ou gravação no banco).
- * - Preserva 100% o fluxo atual de produção.
+ * - A etapa de análise usa o backend real de importação para evitar divergência entre preview e banco.
+ * - A importação final entrega as questões revisadas ao construtor do teste.
  */
 
 (function () {
@@ -36,6 +36,8 @@
     questions: [],
     filter: 'all' // 'all', 'ready', 'warning', 'error', 'excluded'
   };
+
+  const ACCEPTED_EXTENSIONS = ['xlsx', 'gift', 'txt'];
 
   // Mock de Dados para Inicialização da Etapa 2
   function generateMockQuestions() {
@@ -492,8 +494,8 @@ Questão 4: Verdadeiro</div>
     setupDropzone('qimp-dropzone-questions', 'qimp-file-questions', (file) => handleFileSelected('questionFile', file));
     setupDropzone('qimp-dropzone-answers', 'qimp-file-answers', (file) => handleFileSelected('answerKeyFile', file));
 
-    // Botão Analisar -> Avança para Etapa 2
-    document.getElementById('qimp-btn-analyze').addEventListener('click', goToStep2);
+    // Botão Analisar -> envia o arquivo ao backend real e avança para Etapa 2
+    document.getElementById('qimp-btn-analyze').addEventListener('click', analyzeSelectedFile);
 
     // Botão Voltar para Etapa 1
     document.getElementById('qimp-btn-back-step1').addEventListener('click', goToStep1);
@@ -550,9 +552,51 @@ Questão 4: Verdadeiro</div>
   }
 
   function handleFileSelected(fileKey, file) {
+    const extension = getFileExtension(file.name);
+    if (!ACCEPTED_EXTENSIONS.includes(extension)) {
+      showInlineImportError('Use um arquivo Excel (.xlsx) ou GIFT (.gift/.txt).');
+      clearFileInput(fileKey);
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      showInlineImportError('O arquivo deve ter no máximo 5 MB.');
+      clearFileInput(fileKey);
+      return;
+    }
     state.files[fileKey] = file;
+    state.questions = [];
     updateFileCardsUI();
     validateStep1();
+  }
+
+  function getFileExtension(fileName) {
+    return String(fileName || '').toLowerCase().split('.').pop();
+  }
+
+  function inputIdForFileKey(fileKey) {
+    return {
+      singleFile: 'qimp-file-single',
+      questionFile: 'qimp-file-questions',
+      answerKeyFile: 'qimp-file-answers'
+    }[fileKey];
+  }
+
+  function clearFileInput(fileKey) {
+    const inputId = inputIdForFileKey(fileKey);
+    const input = inputId ? document.getElementById(inputId) : null;
+    if (input) input.value = '';
+  }
+
+  function selectedQuestionFile() {
+    return state.importMode === 'single' ? state.files.singleFile : state.files.questionFile;
+  }
+
+  function showInlineImportError(message) {
+    if (typeof window.toast === 'function') {
+      window.toast(message, 'error');
+      return;
+    }
+    alert(message);
   }
 
   function updateFileCardsUI() {
@@ -604,7 +648,7 @@ Questão 4: Verdadeiro</div>
           </div>
         </div>
         <div class="qimp-file-actions">
-          <button class="qimp-file-btn" type="button" onclick="window.QImpProto.removeFile('${fileKey}')">Remover</button>
+          <button class="qimp-file-btn danger" type="button" onclick="window.QImpProto.removeFile('${fileKey}')">Excluir arquivo</button>
         </div>
       </div>
     `;
@@ -613,6 +657,8 @@ Questão 4: Verdadeiro</div>
   window.QImpProto = {
     removeFile: function (fileKey) {
       state.files[fileKey] = null;
+      state.questions = [];
+      clearFileInput(fileKey);
       updateFileCardsUI();
       validateStep1();
     }
@@ -646,10 +692,9 @@ Questão 4: Verdadeiro</div>
     let valid = false;
 
     if (state.importMode === 'single') {
-      // Se selecionou arquivo ou para demonstração do protótipo
-      valid = true; 
+      valid = Boolean(state.files.singleFile);
     } else {
-      valid = true;
+      valid = Boolean(state.files.questionFile);
     }
 
     btnAnalyze.disabled = !valid;
@@ -687,6 +732,103 @@ Questão 4: Verdadeiro</div>
     document.getElementById('qimp-btn-analyze').hidden = false;
   }
 
+  async function analyzeSelectedFile() {
+    const btnAnalyze = document.getElementById('qimp-btn-analyze');
+    const file = selectedQuestionFile();
+    if (!file) {
+      showInlineImportError('Selecione o arquivo antes de analisar.');
+      return;
+    }
+
+    btnAnalyze.disabled = true;
+    btnAnalyze.textContent = 'Analisando arquivo...';
+    try {
+      const body = new FormData();
+      body.append('file', file);
+      const response = await fetch('/api/company/question-imports', {
+        method: 'POST',
+        headers: { 'X-CSRF-Token': getCsrfToken() },
+        body,
+      });
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok || data.success === false) {
+        const details = Array.isArray(data.errors) && data.errors.length ? `\n${data.errors.join('\n')}` : '';
+        throw new Error(`${data.message || 'Não foi possível analisar o arquivo.'}${details}`);
+      }
+      const importedQuestions = Array.isArray(data.questions) ? data.questions : [];
+      state.questions = importedQuestions.map(importedQuestionToPreview);
+      if (!state.questions.length) {
+        throw new Error('Nenhuma questão foi encontrada no arquivo.');
+      }
+      distributePointsIfNeeded();
+      goToStep2();
+    } catch (error) {
+      showInlineImportError(error.message || 'Falha ao analisar o arquivo.');
+    } finally {
+      btnAnalyze.disabled = false;
+      btnAnalyze.textContent = 'Analisar arquivos →';
+    }
+  }
+
+  function importedQuestionToPreview(question, index) {
+    const options = Array.isArray(question.options) ? question.options.map(opt => String(opt || '').trim()).filter(Boolean) : [];
+    const rawCorrect = Array.isArray(question.correctAnswers)
+      ? question.correctAnswers
+      : (question.correctAnswer ? [question.correctAnswer] : []);
+    const correctAnswers = rawCorrect
+      .map(answer => {
+        if (typeof answer === 'number') return answer;
+        const normalized = normalizeText(answer);
+        return options.findIndex(option => normalizeText(option) === normalized);
+      })
+      .filter(indexValue => Number.isInteger(indexValue) && indexValue >= 0);
+    const type = question.type || inferTypeFromOptions(options, correctAnswers);
+
+    return {
+      id: question.id || `qimp-${Date.now()}-${index}`,
+      num: index + 1,
+      type,
+      prompt: question.prompt || question.title || 'Questão sem enunciado',
+      options,
+      correctAnswers: correctAnswers.length ? correctAnswers : fallbackCorrectAnswers(question, options, type),
+      points: Number(question.points) || 0,
+      explanation: question.explanation || '',
+      status: 'ready',
+      statusDetail: 'Pronta para importar',
+      isExpanded: index === 0,
+      isExcluded: false
+    };
+  }
+
+  function normalizeText(value) {
+    return String(value || '').trim().toLowerCase();
+  }
+
+  function inferTypeFromOptions(options, correctAnswers) {
+    if (options.length === 2 && options.every(opt => ['verdadeiro', 'falso'].includes(normalizeText(opt)))) return 'true_false';
+    if (correctAnswers.length > 1) return 'multiple_choice';
+    return options.length ? 'single_choice' : 'essay';
+  }
+
+  function fallbackCorrectAnswers(question, options, type) {
+    if (!options.length) return question.correctAnswer ? [String(question.correctAnswer)] : [];
+    if (type === 'true_false' && question.correctAnswer) {
+      const expected = normalizeText(question.correctAnswer);
+      const indexValue = options.findIndex(option => normalizeText(option) === expected);
+      return indexValue >= 0 ? [indexValue] : [];
+    }
+    return [];
+  }
+
+  function distributePointsIfNeeded() {
+    const validQuestions = state.questions.filter(q => !q.isExcluded);
+    if (!validQuestions.length) return;
+    const allSameDefault = validQuestions.every(q => Number(q.points) === 10 || Number(q.points) === 0);
+    if (!allSameDefault) return;
+    const basePoints = Math.round((100 / validQuestions.length) * 100) / 100;
+    validQuestions.forEach(q => { q.points = basePoints; });
+  }
+
   function goToStep2() {
     state.step = 2;
     document.getElementById('qimp-step-1-content').hidden = true;
@@ -702,11 +844,6 @@ Questão 4: Verdadeiro</div>
     document.getElementById('qimp-btn-analyze').hidden = true;
     document.getElementById('qimp-btn-back-step1').hidden = false;
     document.getElementById('qimp-btn-confirm-import').hidden = false;
-
-    // Se as questões ainda não foram carregadas, gera mock
-    if (state.questions.length === 0) {
-      state.questions = generateMockQuestions();
-    }
 
     validateAllQuestions();
     renderQuestionsList();
@@ -745,6 +882,7 @@ Questão 4: Verdadeiro</div>
         <!-- Cabeçalho do Cartão -->
         <div class="qimp-qcard-header" onclick="window.QImpProto.toggleExpand('${q.id}')">
           <div class="qimp-qcard-header-left">
+            <button class="qimp-qcard-edit-toggle" type="button" onclick="event.stopPropagation(); window.QImpProto.toggleExpand('${q.id}')">✎ Editar</button>
             <span class="qimp-qcard-num">Questão ${q.num}</span>
             <span class="qimp-status-chip ${q.status}">${q.statusDetail}</span>
             <span class="qimp-qcard-preview-text">${escapeHTML(q.prompt)}</span>
@@ -783,7 +921,7 @@ Questão 4: Verdadeiro</div>
               </select>
 
               <label style="margin-top: 10px;">Pontuação (pontos)</label>
-              <input type="number" class="qimp-input" min="1" max="100" value="${q.points}" onchange="window.QImpProto.updatePoints('${q.id}', this.value)">
+              <input type="number" class="qimp-input" min="0" max="100" step="0.01" value="${q.points}" onchange="window.QImpProto.updatePoints('${q.id}', this.value)">
             </div>
           </div>
 
@@ -880,7 +1018,7 @@ Questão 4: Verdadeiro</div>
   window.QImpProto.updatePoints = function (id, val) {
     const q = state.questions.find(item => item.id === id);
     if (q) {
-      q.points = parseInt(val) || 10;
+      q.points = parseFloat(String(val).replace(',', '.')) || 0;
       updateSummaryStats();
     }
   };
@@ -1005,7 +1143,7 @@ Questão 4: Verdadeiro</div>
     closeConfirmModal();
     closeModal();
 
-    const activeQuestions = state.questions.filter(q => !q.isExcluded);
+    const activeQuestions = state.questions.filter(q => !q.isExcluded).map(previewQuestionToExamQuestion);
     const mode = document.getElementById('question-import-mode')?.value || 'replace';
 
     if (typeof window.importQuestionsToExam === 'function') {
@@ -1013,6 +1151,38 @@ Questão 4: Verdadeiro</div>
     } else if (typeof window.toast === 'function') {
       window.toast(`Sucesso: ${activeQuestions.length} questão(ões) importada(s) com sucesso!`, 'success');
     }
+  }
+
+  function previewQuestionToExamQuestion(q) {
+    const selectedOptions = Array.isArray(q.correctAnswers)
+      ? q.correctAnswers
+          .map(answer => typeof answer === 'number' ? q.options?.[answer] : answer)
+          .filter(Boolean)
+      : [];
+    let correctAnswer = '';
+    if (['single_choice', 'true_false', 'binary_choice'].includes(q.type)) {
+      correctAnswer = selectedOptions[0] || q.options?.[0] || '';
+    } else if (q.type === 'multiple_choice') {
+      correctAnswer = JSON.stringify(selectedOptions);
+    } else {
+      correctAnswer = selectedOptions[0] || '';
+    }
+    return {
+      id: q.id,
+      type: q.type,
+      prompt: q.prompt,
+      points: Number(q.points) || 0,
+      required: true,
+      options: Array.isArray(q.options) ? q.options : [],
+      correctAnswer,
+      correctAnswers: selectedOptions,
+      explanation: q.explanation || ''
+    };
+  }
+
+  function getCsrfToken() {
+    const match = document.cookie.match(/(?:^|;\s*)acert_csrf_token=([^;]+)/);
+    return match ? decodeURIComponent(match[1]) : '';
   }
 
   function escapeHTML(str) {

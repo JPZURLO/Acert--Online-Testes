@@ -112,8 +112,10 @@ class QuestionImportTests(unittest.TestCase):
         self.assertIn('id="question-import-file"', html)
         self.assertIn("/api/company/question-imports", script)
         self.assertIn("await saveExam('draft', true)", script)
-
-
+        import_assistant = Path("front-end/js/question-import-prototype.js").read_text(encoding="utf-8")
+        self.assertIn("fetch('/api/company/question-imports'", import_assistant)
+        self.assertIn("qimp-qcard-edit-toggle", import_assistant)
+        self.assertIn("Excluir arquivo", import_assistant)
 
     def test_valid_gift_normalizes_supported_question_types(self):
         payload = """// Banco exportado do Moodle
@@ -135,7 +137,13 @@ $CATEGORY: Demonstração
         self.assertEqual(questions[0]["correctAnswer"], "Brasília")
         self.assertEqual(questions[1]["correctAnswer"], "Verdadeiro")
         self.assertEqual(questions[3]["correctAnswer"], "HTML")
-        self.assertTrue(all(question["points"] == 10 for question in questions))
+        self.assertTrue(all(question["points"] == 25 for question in questions))
+
+    def test_gift_default_points_are_distributed_across_all_questions(self):
+        payload = "\n\n".join([f"::Q{i}::Pergunta {i}? {{TRUE}}" for i in range(1, 41)])
+        questions = parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertEqual(len(questions), 40)
+        self.assertTrue(all(question["points"] == 2.5 for question in questions))
 
     def test_gift_supports_missing_word_and_escaped_control_characters(self):
         payload = r"""::Lacuna::Dois mais dois {~\= 5 =\= 4 ~\= 3} em aritmética.

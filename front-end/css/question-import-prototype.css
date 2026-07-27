@@ -534,6 +534,25 @@
   white-space: nowrap;
 }
 
+.qimp-qcard-edit-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 9px;
+  border: 1px solid color-mix(in srgb, var(--primary, #0f766e) 28%, #cbd5e1);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--primary, #0f766e) 9%, #ffffff);
+  color: var(--primary, #0f766e);
+  font-size: 11px;
+  font-weight: 800;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.qimp-qcard-edit-toggle:hover {
+  background: color-mix(in srgb, var(--primary, #0f766e) 15%, #ffffff);
+}
+
 .qimp-status-chip {
   display: inline-flex;
   align-items: center;
