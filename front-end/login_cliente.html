@@ -73,7 +73,7 @@
         <ol class="stepper" aria-label="Etapas de criação">
           <li class="active"><button type="button" data-scroll="exam-information"><span>1</span>Informações</button></li>
           <li><button type="button" data-scroll="questions-section"><span>2</span>Questões</button></li>
-          <li><button type="button" data-scroll="application-settings"><span>3</span>Aplicação</button></li>
+          <li><button type="button" data-scroll="application-settings"><span>3</span>Segurança e período</button></li>
           <li><button type="button" data-scroll="branding-panel"><span>4</span>Aparência</button></li>
           <li><button type="button" data-action="publish"><span>5</span>Publicar</button></li>
         </ol>
@@ -141,6 +141,7 @@
                 </label>
                 <div class="question-import-actions">
                   <button class="button secondary" id="btn-show-models" type="button">Modelos</button>
+                  <button class="button secondary" id="open-question-bank" type="button">Buscar no banco</button>
                   <button class="button primary" id="import-questions" type="button">Importar questões</button>
                   <input id="question-import-file" type="file" accept=".xlsx,.gift,.txt,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/plain" hidden>
                 </div>
@@ -151,7 +152,7 @@
             </section>
 
             <section class="panel application-settings" id="application-settings">
-              <div class="panel-heading"><div><span class="section-kicker">APLICAÇÃO E RESULTADO</span><h2>Segurança, disponibilidade e correção</h2></div><span class="required-note">Configuração por teste</span></div>
+              <div class="panel-heading"><div><span class="section-kicker">SEGURANÇA E PERÍODO</span><h2>Disponibilidade, segurança e correção</h2></div><span class="required-note">Configuração por teste</span></div>
               <div class="application-grid">
                 <label class="field"><span>Liberação do resultado</span><select id="result-delivery"><option value="manual">Após revisão manual</option><option value="automatic">Automático ao concluir</option></select><small>Questões dissertativas sempre exigem revisão.</small></label>
                 <label class="field"><span>Disponível a partir de</span><input id="available-from" type="datetime-local"><small>Deixe vazio para liberar imediatamente.</small></label>
@@ -204,7 +205,7 @@
                       <h3 style="margin: 0; font-size: 1.1rem; display: flex; align-items: center; gap: 0.5rem;">
                         <span>📄</span> Documentos, Regras e Termos do Exame
                       </h3>
-                      <small style="color: var(--text-muted, #64748B);">Anexe regras, termos de aceite com leitura obrigatória ou devolução assinada.</small>
+                      <small style="color: var(--text-muted, #64748B);">Opcional: anexe regras, termos de aceite ou materiais de apoio. As instruções principais aparecem antes do participante iniciar o teste.</small>
                     </div>
                     <button class="button secondary" id="btn-add-document" type="button" style="font-size: 0.85rem; padding: 0.4rem 0.8rem;">
                       <span>+</span> Anexar Documento / Termo
@@ -515,8 +516,9 @@ Questão 4: Caixa branca</pre>
             <option value="short_answer">Resposta curta</option>
             <option value="long_answer">Dissertativa</option>
           </select>
-          <label class="points-field">Pontos <input class="question-points" type="number" min="0" max="1000" value="10"></label>
+          <label class="points-field">Pontos <input class="question-points" type="number" min="0" max="1000" step="0.01" value="10"></label>
           <label class="mini-toggle">Obrigatória <input class="question-required" type="checkbox" checked><i></i></label>
+          <button class="icon-button save-question-bank" type="button" title="Salvar questão no banco" aria-label="Salvar questão no banco">💾</button>
           <button class="icon-button duplicate-question" type="button" title="Duplicar questão" aria-label="Duplicar questão">▣</button>
           <button class="icon-button danger delete-question" type="button" title="Excluir questão" aria-label="Excluir questão">⌫</button>
         </div>
@@ -525,6 +527,38 @@ Questão 4: Caixa branca</pre>
       </div>
     </article>
   </template>
+
+  <div class="modal-backdrop" id="question-bank-modal" hidden>
+    <section class="publish-modal question-bank-modal" role="dialog" aria-modal="true" aria-labelledby="question-bank-title">
+      <button class="modal-close" id="close-question-bank-modal" type="button" aria-label="Fechar">×</button>
+      <p class="eyebrow">BANCO DE QUESTÕES</p>
+      <h2 id="question-bank-title">Buscar questão salva</h2>
+      <p>Reaproveite questões já cadastradas pela empresa. Você pode adicionar uma ou várias ao teste atual.</p>
+      <div class="question-bank-filters">
+        <label>Busca
+          <input id="question-bank-search" type="search" placeholder="Buscar por enunciado ou título">
+        </label>
+        <label>Tipo
+          <select id="question-bank-type-filter">
+            <option value="">Todos os tipos</option>
+            <option value="single_choice">Resposta única</option>
+            <option value="multiple_choice">Múltipla seleção</option>
+            <option value="true_false">Verdadeiro ou falso</option>
+            <option value="binary_choice">Escolha binária</option>
+            <option value="fill_blank">Lacunas</option>
+            <option value="short_answer">Resposta curta</option>
+            <option value="long_answer">Dissertativa</option>
+          </select>
+        </label>
+      </div>
+      <div id="question-bank-list" class="question-bank-list"></div>
+      <div class="modal-actions">
+        <small id="question-bank-selected-count">0 selecionadas</small>
+        <button class="button secondary" id="cancel-question-bank" type="button">Cancelar</button>
+        <button class="button primary" id="add-bank-questions" type="button">Adicionar ao teste</button>
+      </div>
+    </section>
+  </div>
 
   <!-- Modal da Base de Conhecimento e Tutoriais (Interno da Empresa) -->
   <div class="modal-backdrop" id="kb-company-modal" hidden>
@@ -564,7 +598,7 @@ Questão 4: Caixa branca</pre>
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/company-dashboard.js?v=15"></script>
+  <script src="./js/company-dashboard.js?v=16"></script>
   <script src="./js/question-import-prototype.js?v=2"></script>
   <script src="./js/knowledge-base.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>

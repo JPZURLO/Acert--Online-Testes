@@ -15,10 +15,16 @@ class ProductionBootstrapTests(unittest.TestCase):
     def test_all_migrations_have_executable_statements(self):
         files = sorted([f for f in Path("migrations").glob("*.sql") if not f.name.endswith("_rollback.sql")])
         self.assertEqual(files[0].name, "000_base_schema.sql")
-        self.assertEqual(files[-1].name, "018_document_actions_and_approval.sql")
+        self.assertEqual(files[-1].name, "019_question_bank_and_decimal_points.sql")
         for migration in files:
             with self.subTest(migration=migration.name):
                 self.assertTrue(statements(migration.read_text(encoding="utf-8")))
+
+    def test_question_bank_migration_adds_reusable_question_storage(self):
+        migration = Path("migrations/019_question_bank_and_decimal_points.sql").read_text(encoding="utf-8")
+        self.assertIn("CREATE TABLE IF NOT EXISTS company_question_bank", migration)
+        self.assertIn("question_json LONGTEXT NOT NULL", migration)
+        self.assertIn("MODIFY total_points DECIMAL(8,2)", migration)
 
     def test_bootstrap_refuses_existing_database(self):
         source = Path("scripts/bootstrap_production_database.py").read_text(encoding="utf-8")

@@ -56,7 +56,7 @@ def safe_questions(raw_questions):
                 "id": str(item.get("id") or "")[:80],
                 "type": item.get("type") if item.get("type") in {"single_choice", "multiple_choice", "true_false", "binary_choice", "fill_blank", "short_answer", "long_answer", "essay", "multiple_select", "numeric_answer", "matching"} else "single_choice",
                 "prompt": str(item.get("prompt") or "")[:3000],
-                "points": max(0, min(1000, int(item.get("points") or 0))),
+                "points": round(max(0, min(1000, float(item.get("points") or 0))), 2),
                 "required": bool(item.get("required", True)),
                 "options": [str(option)[:500] for option in (item.get("options") or [])[:10]],
             }
@@ -78,7 +78,7 @@ def score_answers(questions, supplied):
     for index, question in enumerate(questions):
         question_id = str(question.get("id") or f"question-{index + 1}")[:80]
         kind = question.get("type") or "multiple_choice"
-        points = max(0, min(1000, int(question.get("points") or 0)))
+        points = round(max(0, min(1000, float(question.get("points") or 0))), 2)
         value = str(supplied.get(question_id, ""))[:10000]
         total_points += points
         if kind in {"long_answer", "essay"}:

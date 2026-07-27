@@ -53,16 +53,17 @@ def question_type(value):
     return aliases.get(normalized)
 
 
-def integer_value(value, row_number, errors):
+def points_value(value, row_number, errors):
     if value in (None, ""):
         return 10
     try:
         number = float(value)
-        if not number.is_integer() or not 0 <= number <= 1000:
+        if not 0 <= number <= 1000:
             raise ValueError
-        return int(number)
+        rounded = round(number, 2)
+        return int(rounded) if rounded.is_integer() else rounded
     except (TypeError, ValueError):
-        errors.append(f"Linha {row_number}: Pontos deve ser um número inteiro entre 0 e 1000.")
+        errors.append(f"Linha {row_number}: Pontos deve ser um número entre 0 e 1000.")
         return 10
 
 
@@ -207,7 +208,7 @@ def parse_question_workbook(stream):
                     "id": f"imported-{uuid.uuid4()}",
                     "type": imported_type or "multiple_choice",
                     "prompt": prompt,
-                    "points": integer_value(cell(row, columns.get("points")), row_number, errors),
+                    "points": points_value(cell(row, columns.get("points")), row_number, errors),
                     "required": boolean_value(cell(row, columns.get("required")), row_number, errors),
                     "options": options,
                     "correctAnswer": correct_answer,

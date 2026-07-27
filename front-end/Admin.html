@@ -10,6 +10,7 @@
   <link rel="stylesheet" href="./css/company-activation.css?v=1">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
   <link rel="stylesheet" href="./css/knowledge-base.css?v=4">
+  <link rel="stylesheet" href="./css/admin-knowledge-editor.css?v=1">
 </head>
 <body>
   <div class="admin-app">
@@ -183,19 +184,101 @@
     </section>
   </div>
 
-  <!-- Overlay do Editor Visual da Base de Conhecimento (renderizado dentro do Admin) -->
-  <div id="kb-editor-overlay" style="display:none; position:fixed; inset:0; z-index:1500; background:#f1f5f9; overflow-y:auto;">
-    <div style="max-width:1100px; margin:0 auto; padding:24px 20px 60px;">
-      <div id="kb-article-view" style="min-height:400px;"></div>
-    </div>
+  <!-- Editor profissional da Base de Conhecimento dentro do Admin -->
+  <div class="kb-rich-editor" id="kb-rich-editor" hidden>
+    <header class="kb-rich-topbar">
+      <button class="kb-rich-back" id="kb-rich-back" type="button">
+        <i class="fa-solid fa-chevron-left"></i>
+        <span>Editar artigo</span>
+      </button>
+      <div class="kb-rich-status" id="kb-rich-status">Rascunho local</div>
+      <div class="kb-rich-actions">
+        <button class="kb-rich-btn primary" id="kb-rich-publish" type="button">
+          <i class="fa-solid fa-paper-plane"></i> Publicar
+        </button>
+        <button class="kb-rich-btn outline" id="kb-rich-save-draft" type="button">
+          <i class="fa-regular fa-floppy-disk"></i> Salvar rascunho
+        </button>
+        <button class="kb-rich-btn outline" id="kb-rich-preview" type="button">
+          <i class="fa-regular fa-eye"></i> Visualizar
+        </button>
+        <button class="kb-rich-btn ghost" id="kb-rich-cancel" type="button">Cancelar</button>
+      </div>
+    </header>
+
+    <main class="kb-rich-workspace">
+      <section class="kb-rich-frame" aria-label="Editor do artigo">
+        <div class="kb-rich-title-row">
+          <input id="kb-rich-title" type="text" maxlength="160" placeholder="Título do artigo">
+          <button id="kb-rich-copy-link" type="button" aria-label="Copiar link do artigo">
+            <i class="fa-solid fa-link"></i>
+          </button>
+        </div>
+
+        <div class="kb-rich-meta-row">
+          <label>Categoria
+            <select id="kb-rich-category">
+              <option value="Primeiros passos">Primeiros passos</option>
+              <option value="Criação de exames">Criação de testes</option>
+              <option value="Questões e importação">Questões e importação</option>
+              <option value="Participantes">Participantes</option>
+              <option value="Documentos e termos">Documentos e termos</option>
+              <option value="Convites e acessos">Convites e acessos</option>
+              <option value="Monitoramento">Monitoramento</option>
+              <option value="Resultados">Resultados</option>
+              <option value="Personalização">Personalização</option>
+              <option value="Conheça a plataforma">Conheça a plataforma</option>
+            </select>
+          </label>
+          <label>Público
+            <select id="kb-rich-audience">
+              <option value="company">Empresa</option>
+              <option value="participant">Participante</option>
+              <option value="platform">Geral</option>
+            </select>
+          </label>
+          <label>Leitura
+            <input id="kb-rich-readtime" type="text" maxlength="40" placeholder="3 min de leitura">
+          </label>
+        </div>
+
+        <div class="kb-rich-toolbar" aria-label="Ferramentas do editor">
+          <button type="button" data-command="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
+          <button type="button" data-command="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
+          <button type="button" data-command="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
+          <select id="kb-rich-block-style" aria-label="Estilo do bloco">
+            <option value="p">Normal</option>
+            <option value="h2">Título 2</option>
+            <option value="h3">Título 3</option>
+            <option value="blockquote">Citação</option>
+          </select>
+          <button type="button" data-command="insertUnorderedList" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
+          <button type="button" data-command="insertOrderedList" title="Lista numerada"><i class="fa-solid fa-list-ol"></i></button>
+          <button type="button" id="kb-rich-add-step" title="Adicionar passo"><i class="fa-solid fa-square-plus"></i><span>Passo</span></button>
+          <button type="button" id="kb-rich-add-alert" title="Adicionar alerta"><i class="fa-regular fa-lightbulb"></i><span>Dica</span></button>
+          <button type="button" id="kb-rich-upload-image" title="Inserir imagem"><i class="fa-regular fa-image"></i><span>Imagem</span></button>
+          <button type="button" data-command="undo" title="Desfazer"><i class="fa-solid fa-rotate-left"></i></button>
+          <button type="button" data-command="removeFormat" title="Limpar formatação"><i class="fa-solid fa-eraser"></i></button>
+        </div>
+
+        <div class="kb-rich-document-wrap">
+          <article id="kb-rich-document" class="kb-rich-document" contenteditable="true" spellcheck="true"></article>
+        </div>
+
+        <footer class="kb-rich-attachment-bar">
+          <button id="kb-rich-attach" type="button"><i class="fa-solid fa-paperclip"></i> Anexo / imagem do passo</button>
+          <span>Arraste uma imagem para o editor ou clique em “Imagem”.</span>
+        </footer>
+        <input id="kb-rich-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      </section>
+    </main>
   </div>
 
   <div id="admin-toast-region" class="admin-toast-region" aria-live="polite"></div>
   <script src="./js/admin-dashboard.js?v=6"></script>
   <script src="./js/admin-support-finance.js?v=1"></script>
   <script src="./js/admin-errors.js?v=1"></script>
-  <script src="./js/admin-knowledge-base.js?v=2"></script>
-  <script src="./js/knowledge-base-editor.js?v=2"></script>
+  <script src="./js/admin-knowledge-base-rich.js?v=1"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>

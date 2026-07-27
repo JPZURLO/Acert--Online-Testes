@@ -80,13 +80,13 @@
       <section class="drawer-section"><h3>Questões para revisar</h3><div id="review-questions" class="review-list"></div><div class="drawer-empty" id="review-empty">Nenhuma questão sinalizada para revisão.</div></section>
       <section class="drawer-section manual-review" id="manual-review"><h3>Correção e liberação</h3><div id="manual-score-list" class="manual-score-list"></div><label>Observações para o participante<textarea id="reviewer-notes" rows="3" maxlength="5000" placeholder="Escreva um comentário opcional"></textarea></label><label>Situação final<select id="review-result-status"><option value="">Calcular pela nota mínima</option><option value="approved">Aprovado</option><option value="failed">Não aprovado</option><option value="invalidated">Invalidado</option></select></label><div class="manual-review-actions"><button class="button secondary" id="save-review" type="button">Salvar revisão</button><button class="button primary" id="release-result" type="button">Liberar resultado</button></div><p id="review-message" class="review-message"></p></section>
     </div>
-    <footer><button class="button secondary" id="print-individual" type="button">▣ Baixar PDF</button><button class="button primary" id="share-result" type="button">◇ Enviar ao participante</button></footer>
+    <footer><button class="button secondary" id="export-individual-excel" type="button">▦ Baixar Excel</button><button class="button secondary" id="print-individual" type="button">▣ Baixar PDF</button><button class="button primary" id="share-result" type="button">◇ Enviar ao participante</button></footer>
   </aside>
 
   <template id="result-row-template"><tr><td><div class="participant-cell"><span class="avatar"></span><div><strong class="participant-name"></strong><small class="participant-email"></small></div></div></td><td class="exam-title"></td><td><span class="score-pill"></span></td><td><span class="incident-pill"></span></td><td><span class="result-chip"></span></td><td class="duration"></td><td class="completed-at"></td><td><button class="view-result" type="button">◉</button></td></tr></template>
   <div class="toast-region" id="toast-region"></div>
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/results-dashboard.js?v=4"></script>
+  <script src="./js/results-dashboard.js?v=5"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>
 </body>

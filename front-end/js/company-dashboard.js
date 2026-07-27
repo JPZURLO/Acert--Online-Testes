@@ -21,6 +21,9 @@ const state = {
   emailSendOption: 'manual',
   emailScheduleMinutesBefore: null,
   questions: [],
+  questionBank: [],
+  questionBankSelected: new Set(),
+  questionBankTimer: null,
   exams: [],
   dirty: false,
   autosaveTimer: null,
@@ -103,7 +106,10 @@ function cacheElements() {
     'border-radius', 'candidate-instructions', 'logo-upload', 'remove-logo', 'save-status',
     'exam-picker', 'page-title', 'breadcrumb-mode', 'publish-modal', 'modal-question-count',
     'modal-total-points', 'modal-duration', 'toast-region', 'question-import-file',
-    'question-import-mode', 'question-import-errors', 'result-delivery', 'available-from', 'available-until',
+    'question-import-mode', 'question-import-errors', 'open-question-bank', 'question-bank-modal',
+    'close-question-bank-modal', 'cancel-question-bank', 'add-bank-questions', 'question-bank-search',
+    'question-bank-type-filter', 'question-bank-list', 'question-bank-selected-count',
+    'result-delivery', 'available-from', 'available-until',
     'require-identity', 'require-recording', 'allow-resume', 'show-answer-details', 'grading-scale-type',
     'grading-preview', 'concept-scale-editor', 'concept-bands',
     'email-send-option', 'email-schedule-minutes', 'email-schedule-minutes-field', 'email-status-panel',
@@ -395,7 +401,7 @@ function renderQuestions() {
     card.querySelector('.question-required').checked = question.required;
     card.querySelector('.question-prompt').value = question.prompt;
     renderOptions(question, card.querySelector('.question-options'), index);
-    elements['questions-list'].appendChild(fragment);
+  elements['questions-list'].appendChild(fragment);
   });
   updateSummary();
 }
@@ -404,10 +410,15 @@ function updateSummary() {
   const total = state.questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
   const count = state.questions.length;
   elements['question-count'].textContent = `(${count})`;
-  elements['question-total'].textContent = `Pontuação total: ${total} pontos`;
+  elements['question-total'].textContent = `Pontuação total: ${formatPoints(total)} pontos`;
   elements['preview-questions'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
   elements['modal-question-count'].textContent = String(count);
   elements['modal-total-points'].textContent = String(total);
+}
+
+function formatPoints(value) {
+  const number = Number(value || 0);
+  return number.toLocaleString('pt-BR', { maximumFractionDigits: 2 });
 }
 
 function defaultGradingScale() {
@@ -541,7 +552,7 @@ function syncQuestionFromTarget(target) {
   const question = state.questions[index];
   if (!question) return null;
   if (target.classList.contains('question-prompt')) question.prompt = target.value;
-  if (target.classList.contains('question-points')) question.points = Math.max(0, Number(target.value) || 0);
+  if (target.classList.contains('question-points')) question.points = Math.round(Math.max(0, Number(target.value) || 0) * 100) / 100;
   if (target.classList.contains('question-required')) question.required = target.checked;
   if (target.classList.contains('question-min-chars')) {
     question.minCharacters = Math.max(0, Number(target.value) || 0);
@@ -649,6 +660,8 @@ function handleQuestionClick(event) {
     state.questions.splice(index + 1, 0, copy);
     renderQuestions();
     markDirty();
+  } else if (event.target.closest('.save-question-bank')) {
+    saveQuestionToBank(index);
   } else if (event.target.matches('[data-add-option]')) {
     state.questions[index].options.push(`Opção ${String.fromCharCode(65 + state.questions[index].options.length)}`);
     renderQuestions();
@@ -662,6 +675,131 @@ function handleQuestionClick(event) {
     renderQuestions();
     markDirty();
   }
+}
+
+function questionTypeLabel(type) {
+  return {
+    single_choice: 'Resposta única',
+    multiple_choice: 'Múltipla seleção',
+    true_false: 'Verdadeiro/Falso',
+    binary_choice: 'Escolha binária',
+    fill_blank: 'Lacunas',
+    short_answer: 'Resposta curta',
+    long_answer: 'Dissertativa',
+    essay: 'Dissertativa',
+  }[type] || 'Questão';
+}
+
+async function saveQuestionToBank(index) {
+  const question = state.questions[index];
+  if (!question) return;
+  const title = (question.prompt || `Questão ${index + 1}`).trim().slice(0, 120);
+  try {
+    await api('/api/company/question-bank', {
+      method: 'POST',
+      body: JSON.stringify({ title, question })
+    });
+    toast('Questão salva no banco da empresa.');
+  } catch (error) {
+    toast(error.message || 'Não foi possível salvar a questão no banco.', 'error');
+  }
+}
+
+async function loadQuestionBank() {
+  const modal = elements['question-bank-modal'];
+  if (!modal) return;
+  const params = new URLSearchParams();
+  const search = elements['question-bank-search']?.value.trim();
+  const type = elements['question-bank-type-filter']?.value;
+  if (search) params.set('search', search);
+  if (type) params.set('type', type);
+  const list = elements['question-bank-list'];
+  if (list) list.innerHTML = '<div class="question-bank-empty">Carregando questões salvas...</div>';
+  try {
+    const data = await api(`/api/company/question-bank?${params.toString()}`);
+    state.questionBank = data.questions || [];
+    state.questionBankSelected = new Set();
+    renderQuestionBank();
+  } catch (error) {
+    if (list) list.innerHTML = `<div class="question-bank-empty">${error.message || 'Não foi possível carregar o banco.'}</div>`;
+  }
+}
+
+function renderQuestionBank() {
+  const list = elements['question-bank-list'];
+  if (!list) return;
+  list.replaceChildren();
+  if (!state.questionBank.length) {
+    const empty = document.createElement('div');
+    empty.className = 'question-bank-empty';
+    empty.textContent = 'Nenhuma questão salva encontrada. Use o ícone 💾 em uma questão para guardar no banco.';
+    list.appendChild(empty);
+  }
+  state.questionBank.forEach(item => {
+    const label = document.createElement('label');
+    label.className = 'question-bank-item';
+    const checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.value = String(item.id);
+    checkbox.checked = state.questionBankSelected.has(String(item.id));
+    const copy = document.createElement('div');
+    const title = document.createElement('strong');
+    title.textContent = item.title || 'Questão sem título';
+    const prompt = document.createElement('p');
+    prompt.textContent = item.prompt || 'Sem enunciado';
+    copy.append(title, prompt);
+    const meta = document.createElement('div');
+    meta.className = 'question-bank-meta';
+    [questionTypeLabel(item.type), `${formatPoints(item.points)} pts`, `${item.usageCount || 0} uso(s)`].forEach(text => {
+      const pill = document.createElement('span');
+      pill.textContent = text;
+      meta.appendChild(pill);
+    });
+    label.append(checkbox, copy, meta);
+    list.appendChild(label);
+  });
+  updateQuestionBankSelectionCount();
+}
+
+function updateQuestionBankSelectionCount() {
+  const total = state.questionBankSelected.size;
+  if (elements['question-bank-selected-count']) {
+    elements['question-bank-selected-count'].textContent = `${total} selecionada${total === 1 ? '' : 's'}`;
+  }
+}
+
+function openQuestionBankModal() {
+  if (!elements['question-bank-modal']) return;
+  elements['question-bank-modal'].hidden = false;
+  loadQuestionBank();
+  setTimeout(() => elements['question-bank-search']?.focus(), 80);
+}
+
+function closeQuestionBankModal() {
+  if (elements['question-bank-modal']) elements['question-bank-modal'].hidden = true;
+}
+
+async function addSelectedBankQuestions() {
+  const selected = state.questionBank.filter(item => state.questionBankSelected.has(String(item.id)));
+  if (!selected.length) {
+    toast('Selecione pelo menos uma questão.', 'warning');
+    return;
+  }
+  selected.forEach(item => {
+    const question = JSON.parse(JSON.stringify(item.question || {}));
+    question.id = newId();
+    state.questions.push(question);
+  });
+  renderQuestions();
+  markDirty();
+  closeQuestionBankModal();
+  try {
+    await api('/api/company/question-bank/usage', {
+      method: 'POST',
+      body: JSON.stringify({ ids: selected.map(item => item.id) })
+    });
+  } catch (_) {}
+  toast(`${selected.length} questão${selected.length === 1 ? '' : 'ões'} adicionada${selected.length === 1 ? '' : 's'} ao teste.`);
 }
 
 function handleDragStart(event) {
@@ -1247,6 +1385,30 @@ function bindEvents() {
     modelsModal.addEventListener('click', (e) => { if (e.target === modelsModal) modelsModal.hidden = true; });
   }
 
+  if (elements['open-question-bank']) elements['open-question-bank'].addEventListener('click', openQuestionBankModal);
+  if (elements['close-question-bank-modal']) elements['close-question-bank-modal'].addEventListener('click', closeQuestionBankModal);
+  if (elements['cancel-question-bank']) elements['cancel-question-bank'].addEventListener('click', closeQuestionBankModal);
+  if (elements['add-bank-questions']) elements['add-bank-questions'].addEventListener('click', addSelectedBankQuestions);
+  if (elements['question-bank-modal']) {
+    elements['question-bank-modal'].addEventListener('click', event => { if (event.target === elements['question-bank-modal']) closeQuestionBankModal(); });
+  }
+  if (elements['question-bank-list']) {
+    elements['question-bank-list'].addEventListener('change', event => {
+      if (!event.target.matches('input[type="checkbox"]')) return;
+      if (event.target.checked) state.questionBankSelected.add(event.target.value);
+      else state.questionBankSelected.delete(event.target.value);
+      updateQuestionBankSelectionCount();
+    });
+  }
+  ['question-bank-search', 'question-bank-type-filter'].forEach(id => {
+    if (!elements[id]) return;
+    elements[id].addEventListener('input', () => {
+      clearTimeout(state.questionBankTimer);
+      state.questionBankTimer = setTimeout(loadQuestionBank, 300);
+    });
+    elements[id].addEventListener('change', loadQuestionBank);
+  });
+
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
   if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
@@ -1260,7 +1422,11 @@ function bindEvents() {
   document.getElementById('close-publish').addEventListener('click', closePublishModal);
   document.getElementById('cancel-publish').addEventListener('click', closePublishModal);
   elements['publish-modal'].addEventListener('click', event => { if (event.target === elements['publish-modal']) closePublishModal(); });
-  document.addEventListener('keydown', event => { if (event.key === 'Escape' && !elements['publish-modal'].hidden) closePublishModal(); });
+  document.addEventListener('keydown', event => {
+    if (event.key !== 'Escape') return;
+    if (elements['question-bank-modal'] && !elements['question-bank-modal'].hidden) closeQuestionBankModal();
+    if (!elements['publish-modal'].hidden) closePublishModal();
+  });
   document.getElementById('new-exam').addEventListener('click', resetExam);
   elements['exam-picker'].addEventListener('change', event => loadExam(event.target.value));
   ['primary-color', 'accent-color', 'background-color', 'font-family', 'border-radius', 'candidate-instructions'].forEach(id => document.getElementById(id).addEventListener('input', handleBrandingInput));

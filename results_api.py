@@ -1,8 +1,11 @@
 import json
+from io import BytesIO
 from collections import defaultdict
 from datetime import datetime, timedelta
 
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, send_file
+from openpyxl import Workbook
+from openpyxl.styles import Font, PatternFill
 from grading import grade_for_score
 
 
@@ -43,7 +46,7 @@ def result_from_row(row, include_details=False):
         "examId": row["exam_id"],
         "examTitle": row.get("exam_title") or "Teste",
         "score": round(score, 2),
-        "maxScore": int(row.get("max_score") or 100),
+        "maxScore": float(row.get("max_score") or 100),
         "grade": grade_for_score(score, row.get("grading_scale_json")),
         "passingScore": round(passing_score, 2),
         "result": result_label(score, passing_score, row.get("result_status")),
@@ -60,6 +63,53 @@ def result_from_row(row, include_details=False):
         result["competencies"] = parse_json(row.get("competency_scores_json"), {})
         result["reviewerNotes"] = row.get("reviewer_notes") or ""
     return result
+
+
+def format_excel_number(value):
+    try:
+        number = float(value)
+    except (TypeError, ValueError):
+        return 0
+    return int(number) if number.is_integer() else round(number, 2)
+
+
+def split_name(full_name):
+    parts = str(full_name or "").strip().split()
+    if not parts:
+        return "", ""
+    if len(parts) == 1:
+        return "", parts[0]
+    return " ".join(parts[1:]), parts[0]
+
+
+def format_excel_datetime(value):
+    if not value:
+        return "-"
+    if hasattr(value, "strftime"):
+        return value.strftime("%d/%m/%Y %H:%M")
+    return str(value)
+
+
+def export_score_data(row):
+    answers = parse_json(row.get("answers_json"), [])
+    if not answers:
+        return [], 0, 0
+    earned = []
+    total = 0.0
+    score = 0.0
+    for answer in answers:
+        if not isinstance(answer, dict):
+            continue
+        points = max(0.0, float(answer.get("points") or 0))
+        value = answer.get("earnedPoints")
+        if value in (None, ""):
+            earned_value = "-"
+        else:
+            earned_value = format_excel_number(max(0.0, min(points, float(value or 0))))
+            score += float(earned_value)
+        total += points
+        earned.append({"points": format_excel_number(points), "earned": earned_value})
+    return earned, format_excel_number(score), format_excel_number(total)
 
 
 def compute_dashboard(rows):
@@ -251,6 +301,135 @@ def create_results_blueprint(open_database, token_payload):
                         "url": f"/api/company/attempts/{attempt_id}/recording" if recording.get("status") == "completed" else None,
                     }
             return jsonify({"result": result})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.get("/api/company/results/export.xlsx")
+    def export_results_xlsx():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        search = clean_text(request.args.get("search"), 180)
+        exam_id = request.args.get("examId")
+        status = clean_text(request.args.get("status"), 16)
+        result_id = request.args.get("resultId")
+        try:
+            days = max(1, min(3650, int(request.args.get("days", 30))))
+        except (TypeError, ValueError):
+            days = 30
+
+        cutoff = datetime.now() - timedelta(days=days)
+        where = ["r.company_id = %s", "r.completed_at >= %s"]
+        params = [company_id, cutoff]
+        if result_id and str(result_id).isdigit():
+            where.append("r.id = %s")
+            params.append(int(result_id))
+        if search:
+            term = f"%{search}%"
+            where.append("(p.full_name LIKE %s OR p.email LIKE %s)")
+            params.extend([term, term])
+        if exam_id and str(exam_id).isdigit():
+            where.append("r.exam_id = %s")
+            params.append(int(exam_id))
+
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
+            company = cursor.fetchone()
+            sql = (
+                "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, p.phone AS participant_phone, p.city AS participant_city, "
+                "e.title AS exam_title, e.passing_score, e.grading_scale_json, e.questions_json, a.started_at AS attempt_started_at "
+                "FROM company_results r "
+                "LEFT JOIN exam_attempts a ON a.id = r.attempt_id "
+                "JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
+                "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
+                f"WHERE {' AND '.join(where)} ORDER BY r.completed_at DESC LIMIT 3000"
+            )
+            cursor.execute(sql, tuple(params))
+            rows = cursor.fetchall()
+            if status in {"approved", "review", "failed", "invalidated"}:
+                rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) == status]
+
+            score_rows = [export_score_data(row) for row in rows]
+            max_questions = max((len(item[0]) for item in score_rows), default=0)
+            total_points = next((item[2] for item in score_rows if item[2]), 100)
+            headers = [
+                "Sobrenome",
+                "Nome",
+                "Endereço de email",
+                "Telefone celular",
+                "Cidade/Município",
+                "Estado",
+                "Iniciado em",
+                "Completo",
+                "Tempo utilizado",
+                f"Avaliar/{str(total_points).replace('.', ',')}",
+            ]
+            for index in range(max_questions):
+                points = next((items[0][index]["points"] for items in score_rows if len(items[0]) > index), 0)
+                headers.append(f"Q. {index + 1} /{str(points).replace('.', ',')}")
+
+            workbook = Workbook()
+            sheet = workbook.active
+            sheet.title = "Resultados"
+            sheet.append([company["RazaoSocial"] if company else "Online Teste"])
+            sheet.append([rows[0]["exam_title"] if rows else "Resultados"])
+            sheet.append([])
+            sheet.append(headers)
+            header_fill = PatternFill("solid", fgColor="E8F4F3")
+            for cell in sheet[4]:
+                cell.font = Font(bold=True, color="172033")
+                cell.fill = header_fill
+
+            question_totals = [[] for _ in range(max_questions)]
+            score_values = []
+            for row, score_data in zip(rows, score_rows):
+                question_scores, raw_score, _raw_total = score_data
+                surname, first_name = split_name(row.get("participant_name"))
+                score_values.append(float(raw_score or 0))
+                line = [
+                    surname,
+                    first_name,
+                    row.get("participant_email") or "",
+                    row.get("participant_phone") or "",
+                    row.get("participant_city") or "",
+                    "Finalizada" if row.get("completed_at") else "Nunca enviada",
+                    format_excel_datetime(row.get("started_at") or row.get("attempt_started_at")),
+                    format_excel_datetime(row.get("completed_at")),
+                    f"{round(int(row.get('duration_seconds') or 0) / 60)} min",
+                    raw_score,
+                ]
+                for index in range(max_questions):
+                    value = question_scores[index]["earned"] if len(question_scores) > index else "-"
+                    if value != "-":
+                        question_totals[index].append(float(value))
+                    line.append(value)
+                sheet.append(line)
+
+            if rows:
+                average_line = ["Média geral", "", "", "", "", "", "", "", "", format_excel_number(sum(score_values) / len(score_values))]
+                for values in question_totals:
+                    average_line.append(format_excel_number(sum(values) / len(values)) if values else "-")
+                sheet.append(average_line)
+                for cell in sheet[sheet.max_row]:
+                    cell.font = Font(bold=True)
+
+            for column_cells in sheet.columns:
+                length = max(len(str(cell.value or "")) for cell in column_cells)
+                sheet.column_dimensions[column_cells[0].column_letter].width = min(max(length + 2, 12), 34)
+
+            output = BytesIO()
+            workbook.save(output)
+            output.seek(0)
+            filename = "resultado-individual.xlsx" if result_id else "resultados-online-teste.xlsx"
+            return send_file(
+                output,
+                mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+                as_attachment=True,
+                download_name=filename,
+            )
         finally:
             cursor.close()
             connection.close()

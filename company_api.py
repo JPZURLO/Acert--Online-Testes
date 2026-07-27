@@ -60,6 +60,13 @@ def clamp_integer(value, minimum, maximum, default):
         return default
 
 
+def clamp_number(value, minimum, maximum, default):
+    try:
+        return round(max(minimum, min(maximum, float(value))), 2)
+    except (TypeError, ValueError):
+        return default
+
+
 def clean_text(value, maximum, default=""):
     text = str(value if value is not None else default).strip()
     return text[:maximum]
@@ -132,7 +139,7 @@ def clean_question(question, index):
     if not prompt:
         prompt = f"Questão {index + 1}"
 
-    points = clamp_integer(question.get("points"), 0, 1000, 10)
+    points = clamp_number(question.get("points"), 0, 1000, 10)
     required = bool(question.get("required", True))
     q_id = clean_text(question.get("id"), 80, f"question-{index + 1}")
 
@@ -416,6 +423,26 @@ def exam_from_row(row, include_questions=False):
     return exam
 
 
+def question_bank_from_row(row):
+    question = {}
+    try:
+        parsed = json.loads(row.get("question_json") or "{}")
+        if isinstance(parsed, dict):
+            question = parsed
+    except (TypeError, json.JSONDecodeError):
+        question = {}
+    return {
+        "id": row["id"],
+        "title": row.get("title") or "Questão sem título",
+        "type": row.get("question_type") or question.get("type") or "single_choice",
+        "points": float(row.get("points") or question.get("points") or 0),
+        "prompt": clean_text(question.get("prompt"), 3000),
+        "usageCount": int(row.get("usage_count") or 0),
+        "updatedAt": row.get("updated_at").isoformat() if row.get("updated_at") else None,
+        "question": question,
+    }
+
+
 def create_company_blueprint(open_database, token_payload):
     blueprint = Blueprint("company_workspace", __name__)
 
@@ -565,6 +592,104 @@ def create_company_blueprint(open_database, token_payload):
                 "totalPoints": sum(question["points"] for question in questions),
             }
         )
+
+    @blueprint.get("/api/company/question-bank")
+    def list_question_bank():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        search = clean_text(request.args.get("search"), 180)
+        question_type = clean_text(request.args.get("type"), 32)
+        where = ["company_id = %s"]
+        params = [company_id]
+        if search:
+            term = f"%{search}%"
+            where.append("(title LIKE %s OR question_json LIKE %s)")
+            params.extend([term, term])
+        if question_type in ALLOWED_QUESTION_TYPES:
+            where.append("question_type = %s")
+            params.append(question_type)
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT id,title,question_type,points,question_json,usage_count,updated_at "
+                "FROM company_question_bank WHERE " + " AND ".join(where) + " "
+                "ORDER BY updated_at DESC LIMIT 200",
+                tuple(params),
+            )
+            return jsonify({"success": True, "questions": [question_bank_from_row(row) for row in cursor.fetchall()]})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/company/question-bank")
+    def save_question_bank_item():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        raw_question = data.get("question") if isinstance(data.get("question"), dict) else {}
+        try:
+            question = clean_question(raw_question, 0)
+        except ValueError as exc:
+            return jsonify({"success": False, "message": str(exc)}), 400
+        title = clean_text(data.get("title") or question.get("prompt"), 180, "Questão sem título")
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "INSERT INTO company_question_bank (company_id,title,question_type,points,question_json) "
+                "VALUES (%s,%s,%s,%s,%s)",
+                (
+                    company_id,
+                    title,
+                    question["type"],
+                    question["points"],
+                    json.dumps(question, ensure_ascii=False),
+                ),
+            )
+            question_id = cursor.lastrowid
+            connection.commit()
+            cursor.execute(
+                "SELECT id,title,question_type,points,question_json,usage_count,updated_at "
+                "FROM company_question_bank WHERE id=%s AND company_id=%s",
+                (question_id, company_id),
+            )
+            return jsonify({"success": True, "question": question_bank_from_row(cursor.fetchone())}), 201
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.post("/api/company/question-bank/usage")
+    def record_question_bank_usage():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        ids = []
+        for value in data.get("ids", []) if isinstance(data.get("ids"), list) else []:
+            try:
+                ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+        ids = ids[:50]
+        if not ids:
+            return jsonify({"success": True})
+        placeholders = ",".join(["%s"] * len(ids))
+        connection = open_database()
+        cursor = connection.cursor()
+        try:
+            cursor.execute(
+                f"UPDATE company_question_bank SET usage_count = usage_count + 1 "
+                f"WHERE company_id=%s AND id IN ({placeholders})",
+                tuple([company_id, *ids]),
+            )
+            connection.commit()
+            return jsonify({"success": True})
+        finally:
+            cursor.close()
+            connection.close()
 
     @blueprint.get("/api/company/exams/<int:exam_id>")
     def get_exam(exam_id):

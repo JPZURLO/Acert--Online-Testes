@@ -8,6 +8,8 @@ class KnowledgeBaseIntegrationTests(unittest.TestCase):
     def setUp(self):
         self.root = Path(__file__).resolve().parent.parent
         self.js_path = self.root / "front-end" / "js" / "knowledge-base.js"
+        self.admin_js_path = self.root / "front-end" / "js" / "admin-knowledge-base-rich.js"
+        self.admin_html_path = self.root / "front-end" / "Admin.html"
         self.kb_html_path = self.root / "front-end" / "BaseConhecimento.html"
         self.login_html_path = self.root / "front-end" / "login_cliente.html"
 
@@ -28,6 +30,20 @@ class KnowledgeBaseIntegrationTests(unittest.TestCase):
     def test_sidebar_nav_contains_base_conhecimento_link(self):
         content = self.login_html_path.read_text(encoding="utf-8")
         self.assertIn('BaseConhecimento.html', content)
+
+    def test_admin_uses_dedicated_rich_editor(self):
+        self.assertTrue(self.admin_js_path.exists(), "admin-knowledge-base-rich.js deve existir")
+        html = self.admin_html_path.read_text(encoding="utf-8")
+        js = self.admin_js_path.read_text(encoding="utf-8")
+
+        self.assertIn('id="kb-rich-editor"', html)
+        self.assertIn('admin-knowledge-editor.css', html)
+        self.assertIn('admin-knowledge-base-rich.js', html)
+        self.assertNotIn('knowledge-base-editor.js', html)
+        self.assertIn("data-kb-step", js)
+        self.assertIn("/api/admin/knowledge-base/upload-image", js)
+        self.assertIn("/api/admin/knowledge-base", js)
+        self.assertNotIn("enableInlineKbEditor", js)
 
     def test_public_standalone_route_removed(self):
         client = flask_app.test_client()
