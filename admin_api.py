@@ -610,6 +610,35 @@ def create_admin_blueprint(open_database, token_payload):
             cursor.close()
             connection.close()
 
+    @blueprint.post("/api/admin/licenses/<int:company_id>/password")
+    def update_license_company_password(company_id):
+        _admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        password = str(data.get("password") or "")
+        password_confirmation = str(data.get("passwordConfirmation") or "")
+        if password != password_confirmation:
+            return jsonify({"success": False, "message": "As senhas não coincidem."}), 400
+        validation_error = password_validation_message(password)
+        if validation_error:
+            return jsonify({"success": False, "message": validation_error}), 400
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT id FROM empresas WHERE id = %s", (company_id,))
+            if not cursor.fetchone():
+                return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
+            cursor.execute(
+                "UPDATE empresas SET senha = %s WHERE id = %s",
+                (generate_password_hash(password, method="pbkdf2:sha256"), company_id),
+            )
+            connection.commit()
+            return jsonify({"success": True, "message": "Senha da empresa alterada com sucesso."})
+        finally:
+            cursor.close()
+            connection.close()
+
     @blueprint.get("/api/admin/operations")
     def admin_operations():
         admin_id, error = admin_id_or_error()

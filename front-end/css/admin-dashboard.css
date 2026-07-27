@@ -23,3 +23,5 @@
   .admin-view-as .admin-secondary i{font-size:12px}
   .admin-view-as-menu{right:-48px}
 }
+.license-editor-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.license-editor-actions .admin-secondary{min-width:190px}
