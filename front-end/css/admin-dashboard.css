@@ -25,3 +25,14 @@
 }
 .license-editor-actions{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
 .license-editor-actions .admin-secondary{min-width:190px}
+.licenses-layout{grid-template-columns:1fr}
+.licenses-layout>.license-editor{display:none}
+.license-list .license-editor{margin:10px 0 16px;padding:17px;border-color:#b9d7d5;background:linear-gradient(135deg,#f7fbfb,#fff);box-shadow:0 12px 28px rgba(25,52,55,.06)}
+.license-list .license-editor[hidden]{display:none}
+.license-list .license-editor .admin-panel-heading{padding-bottom:12px;border-bottom:1px solid var(--line)}
+.license-list .license-editor form>label{margin-top:2px}
+.license-list .license-editor .finance-license-fields,.license-list .license-editor .admin-form-grid{grid-template-columns:repeat(4,minmax(0,1fr));gap:0 11px}
+.license-list .license-editor #license-recording-email,.license-list .license-editor #license-notes{max-width:100%}
+.license-list .license-item.active{border-radius:10px;border-bottom-color:transparent;background:#eef7f6}
+@media(max-width:1180px){.license-list .license-editor .finance-license-fields,.license-list .license-editor .admin-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-width:620px){.license-list .license-editor .finance-license-fields,.license-list .license-editor .admin-form-grid{grid-template-columns:1fr}.license-editor-actions .admin-primary,.license-editor-actions .admin-secondary{width:100%}}
