@@ -7,6 +7,72 @@ body {
     align-items: center;
     min-height: 100vh;
     margin: 0;
+    padding: 92px 20px 28px;
+    box-sizing: border-box;
+  }
+
+  .login-top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    min-height: 72px;
+    padding: 10px clamp(18px, 4vw, 56px);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    background: rgba(255, 255, 255, 0.94);
+    border-bottom: 1px solid rgba(12, 64, 67, 0.12);
+    box-shadow: 0 16px 40px rgba(7, 35, 37, 0.12);
+    backdrop-filter: blur(14px);
+  }
+
+  .login-top-brand {
+    display: inline-flex;
+    align-items: center;
+    min-width: 142px;
+  }
+
+  .login-top-brand img {
+    width: 148px;
+    max-height: 52px;
+    object-fit: contain;
+  }
+
+  .login-top-links {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .login-top-links a,
+  .login-top-back {
+    padding: 9px 13px;
+    color: #20313a;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: 999px;
+    border: 1px solid transparent;
+    background: transparent;
+    cursor: pointer;
+    transition: 0.2s ease;
+  }
+
+  .login-top-links a:hover,
+  .login-top-links a.active,
+  .login-top-back:hover {
+    color: #0f777b;
+    background: rgba(15, 119, 123, 0.09);
+    border-color: rgba(15, 119, 123, 0.18);
+  }
+
+  .login-top-back {
+    white-space: nowrap;
   }
 
   .login-button a { /* Seletor para o link dentro do botão */
@@ -40,6 +106,7 @@ body {
     margin: 10px 0;
     border: 1px solid #ccc;
     border-radius: 5px;
+    box-sizing: border-box;
   }
   
   .checkbox-container {
@@ -83,6 +150,41 @@ body {
     transform: translateY(-50%); /* Centraliza verticalmente */
     cursor: pointer;
     color: #999; /* Cor do ícone */
+  }
+
+  @media (max-width: 720px) {
+    body {
+      padding-top: 142px;
+    }
+
+    .login-top-nav {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 10px;
+      padding: 10px 16px 12px;
+    }
+
+    .login-top-brand img {
+      width: 132px;
+    }
+
+    .login-top-links {
+      width: 100%;
+      justify-content: flex-start;
+      gap: 6px;
+    }
+
+    .login-top-links a,
+    .login-top-back {
+      padding: 8px 10px;
+      font-size: 12px;
+    }
+
+    .login-top-back {
+      position: absolute;
+      top: 14px;
+      right: 14px;
+    }
   }
 
   

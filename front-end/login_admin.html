@@ -7,10 +7,22 @@
   <title>Admin | Online Teste</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-  <link rel="stylesheet" href="./css/admin-login.css?v=1">
+  <link rel="stylesheet" href="./css/admin-login.css?v=2">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
 </head>
 <body>
+  <header class="login-top-nav" aria-label="Navegação de acesso">
+    <a class="login-top-brand" href="./index.html" aria-label="Voltar para a página inicial">
+      <img src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Online Teste">
+    </a>
+    <nav class="login-top-links" aria-label="Atalhos de login">
+      <a href="./index.html">Início</a>
+      <a href="./login.html">Participante</a>
+      <a href="./login_empresa.html">Empresa</a>
+      <a class="active" href="./login_admin.html">Admin</a>
+    </nav>
+    <button class="login-top-back" type="button" onclick="history.length > 1 ? history.back() : location.href='./index.html'">Voltar</button>
+  </header>
   <main class="admin-login-shell">
     <section class="admin-login-brand">
       <a href="./index.html" class="admin-brand-link"><img src="./assets/images/Logo_Online_Teste_Transparente.png" alt="Online Teste"></a>
