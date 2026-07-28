@@ -370,12 +370,15 @@ def clean_exam(data):
             raise ValueError("Informe os minutos antes do início para o envio agendado.")
         email_send_option = "manual"
 
+    grading_scale = normalize_grading_scale(data.get("gradingScale"))
+    scoreless = grading_scale.get("type") == "none"
+
     return {
         "title": title,
         "description": clean_text(data.get("description"), 3000),
         "durationMinutes": clamp_integer(data.get("durationMinutes"), 1, 1440, 60),
-        "passingScore": clamp_integer(data.get("passingScore"), 0, 100, 60),
-        "gradingScale": normalize_grading_scale(data.get("gradingScale")),
+        "passingScore": 0 if scoreless else clamp_integer(data.get("passingScore"), 0, 100, 60),
+        "gradingScale": grading_scale,
         "shuffleQuestions": bool(data.get("shuffleQuestions", False)),
         "status": status,
         "resultDelivery": result_delivery if result_delivery in ALLOWED_RESULT_DELIVERY else "manual",
@@ -388,7 +391,7 @@ def clean_exam(data):
         "emailSendOption": email_send_option if email_send_option in ALLOWED_EMAIL_SEND_OPTIONS else "manual",
         "emailScheduleMinutesBefore": email_schedule_minutes,
         "questions": questions,
-        "totalPoints": sum(question["points"] for question in questions),
+        "totalPoints": 0 if scoreless else sum(question["points"] for question in questions),
     }
 
 

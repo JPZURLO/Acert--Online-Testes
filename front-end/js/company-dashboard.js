@@ -454,6 +454,9 @@ function defaultGradingScale() {
 
 function collectGradingScale() {
   const selected = elements['grading-scale-type'].value;
+  if (selected === 'none') {
+    return { type: 'none', maximum: 0, decimals: 0, bands: [] };
+  }
   if (selected === 'concept') {
     const bands = [...elements['concept-bands'].querySelectorAll('.concept-band')].map(row => ({
       code: row.querySelector('[data-field="code"]').value.trim(),
@@ -469,7 +472,16 @@ function collectGradingScale() {
 function updateGradingPreview() {
   const score = Math.max(0, Math.min(100, Number(elements['passing-score'].value) || 0));
   const scale = collectGradingScale();
-  if (scale.type === 'concept') {
+  const passingField = elements['passing-score'].closest('.metric-field');
+  const scoreless = scale.type === 'none';
+  elements['passing-score'].disabled = scoreless;
+  passingField?.classList.toggle('is-disabled', scoreless);
+  if (scoreless) {
+    elements['grading-preview'].textContent = 'Sem nota final';
+    elements['grading-scale-summary-label'].textContent = 'Sem pontuação';
+    elements['total-points'].textContent = '—';
+    elements['total-points-unit'].textContent = 'análise';
+  } else if (scale.type === 'concept') {
     const bands = [...scale.bands].sort((a, b) => a.min - b.min);
     const band = bands.reduce((current, item) => score >= item.min ? item : current, bands[0]);
     elements['grading-preview'].textContent = band ? `${band.code} — ${band.label}` : 'Configure os conceitos';
@@ -487,7 +499,7 @@ function updateGradingPreview() {
 
 function renderGradingScale(scale = defaultGradingScale()) {
   const normalized = scale && typeof scale === 'object' ? scale : defaultGradingScale();
-  elements['grading-scale-type'].value = normalized.type === 'concept' ? 'concept' : `numeric-${[5, 10, 100].includes(Number(normalized.maximum)) ? Number(normalized.maximum) : 100}`;
+  elements['grading-scale-type'].value = normalized.type === 'none' ? 'none' : normalized.type === 'concept' ? 'concept' : `numeric-${[5, 10, 100].includes(Number(normalized.maximum)) ? Number(normalized.maximum) : 100}`;
   const bands = Array.isArray(normalized.bands) && normalized.bands.length ? normalized.bands : defaultGradingScale().bands;
   elements['concept-bands'].replaceChildren();
   bands.forEach((band, index) => {
@@ -516,12 +528,13 @@ function collectExam() {
   const minutesBefore = elements['email-schedule-minutes'] && sendOption === 'scheduled'
     ? (parseInt(elements['email-schedule-minutes'].value, 10) || null)
     : null;
+  const gradingScale = collectGradingScale();
   return {
     title: elements['exam-title'].value.trim(),
     description: elements['exam-description'].value.trim(),
     durationMinutes: Number(elements['exam-duration'].value) || 60,
-    passingScore: Number(elements['passing-score'].value) || 0,
-    gradingScale: collectGradingScale(),
+    passingScore: gradingScale.type === 'none' ? 0 : Number(elements['passing-score'].value) || 0,
+    gradingScale,
     shuffleQuestions: elements['shuffle-questions'].checked,
     status: state.status,
     resultDelivery: elements['result-delivery'].value,
