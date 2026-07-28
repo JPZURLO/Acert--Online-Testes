@@ -25,7 +25,16 @@ def normalize_grading_scale(value=None):
     value = value if isinstance(value, dict) else {}
     scale_type = value.get("type") if value.get("type") in {"numeric", "concept", "none"} else "numeric"
     if scale_type == "none":
-        return {"type": "none", "maximum": 0, "decimals": 0, "bands": []}
+        raw_dimensions = value.get("dimensions") if isinstance(value.get("dimensions"), list) else []
+        dimensions = [str(item or "").strip()[:80] for item in raw_dimensions if str(item or "").strip()]
+        return {
+            "type": "none",
+            "mode": str(value.get("mode") or "behavior_profile")[:40],
+            "maximum": 0,
+            "decimals": 0,
+            "bands": [],
+            "dimensions": dimensions[:12],
+        }
     maximum = int(_number(value.get("maximum"), 100))
     maximum = maximum if maximum in {5, 10, 100} else 100
     default_decimals = 0 if maximum == 100 else 1
@@ -58,7 +67,7 @@ def grade_for_score(score, scale=None):
     percentage = round(max(0, min(100, _number(score))), 2)
     if normalized["type"] == "none":
         return {
-            "type": "none", "value": None, "label": "Sem pontuação",
+            "type": "none", "value": None, "label": "Perfil comportamental" if normalized.get("mode") == "behavior_profile" else "Sem pontuação",
             "maximum": None, "percent": percentage,
         }
     if normalized["type"] == "concept":

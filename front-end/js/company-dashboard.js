@@ -32,6 +32,14 @@ const state = {
 
 const elements = {};
 const draftKey = 'acert-company-exam-draft';
+const RH_PROFILE_DIMENSIONS = [
+  'Comunicação',
+  'Organização',
+  'Liderança',
+  'Adaptabilidade',
+  'Colaboração',
+  'Tomada de decisão'
+];
 
 function newId() {
   return globalThis.crypto?.randomUUID?.() || `question-${Date.now()}-${Math.random().toString(16).slice(2)}`;
@@ -272,6 +280,77 @@ function renderOptions(question, container, questionIndex = 0) {
     question.options = ['Opção A', 'Opção B'];
   }
 
+  const behaviorProfile = isBehaviorProfileMode();
+  if (behaviorProfile && ['single_choice', 'multiple_choice', 'true_false', 'binary_choice'].includes(question.type)) {
+    question.points = 0;
+    const mapping = ensureBehaviorMapping(question);
+    const helper = document.createElement('div');
+    helper.className = 'options-helper-text behavior-profile-helper';
+    helper.textContent = 'Perfil RH: associe cada alternativa a uma competência. Não existe certo ou errado.';
+    container.appendChild(helper);
+
+    question.options.forEach((option, optionIndex) => {
+      const row = document.createElement('div');
+      row.className = 'option-row behavior-option-row';
+
+      const marker = document.createElement('span');
+      marker.className = 'behavior-option-marker';
+      marker.textContent = String.fromCharCode(65 + optionIndex);
+
+      const input = document.createElement('input');
+      input.type = 'text';
+      input.value = option;
+      input.maxLength = 500;
+      input.dataset.optionIndex = String(optionIndex);
+      input.setAttribute('aria-label', `Alternativa ${optionIndex + 1}`);
+
+      const select = document.createElement('select');
+      select.className = 'option-competency';
+      select.dataset.competencyIndex = String(optionIndex);
+      RH_PROFILE_DIMENSIONS.forEach(dimension => {
+        const optionEl = document.createElement('option');
+        optionEl.value = dimension;
+        optionEl.textContent = dimension;
+        select.appendChild(optionEl);
+      });
+      select.value = mapping[optionIndex]?.dimension || RH_PROFILE_DIMENSIONS[0];
+
+      const weight = document.createElement('input');
+      weight.className = 'option-weight';
+      weight.type = 'number';
+      weight.min = '0';
+      weight.max = '10';
+      weight.step = '0.5';
+      weight.value = String(mapping[optionIndex]?.weight ?? 1);
+      weight.dataset.weightIndex = String(optionIndex);
+      weight.setAttribute('aria-label', `Peso da alternativa ${optionIndex + 1}`);
+
+      row.append(marker, input, select, weight);
+
+      if (!['true_false', 'binary_choice'].includes(question.type)) {
+        const remove = document.createElement('button');
+        remove.type = 'button';
+        remove.className = 'remove-option';
+        remove.dataset.removeOption = String(optionIndex);
+        remove.setAttribute('aria-label', `Remover alternativa ${optionIndex + 1}`);
+        remove.textContent = '×';
+        row.appendChild(remove);
+      }
+
+      container.appendChild(row);
+    });
+
+    if (['single_choice', 'multiple_choice'].includes(question.type) && question.options.length < 10) {
+      const add = document.createElement('button');
+      add.type = 'button';
+      add.className = 'add-option';
+      add.dataset.addOption = 'true';
+      add.textContent = '+ Adicionar alternativa';
+      container.appendChild(add);
+    }
+    return;
+  }
+
   const isMultiSelect = question.type === 'multiple_choice';
   if (isMultiSelect) {
     if (!Array.isArray(question.correctAnswers)) {
@@ -397,7 +476,10 @@ function renderQuestions() {
     card.dataset.index = String(index);
     card.querySelector('.question-number').textContent = String(index + 1);
     card.querySelector('.question-type').value = question.type;
-    card.querySelector('.question-points').value = question.points;
+    const pointsField = card.querySelector('.points-field');
+    const pointsInput = card.querySelector('.question-points');
+    if (pointsInput) pointsInput.value = question.points;
+    if (pointsField) pointsField.hidden = isBehaviorProfileMode();
     card.querySelector('.question-required').checked = question.required;
     card.querySelector('.question-prompt').value = question.prompt;
     renderQuestionImageEditor(question, card);
@@ -405,6 +487,50 @@ function renderQuestions() {
   elements['questions-list'].appendChild(fragment);
   });
   updateSummary();
+}
+
+function isBehaviorProfileMode() {
+  return elements['grading-scale-type']?.value === 'none';
+}
+
+function defaultBehaviorMapping(question) {
+  const options = Array.isArray(question?.options) ? question.options : [];
+  return options.map((option, index) => ({
+    option,
+    optionIndex: index,
+    dimension: RH_PROFILE_DIMENSIONS[index % RH_PROFILE_DIMENSIONS.length],
+    weight: 1
+  }));
+}
+
+function ensureBehaviorMapping(question) {
+  if (!question || !Array.isArray(question.options)) return [];
+  const raw = Array.isArray(question.behaviorMapping) ? question.behaviorMapping : [];
+  question.behaviorMapping = question.options.map((option, index) => {
+    const current = raw.find(item => Number(item?.optionIndex) === index)
+      || raw.find(item => String(item?.option || '') === String(option || ''))
+      || {};
+    const dimension = RH_PROFILE_DIMENSIONS.includes(current.dimension)
+      ? current.dimension
+      : RH_PROFILE_DIMENSIONS[index % RH_PROFILE_DIMENSIONS.length];
+    return {
+      option,
+      optionIndex: index,
+      dimension,
+      weight: Math.max(0, Number(current.weight ?? 1) || 0)
+    };
+  });
+  return question.behaviorMapping;
+}
+
+function applyBehaviorProfileDefaults() {
+  state.questions.forEach(question => {
+    if (!['single_choice', 'multiple_choice', 'true_false', 'binary_choice'].includes(question.type)) return;
+    question.points = 0;
+    question.correctAnswer = '';
+    question.correctAnswers = [];
+    ensureBehaviorMapping(question);
+  });
 }
 
 function renderQuestionImageEditor(question, card) {
@@ -424,13 +550,16 @@ function renderQuestionImageEditor(question, card) {
 }
 
 function updateSummary() {
+  const scoreless = isBehaviorProfileMode();
   const total = state.questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
   const count = state.questions.length;
   elements['question-count'].textContent = `(${count})`;
-  elements['question-total'].textContent = `Pontuação total: ${formatPoints(total)} pontos`;
+  elements['question-total'].textContent = scoreless
+    ? `Perfil comportamental: ${count} ${count === 1 ? 'questão' : 'questões'}`
+    : `Pontuação total: ${formatPoints(total)} pontos`;
   elements['preview-questions'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
   elements['modal-question-count'].textContent = String(count);
-  elements['modal-total-points'].textContent = String(total);
+  elements['modal-total-points'].textContent = scoreless ? 'Perfil RH' : String(total);
 }
 
 function formatPoints(value) {
@@ -455,7 +584,14 @@ function defaultGradingScale() {
 function collectGradingScale() {
   const selected = elements['grading-scale-type'].value;
   if (selected === 'none') {
-    return { type: 'none', maximum: 0, decimals: 0, bands: [] };
+    return {
+      type: 'none',
+      mode: 'behavior_profile',
+      maximum: 0,
+      decimals: 0,
+      bands: [],
+      dimensions: RH_PROFILE_DIMENSIONS
+    };
   }
   if (selected === 'concept') {
     const bands = [...elements['concept-bands'].querySelectorAll('.concept-band')].map(row => ({
@@ -477,10 +613,10 @@ function updateGradingPreview() {
   elements['passing-score'].disabled = scoreless;
   passingField?.classList.toggle('is-disabled', scoreless);
   if (scoreless) {
-    elements['grading-preview'].textContent = 'Sem nota final';
-    elements['grading-scale-summary-label'].textContent = 'Sem pontuação';
+    elements['grading-preview'].textContent = 'Relatório por competências';
+    elements['grading-scale-summary-label'].textContent = 'Perfil comportamental';
     elements['total-points'].textContent = '—';
-    elements['total-points-unit'].textContent = 'análise';
+    elements['total-points-unit'].textContent = 'perfil';
   } else if (scale.type === 'concept') {
     const bands = [...scale.bands].sort((a, b) => a.min - b.min);
     const band = bands.reduce((current, item) => score >= item.min ? item : current, bands[0]);
@@ -603,6 +739,10 @@ function syncQuestionFromTarget(target) {
     const optIdx = Number(target.dataset.optionIndex);
     const oldVal = question.options[optIdx];
     question.options[optIdx] = target.value;
+    if (Array.isArray(question.behaviorMapping) && question.behaviorMapping[optIdx]) {
+      question.behaviorMapping[optIdx].option = target.value;
+      question.behaviorMapping[optIdx].optionIndex = optIdx;
+    }
     if (question.type === 'multiple_choice') {
       if (Array.isArray(question.correctAnswers)) {
         const cIndex = question.correctAnswers.indexOf(oldVal);
@@ -612,6 +752,16 @@ function syncQuestionFromTarget(target) {
     } else if (question.correctAnswer === oldVal || (!question.correctAnswer && optIdx === 0)) {
       question.correctAnswer = target.value;
     }
+  }
+  if (target.matches('[data-competency-index]')) {
+    const optIdx = Number(target.dataset.competencyIndex);
+    const mapping = ensureBehaviorMapping(question);
+    if (mapping[optIdx]) mapping[optIdx].dimension = target.value;
+  }
+  if (target.matches('[data-weight-index]')) {
+    const optIdx = Number(target.dataset.weightIndex);
+    const mapping = ensureBehaviorMapping(question);
+    if (mapping[optIdx]) mapping[optIdx].weight = Math.max(0, Number(target.value) || 0);
   }
   if (target.matches('[data-correct-option]')) {
     const optIdx = Number(target.dataset.correctOption);
@@ -656,6 +806,12 @@ function syncQuestionFromTarget(target) {
       question.maxCharacters = 5000;
       question.manualCorrection = true;
     }
+    if (isBehaviorProfileMode()) {
+      question.points = 0;
+      question.correctAnswer = '';
+      question.correctAnswers = [];
+      ensureBehaviorMapping(question);
+    }
     renderQuestions();
   }
   updateSummary();
@@ -698,15 +854,20 @@ async function handleQuestionImageUpload(target) {
 }
 
 function addQuestion() {
-  state.questions.push({
+  const question = {
     id: newId(),
-    type: 'multiple_choice',
+    type: isBehaviorProfileMode() ? 'single_choice' : 'multiple_choice',
     prompt: '',
-    points: 10,
+    points: isBehaviorProfileMode() ? 0 : 10,
     required: true,
     options: ['Opção A', 'Opção B'],
     correctAnswer: ''
-  });
+  };
+  if (isBehaviorProfileMode()) {
+    question.correctAnswers = [];
+    question.behaviorMapping = defaultBehaviorMapping(question);
+  }
+  state.questions.push(question);
   renderQuestions();
   markDirty();
   requestAnimationFrame(() => elements['questions-list'].lastElementChild?.querySelector('.question-prompt')?.focus());
@@ -754,6 +915,7 @@ function handleQuestionClick(event) {
     markDirty();
   } else if (event.target.matches('[data-add-option]')) {
     state.questions[index].options.push(`Opção ${String.fromCharCode(65 + state.questions[index].options.length)}`);
+    if (isBehaviorProfileMode()) ensureBehaviorMapping(state.questions[index]);
     renderQuestions();
     markDirty();
   } else if (event.target.matches('[data-remove-option]')) {
@@ -762,6 +924,10 @@ function handleQuestionClick(event) {
       return;
     }
     state.questions[index].options.splice(Number(event.target.dataset.removeOption), 1);
+    if (Array.isArray(state.questions[index].behaviorMapping)) {
+      state.questions[index].behaviorMapping.splice(Number(event.target.dataset.removeOption), 1);
+      ensureBehaviorMapping(state.questions[index]);
+    }
     renderQuestions();
     markDirty();
   }
@@ -1343,7 +1509,7 @@ function openCandidatePreviewModal() {
   if (elements['modal-preview-instructions']) elements['modal-preview-instructions'].textContent = state.branding.candidateInstructions || 'Leia as instruções com atenção antes de iniciar a avaliação.';
   if (elements['modal-preview-duration-tag']) elements['modal-preview-duration-tag'].textContent = `${duration} min`;
   if (elements['modal-preview-questions-tag']) elements['modal-preview-questions-tag'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
-  if (elements['modal-preview-points-tag']) elements['modal-preview-points-tag'].textContent = `${total} pontos`;
+  if (elements['modal-preview-points-tag']) elements['modal-preview-points-tag'].textContent = exam.gradingScale?.type === 'none' ? 'Perfil comportamental' : `${total} pontos`;
   if (elements['modal-preview-timer']) elements['modal-preview-timer'].textContent = `${duration}:00`;
 
   const logoImg = elements['modal-preview-logo'];
@@ -1372,7 +1538,9 @@ function openCandidatePreviewModal() {
 
         const head = document.createElement('div');
         head.className = 'question-card-head';
-        head.innerHTML = `<span>Questão ${index + 1} de ${count}</span><b>${q.points || 0} pt${(q.points || 0) === 1 ? '' : 's'}</b>`;
+        head.innerHTML = exam.gradingScale?.type === 'none'
+          ? `<span>Questão ${index + 1} de ${count}</span><b>Perfil RH</b>`
+          : `<span>Questão ${index + 1} de ${count}</span><b>${q.points || 0} pt${(q.points || 0) === 1 ? '' : 's'}</b>`;
 
         const prompt = document.createElement('div');
         prompt.className = 'question-card-prompt';
@@ -1449,7 +1617,9 @@ function bindEvents() {
   }
   elements['grading-scale-type'].addEventListener('change', () => {
     const scale = collectGradingScale();
+    if (scale.type === 'none') applyBehaviorProfileDefaults();
     renderGradingScale(scale);
+    renderQuestions();
     markDirty();
   });
   elements['concept-bands'].addEventListener('input', () => {

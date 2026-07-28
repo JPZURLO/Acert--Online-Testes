@@ -78,7 +78,87 @@ def normalize_answer(value):
     return str(value if value is not None else "").strip().casefold()
 
 
-def score_answers(questions, supplied):
+def parse_answer_list(value):
+    if isinstance(value, list):
+        return [str(item) for item in value]
+    if isinstance(value, str):
+        try:
+            parsed = json.loads(value)
+            if isinstance(parsed, list):
+                return [str(item) for item in parsed]
+        except (TypeError, json.JSONDecodeError):
+            pass
+        return [value] if value else []
+    return []
+
+
+def score_behavior_profile(questions, supplied):
+    supplied = supplied if isinstance(supplied, dict) else {}
+    totals = {}
+    answers = []
+    for index, question in enumerate(questions):
+        question_id = str(question.get("id") or f"question-{index + 1}")[:80]
+        kind = question.get("type") or "single_choice"
+        raw_value = supplied.get(question_id, "")
+        selected_values = parse_answer_list(raw_value)
+        options = [str(item) for item in (question.get("options") or [])]
+        raw_mapping = question.get("behaviorMapping") if isinstance(question.get("behaviorMapping"), list) else []
+        mapping_by_index = {}
+        for item in raw_mapping:
+            if not isinstance(item, dict):
+                continue
+            try:
+                option_index = int(item.get("optionIndex"))
+            except (TypeError, ValueError):
+                continue
+            mapping_by_index[option_index] = item
+
+        selected_dimensions = []
+        for value in selected_values:
+            option_index = next(
+                (idx for idx, option in enumerate(options) if normalize_answer(option) == normalize_answer(value)),
+                None,
+            )
+            if option_index is None:
+                continue
+            item = mapping_by_index.get(option_index, {})
+            dimension = str(item.get("dimension") or "Perfil geral").strip()[:80] or "Perfil geral"
+            try:
+                weight = float(item.get("weight", 1))
+            except (TypeError, ValueError):
+                weight = 1.0
+            weight = max(0.0, min(10.0, weight))
+            totals[dimension] = totals.get(dimension, 0.0) + weight
+            selected_dimensions.append(dimension)
+
+        answers.append(
+            {
+                "number": index + 1,
+                "questionId": question_id,
+                "question": str(question.get("prompt") or "")[:3000],
+                "type": kind,
+                "value": json.dumps(selected_values, ensure_ascii=False) if isinstance(raw_value, list) else str(raw_value or "")[:10000],
+                "points": 0,
+                "earnedPoints": 0,
+                "isCorrect": None,
+                "correctionStatus": "perfil_comportamental",
+                "competencies": selected_dimensions,
+            }
+        )
+
+    total_weight = sum(totals.values())
+    competencies = {
+        name: round((value / total_weight * 100) if total_weight else 0, 2)
+        for name, value in sorted(totals.items(), key=lambda item: item[1], reverse=True)
+    }
+    return answers, competencies
+
+
+def score_answers(questions, supplied, grading_scale=None):
+    if normalize_grading_scale(grading_scale).get("type") == "none":
+        answers, competencies = score_behavior_profile(questions, supplied)
+        return answers, 0, 0, 0, 0, False, competencies
+
     supplied = supplied if isinstance(supplied, dict) else {}
     answers = []
     objective_points = 0
@@ -235,7 +315,7 @@ def score_answers(questions, supplied):
             }
         )
     percentage = round((objective_points / total_points * 100) if total_points else 0, 2)
-    return answers, objective_points, total_points, percentage, correct_answers, has_essay
+    return answers, objective_points, total_points, percentage, correct_answers, has_essay, {}
 
 
 def create_participant_blueprint(open_database, token_payload):
@@ -824,10 +904,12 @@ def create_participant_blueprint(open_database, token_payload):
                 return jsonify({"success": False, "message": "Este teste ainda não foi iniciado."}), 409
             supplied = data.get("answers") if isinstance(data.get("answers"), dict) else parse_json(row.get("answers_json"), {})
             questions = parse_json(row.get("questions_json"), [])
-            answers, objective_points, total_points, percentage, correct_answers, has_essay = score_answers(questions, supplied)
+            grading_scale = normalize_grading_scale(row.get("grading_scale_json"))
+            answers, objective_points, total_points, percentage, correct_answers, has_essay, competencies = score_answers(questions, supplied, grading_scale)
             violated = bool(termination_reason)
+            profile_mode = grading_scale.get("type") == "none"
             needs_review = violated or row.get("result_delivery") == "manual" or has_essay
-            result_status = "invalidated" if violated else ("review" if needs_review else ("approved" if percentage >= float(60 if row.get("passing_score") is None else row["passing_score"]) else "failed"))
+            result_status = "invalidated" if violated else ("review" if needs_review else ("profile" if profile_mode else ("approved" if percentage >= float(60 if row.get("passing_score") is None else row["passing_score"]) else "failed")))
             release_status = "pending" if needs_review else "released"
             review_status = "pending" if needs_review else "completed"
             reviewer_notes = f"Encerramento automático de segurança: {termination_reason}" if violated else None
@@ -846,14 +928,14 @@ def create_participant_blueprint(open_database, token_payload):
             )
             if existing:
                 cursor.execute(
-                    "UPDATE company_results SET score=%s,max_score=%s,duration_seconds=%s,correct_answers=%s,total_questions=%s,answers_json=%s,result_status=%s,release_status=%s,reviewer_notes=%s,completed_at=NOW() WHERE attempt_id=%s",
-                    values[:-1] + (reviewer_notes, values[-1]),
+                "UPDATE company_results SET score=%s,max_score=%s,duration_seconds=%s,correct_answers=%s,total_questions=%s,answers_json=%s,result_status=%s,release_status=%s,reviewer_notes=%s,competency_scores_json=%s,completed_at=NOW() WHERE attempt_id=%s",
+                    values[:-1] + (reviewer_notes, json.dumps(competencies, ensure_ascii=False), values[-1]),
                 )
             else:
                 cursor.execute(
-                    "INSERT INTO company_results (attempt_id,company_id,participant_id,exam_id,score,max_score,duration_seconds,correct_answers,total_questions,answers_json,result_status,release_status,reviewer_notes,completed_at) "
-                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())",
-                    (attempt_id, row["company_id"], row["participant_id"], row["exam_id"], percentage, 100, duration_seconds, correct_answers, len(questions), json.dumps(answers, ensure_ascii=False), result_status, release_status, reviewer_notes),
+                    "INSERT INTO company_results (attempt_id,company_id,participant_id,exam_id,score,max_score,duration_seconds,correct_answers,total_questions,answers_json,competency_scores_json,result_status,release_status,reviewer_notes,completed_at) "
+                    "VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,NOW())",
+                    (attempt_id, row["company_id"], row["participant_id"], row["exam_id"], percentage, 100, duration_seconds, correct_answers, len(questions), json.dumps(answers, ensure_ascii=False), json.dumps(competencies, ensure_ascii=False), result_status, release_status, reviewer_notes),
                 )
             cursor.execute("UPDATE company_participants SET status='completed',progress=100,last_access=NOW() WHERE id=%s", (row["participant_id"],))
             store_audit_event(cursor, attempt_id, "application_submitted", "critical" if violated else "info", {"terminationReason": termination_reason or None})

@@ -110,7 +110,7 @@ def clean_branding(data):
     }
 
 
-def clean_question(question, index):
+def clean_question(question, index, scoreless=False):
     raw_type = clean_text(question.get("type"), 32, "single_choice")
 
     # Mapeamento de tipos legados
@@ -155,6 +155,7 @@ def clean_question(question, index):
     cleaned_options = []
     correct_answers_list = []
     accepted_answers_list = []
+    behavior_mapping = []
     min_chars = None
     max_chars = None
     parsed_blanks = None
@@ -176,6 +177,7 @@ def clean_question(question, index):
                 opt_text = clean_text(item.get("text"), 500)
                 opt_id = clean_text(item.get("id"), 80, f"opt-{opt_idx + 1}")
                 is_correct = bool(item.get("isCorrect", False))
+                dimension = clean_text(item.get("dimension") or item.get("competency"), 80)
                 try:
                     weight = float(item.get("weight", 1.0 if is_correct else 0.0))
                 except (TypeError, ValueError):
@@ -185,9 +187,29 @@ def clean_question(question, index):
                 opt_id = f"opt-{opt_idx + 1}"
                 is_correct = False
                 weight = 1.0
+                dimension = ""
 
             if not opt_text and question_type != "true_false":
                 raise ValueError("Não é permitido salvar alternativa vazia.")
+
+            raw_behavior = question.get("behaviorMapping") if isinstance(question.get("behaviorMapping"), list) else []
+            behavior_item = None
+            for entry in raw_behavior:
+                if not isinstance(entry, dict):
+                    continue
+                try:
+                    entry_index = int(entry.get("optionIndex"))
+                except (TypeError, ValueError):
+                    entry_index = -1
+                if entry_index == opt_idx:
+                    behavior_item = entry
+                    break
+            if behavior_item:
+                dimension = clean_text(behavior_item.get("dimension"), 80, dimension)
+                try:
+                    weight = float(behavior_item.get("weight", weight))
+                except (TypeError, ValueError):
+                    pass
 
             cleaned_options.append({
                 "id": opt_id,
@@ -195,10 +217,17 @@ def clean_question(question, index):
                 "order": opt_idx + 1,
                 "isCorrect": is_correct,
                 "weight": weight,
+                "dimension": dimension,
+            })
+            behavior_mapping.append({
+                "option": opt_text,
+                "optionIndex": opt_idx,
+                "dimension": dimension,
+                "weight": round(max(0.0, min(10.0, float(weight or 0))), 2),
             })
 
         has_any_correct = any(opt["isCorrect"] for opt in cleaned_options)
-        if not has_any_correct:
+        if not has_any_correct and not scoreless:
             raw_correct = question.get("correctAnswers") or question.get("correctAnswer")
             if isinstance(raw_correct, list):
                 correct_texts = {clean_text(x, 500) for x in raw_correct if clean_text(x, 500)}
@@ -217,18 +246,19 @@ def clean_question(question, index):
                     opt["isCorrect"] = True
 
         correct_count = sum(1 for opt in cleaned_options if opt["isCorrect"])
-        if question_type in {"single_choice", "true_false"}:
-            if correct_count == 0 and cleaned_options:
-                cleaned_options[0]["isCorrect"] = True
-                correct_count = 1
-            if correct_count != 1:
-                raise ValueError("Questões de resposta única devem possuir exatamente uma alternativa correta.")
-        elif question_type == "multiple_choice":
-            if correct_count == 0 and cleaned_options:
-                cleaned_options[0]["isCorrect"] = True
-                correct_count = 1
-            if correct_count < 1:
-                raise ValueError("Questões de múltipla seleção devem possuir pelo menos uma alternativa correta.")
+        if not scoreless:
+            if question_type in {"single_choice", "true_false"}:
+                if correct_count == 0 and cleaned_options:
+                    cleaned_options[0]["isCorrect"] = True
+                    correct_count = 1
+                if correct_count != 1:
+                    raise ValueError("Questões de resposta única devem possuir exatamente uma alternativa correta.")
+            elif question_type == "multiple_choice":
+                if correct_count == 0 and cleaned_options:
+                    cleaned_options[0]["isCorrect"] = True
+                    correct_count = 1
+                if correct_count < 1:
+                    raise ValueError("Questões de múltipla seleção devem possuir pelo menos uma alternativa correta.")
 
         correct_answers_list = [opt["text"] for opt in cleaned_options if opt["isCorrect"]]
         legacy_correct_answer = correct_answers_list[0] if correct_answers_list else ""
@@ -315,6 +345,7 @@ def clean_question(question, index):
         "required": required,
         "options": simple_options,
         "structuredOptions": cleaned_options,
+        "behaviorMapping": behavior_mapping,
         "correctAnswer": legacy_correct_answer,
         "correctAnswers": correct_answers_list,
         "acceptedAnswers": accepted_answers_list,
@@ -333,9 +364,11 @@ def clean_question(question, index):
 
 
 def clean_exam(data):
+    grading_scale = normalize_grading_scale(data.get("gradingScale"))
+    scoreless = grading_scale.get("type") == "none"
     raw_questions = data.get("questions") if isinstance(data.get("questions"), list) else []
     questions = [
-        clean_question(question, index)
+        clean_question(question, index, scoreless=scoreless)
         for index, question in enumerate(raw_questions[:MAX_QUESTIONS])
         if isinstance(question, dict)
     ]
@@ -369,9 +402,6 @@ def clean_exam(data):
         if not is_draft:
             raise ValueError("Informe os minutos antes do início para o envio agendado.")
         email_send_option = "manual"
-
-    grading_scale = normalize_grading_scale(data.get("gradingScale"))
-    scoreless = grading_scale.get("type") == "none"
 
     return {
         "title": title,

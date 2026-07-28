@@ -22,7 +22,7 @@ def parse_json(value, default):
 
 
 def result_label(score, passing_score, stored_status=None):
-    if stored_status in {"approved", "review", "failed", "invalidated"}:
+    if stored_status in {"approved", "review", "failed", "invalidated", "profile"}:
         return stored_status
     score = float(score or 0)
     passing_score = float(60 if passing_score is None else passing_score)
@@ -118,9 +118,10 @@ def compute_dashboard(rows):
     durations = [int(row.get("duration_seconds") or 0) for row in rows]
     labels = [result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) for row in rows]
     approved = labels.count("approved")
+    profiles = labels.count("profile")
 
     distribution = {
-        "approved": approved,
+        "approved": approved + profiles,
         "review": labels.count("review"),
         "failed": labels.count("failed"),
     }
@@ -160,7 +161,7 @@ def compute_dashboard(rows):
         "stats": {
             "completed": completed,
             "averageScore": round(sum(scores) / completed, 1) if completed else 0,
-            "approvalRate": round(approved / completed * 100) if completed else 0,
+            "approvalRate": round((approved + profiles) / completed * 100) if completed else 0,
             "averageMinutes": round(sum(durations) / completed / 60) if completed else 0,
         },
         "distribution": distribution,

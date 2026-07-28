@@ -182,6 +182,12 @@ input:not([type="radio"]):not([type="checkbox"]):focus, textarea:focus, select:f
 .options-helper-text { margin-bottom: 2px; font-size: 10px; font-weight: 750; color: #475569; text-transform: uppercase; letter-spacing: .03em; }
 .option-row { display: flex; align-items: center; gap: 8px; padding: 3px 6px; border: 1.5px solid transparent; border-radius: 8px; transition: background .15s, border-color .15s; }
 .option-row.is-correct { background: #f0fdf4; border-color: #86efac; }
+.behavior-profile-helper { color: var(--primary); font-weight: 800; }
+.behavior-option-row { display: grid; grid-template-columns: 32px minmax(180px, 1fr) minmax(150px, 210px) 86px auto; align-items: center; gap: 8px; padding: 8px; background: color-mix(in srgb, var(--primary) 4%, #fff); border-color: color-mix(in srgb, var(--primary) 18%, transparent); }
+.behavior-option-marker { width: 28px; height: 28px; display: inline-grid; place-items: center; border-radius: 9px; color: var(--primary); background: color-mix(in srgb, var(--primary) 12%, #fff); font-size: 11px; font-weight: 850; }
+.behavior-option-row select,
+.behavior-option-row .option-weight { height: 33px; min-width: 0; border: 1px solid var(--line); border-radius: 9px; background: #fff; color: var(--text); font-size: 11px; padding: 0 8px; }
+.behavior-option-row .option-weight { text-align: center; }
 .option-correct-radio { width: 18px; height: 18px; flex: 0 0 auto; cursor: pointer; accent-color: #16a34a; }
 .correct-badge { font-size: 10px; font-weight: 800; color: #16a34a; background: #dcfce7; padding: 2px 7px; border-radius: 12px; white-space: nowrap; flex: 0 0 auto; }
 .option-row input[type="text"] { height: 33px; font-size: 11px; flex: 1; min-width: 0; }
@@ -283,6 +289,10 @@ body.sidebar-collapsed .nav-item { padding: 0; justify-content: center; }
   .settings-grid { grid-template-columns: 1fr; }
   .panel { padding: 17px; }
   .question-card { grid-template-columns: 22px 28px minmax(0,1fr); padding: 11px 9px; }
+  .behavior-option-row { grid-template-columns: 30px minmax(0, 1fr); }
+  .behavior-option-row select,
+  .behavior-option-row .option-weight,
+  .behavior-option-row .remove-option { grid-column: 2; width: 100%; }
   .question-toolbar { grid-template-columns: 1fr 73px; }
   .mini-toggle { justify-content: flex-start; }
   .question-toolbar .icon-button { display: inline-grid; }

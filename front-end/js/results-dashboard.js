@@ -8,7 +8,7 @@ function formatScore(value){const number=Number(value||0);return Number.isIntege
 function formatGrade(result){const grade=result?.grade;if(!grade)return formatScore(result?.score);if(grade.type==='none')return grade.label||'Sem pontuação';if(grade.type==='concept')return grade.label?(grade.value+' — '+grade.label):String(grade.value);return formatScore(grade.value)+' / '+grade.maximum}
 function formatDuration(seconds){const minutes=Math.max(0,Math.round(Number(seconds||0)/60));return `${minutes} min`}
 function formatDate(value){if(!value)return '—';return new Intl.DateTimeFormat('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}).format(new Date(value))}
-function labelFor(status){return {approved:'Aprovado',review:'Em revisão',failed:'Não aprovado',invalidated:'Invalidado'}[status]||'Resultado'}
+function labelFor(status){return {approved:'Aprovado',review:'Em revisão',failed:'Não aprovado',invalidated:'Invalidado',profile:'Perfil gerado'}[status]||'Resultado'}
 function toast(message,type='info'){const item=document.createElement('div');item.className=`toast ${type}`;item.textContent=message;elements['toast-region'].appendChild(item);setTimeout(()=>item.remove(),3600)}
 
 function csrf(){const item=document.cookie.split('; ').find(value=>value.startsWith('acert_csrf_token='));return item?decodeURIComponent(item.split('=').slice(1).join('=')):''}
