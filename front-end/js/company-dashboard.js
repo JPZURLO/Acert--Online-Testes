@@ -1497,6 +1497,7 @@ function bindEvents() {
   document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
   if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
   if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
+  document.querySelectorAll('[data-preview-exam]').forEach(button => button.addEventListener('click', openCandidatePreviewModal));
   if (elements['close-preview-modal']) elements['close-preview-modal'].addEventListener('click', closeCandidatePreviewModal);
   if (elements['close-preview-btn']) elements['close-preview-btn'].addEventListener('click', closeCandidatePreviewModal);
   if (elements['publish-from-preview-btn']) elements['publish-from-preview-btn'].addEventListener('click', () => { closeCandidatePreviewModal(); openPublishModal(); });

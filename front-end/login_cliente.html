@@ -6,7 +6,7 @@
   <meta name="description" content="Área da empresa para criação e personalização de testes ACERT.">
   <title>Online Teste | Estúdio de Testes</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
-  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=6">
+  <link rel="stylesheet" href="./css/styleTelaCliente.css?v=7">
   <link rel="stylesheet" href="./css/dashboard-shell.css?v=2">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
   <link rel="stylesheet" href="./css/question-import-prototype.css?v=4">
@@ -54,7 +54,7 @@
               <h1 id="page-title">Criar novo teste</h1>
               <span class="save-status" id="save-status"><i></i><span>Rascunho local</span></span>
             </div>
-            <p class="page-subtitle">Crie a avaliação e personalize a experiência com a identidade da sua empresa.</p>
+            <p class="page-subtitle">Monte o teste em poucos blocos, revise a prévia do candidato e publique com segurança.</p>
           </div>
           <div class="heading-actions">
             <label class="exam-picker-label" for="exam-picker">Testes salvos</label>
@@ -71,18 +71,52 @@
         </div>
 
         <ol class="stepper" aria-label="Etapas de criação">
-          <li class="active"><button type="button" data-scroll="exam-information"><span>1</span>Informações</button></li>
+          <li class="active"><button type="button" data-scroll="exam-information"><span>1</span>Montagem</button></li>
           <li><button type="button" data-scroll="questions-section"><span>2</span>Questões</button></li>
-          <li><button type="button" data-scroll="application-settings"><span>3</span>Segurança e período</button></li>
-          <li><button type="button" data-scroll="branding-panel"><span>4</span>Aparência</button></li>
-          <li><button type="button" data-action="publish"><span>5</span>Publicar</button></li>
+          <li><button type="button" data-scroll="application-settings"><span>3</span>Aplicação</button></li>
+          <li><button type="button" data-action="publish"><span>4</span>Publicar</button></li>
         </ol>
+
+        <section class="builder-overview" aria-label="Montagem rápida do teste">
+          <article class="builder-card primary-card">
+            <span class="builder-icon">✎</span>
+            <div>
+              <strong>Instruções e dados básicos</strong>
+              <small>Título, descrição, duração e texto que o candidato verá antes de iniciar.</small>
+            </div>
+            <button class="builder-action" type="button" data-scroll="exam-information">Editar</button>
+          </article>
+          <article class="builder-card">
+            <span class="builder-icon">☑</span>
+            <div>
+              <strong>Questões</strong>
+              <small>Adicione manualmente ou importe por Excel/GIFT com pontuação automática.</small>
+            </div>
+            <button class="builder-action" type="button" data-scroll="questions-section">Revisar</button>
+          </article>
+          <article class="builder-card">
+            <span class="builder-icon">📄</span>
+            <div>
+              <strong>Regras, documentos e segurança</strong>
+              <small>Disponibilidade, câmera, documento, retomada, termos e envio de acesso.</small>
+            </div>
+            <button class="builder-action" type="button" data-scroll="application-settings">Configurar</button>
+          </article>
+          <article class="builder-card preview-card">
+            <span class="builder-icon">👁</span>
+            <div>
+              <strong>Prévia do candidato</strong>
+              <small>Veja a tela final a qualquer momento, mesmo antes de publicar.</small>
+            </div>
+            <button class="builder-action" type="button" data-preview-exam>Ver prévia</button>
+          </article>
+        </section>
 
         <div class="editor-layout">
           <div class="editor-column">
-            <section class="panel exam-information" id="exam-information">
+            <section class="panel exam-information simplified-block" id="exam-information">
               <div class="panel-heading">
-                <div><span class="section-kicker">CONTEÚDO</span><h2>Informações do teste</h2></div>
+                <div><span class="section-kicker">MONTAGEM</span><h2>Instruções e dados básicos</h2></div>
                 <span class="required-note">* campos obrigatórios</span>
               </div>
               <div class="field full-field">
@@ -98,7 +132,7 @@
               </div>
             </section>
 
-            <section class="panel settings-panel" aria-labelledby="general-settings-title">
+            <section class="panel settings-panel simplified-block" aria-labelledby="general-settings-title">
               <div class="panel-heading compact"><div><span class="section-kicker">REGRAS</span><h2 id="general-settings-title">Configurações gerais</h2></div></div>
               <div class="settings-grid">
                 <div class="metric-field"><span class="metric-icon">◷</span><label for="exam-duration">Duração</label><div><input id="exam-duration" type="number" min="1" max="1440" value="60"><small>min</small></div></div>
@@ -106,6 +140,8 @@
                 <div class="metric-field"><span class="metric-icon">◎</span><label for="passing-score">Nota mínima</label><div><input id="passing-score" type="number" min="0" max="100" value="60"><small>%</small></div></div>
                 <label class="toggle-field" for="shuffle-questions"><span class="metric-icon">⌘</span><span><b>Embaralhar questões</b><small>Ordem diferente por candidato</small></span><input id="shuffle-questions" type="checkbox"><i></i></label>
               </div>
+              <details class="advanced-settings">
+                <summary><span>Configurações avançadas de pontuação</span><small>Escalas numéricas ou conceitos como I, R, B e MB</small></summary>
               <div class="grading-editor">
                 <div class="grading-heading">
                   <div><strong>Escala de resultado</strong><small>Escolha como a nota será apresentada ao participante.</small></div>
@@ -119,6 +155,7 @@
                 </div>
                 <p class="grading-note">A aprovação continua usando a nota mínima em percentual; a escala altera apenas a forma de exibir o resultado.</p>
               </div>
+              </details>
             </section>
 
             <section class="questions-section" id="questions-section">
@@ -151,8 +188,8 @@
               <button class="add-question" id="add-question" type="button"><span>＋</span> Adicionar questão</button>
             </section>
 
-            <section class="panel application-settings" id="application-settings">
-              <div class="panel-heading"><div><span class="section-kicker">SEGURANÇA E PERÍODO</span><h2>Disponibilidade, segurança e correção</h2></div><span class="required-note">Configuração por teste</span></div>
+            <section class="panel application-settings simplified-block" id="application-settings">
+              <div class="panel-heading"><div><span class="section-kicker">APLICAÇÃO</span><h2>Regras, documentos e segurança</h2></div><span class="required-note">Configuração por teste</span></div>
               <div class="application-grid">
                 <label class="field"><span>Liberação do resultado</span><select id="result-delivery"><option value="manual">Após revisão manual</option><option value="automatic">Automático ao concluir</option></select><small>Questões dissertativas sempre exigem revisão.</small></label>
                 <label class="field"><span>Disponível a partir de</span><input id="available-from" type="datetime-local"><small>Deixe vazio para liberar imediatamente.</small></label>
@@ -610,7 +647,7 @@ Questão 4: Caixa branca</pre>
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="./js/license-ui.js?v=1"></script>
-  <script src="./js/company-dashboard.js?v=16"></script>
+  <script src="./js/company-dashboard.js?v=17"></script>
   <script src="./js/question-import-prototype.js?v=4"></script>
   <script src="./js/knowledge-base.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
