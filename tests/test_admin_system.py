@@ -144,5 +144,20 @@ class AdminSystemTests(unittest.TestCase):
             self.assertIn(f"CREATE TABLE IF NOT EXISTS {table}", migration)
 
 
+    def test_contact_message_endpoint(self):
+        client = server.app.test_client()
+        res_bad = client.post("/api/contact-message", json={"name": "Maria"})
+        self.assertEqual(res_bad.status_code, 400)
+        res_ok = client.post("/api/contact-message", json={
+            "name": "Maria Silva",
+            "email": "maria@empresa.com",
+            "phone": "11999999999",
+            "subject": "Dúvida",
+            "message": "Gostaria de saber mais sobre a plataforma."
+        })
+        self.assertEqual(res_ok.status_code, 200)
+        self.assertTrue(res_ok.get_json().get("success"))
+
+
 if __name__ == "__main__":
     unittest.main()

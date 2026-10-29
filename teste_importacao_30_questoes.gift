@@ -1,0 +1,241 @@
+$CATEGORY: Teste de Importação Online Teste
+
+// pontos: 1
+::Q01::Qual é a principal finalidade de um teste online em uma organização? {
+=Avaliar conhecimentos ou competências de forma estruturada
+~Substituir todos os processos de treinamento
+~Eliminar a necessidade de acompanhamento
+~Impedir a revisão dos resultados
+}
+
+// pontos: 1
+::Q02::Qual item ajuda a aumentar a segurança durante uma aplicação online? {
+=Monitoramento e registro da tentativa
+~Compartilhar a senha entre participantes
+~Permitir várias guias abertas
+~Desativar a identificação do participante
+}
+
+// pontos: 1
+::Q03::Em uma prova objetiva, o gabarito serve para: {
+=Definir quais alternativas são consideradas corretas
+~Trocar automaticamente o nome do participante
+~Alterar a duração do teste depois de iniciado
+~Excluir questões sem autorização
+}
+
+// pontos: 1
+::Q04::Qual prática é recomendada antes de iniciar uma avaliação online? {
+=Ler atentamente as instruções do teste
+~Abrir outras abas para consulta
+~Compartilhar o acesso com terceiros
+~Desligar a câmera quando exigida
+}
+
+// pontos: 1
+::Q05::Quando uma questão possui apenas uma resposta correta, ela é do tipo: {
+=Escolha única
+~Resposta livre obrigatória
+~Associação sem alternativas
+~Upload de documento
+}
+
+// pontos: 1
+::Q06::Quando uma questão permite mais de uma alternativa correta, ela é do tipo: {
+=Múltipla seleção
+~Verdadeiro ou falso
+~Texto informativo
+~Identificação visual
+}
+
+// pontos: 1
+::Q07::Qual recurso permite apresentar uma questão com imagem ou gráfico? {
+=Anexar imagem ao enunciado da questão
+~Remover todas as alternativas
+~Desativar o gabarito
+~Bloquear a edição do teste
+}
+
+// pontos: 1
+::Q08::A nota mínima de aprovação representa: {
+=O percentual mínimo necessário para aprovação
+~A quantidade de participantes inscritos
+~O tempo máximo para cadastro
+~O número de empresas cadastradas
+}
+
+// pontos: 1
+::Q09::A opção de embaralhar questões serve para: {
+=Apresentar as perguntas em ordem diferente para cada candidato
+~Excluir respostas incorretas automaticamente
+~Impedir a publicação do teste
+~Alterar o logotipo da empresa
+}
+
+// pontos: 1
+::Q10::Qual informação normalmente deve aparecer para o participante antes da prova? {
+=Instruções e regras do teste
+~Dados internos do administrador
+~Senha do banco de dados
+~Código-fonte do sistema
+}
+
+// pontos: 1
+::Q11::Em avaliações de recrutamento, uma análise de aderência pode ajudar a: {
+=Comparar o perfil do candidato com requisitos da vaga
+~Criar senhas para todos os funcionários
+~Apagar licenças vencidas
+~Modificar o domínio do site
+}
+
+// pontos: 1
+::Q12::Qual alternativa descreve melhor um relatório de resultados? {
+=Um resumo organizado do desempenho e status dos participantes
+~Uma lista de arquivos do servidor
+~Um formulário de login público
+~Um cadastro de planos comerciais
+}
+
+// pontos: 1
+::Q13::O login individual do participante é importante porque: {
+=Permite identificar quem realizou a avaliação
+~Permite usar a mesma conta para todos
+~Remove a necessidade de consentimento
+~Impede que a empresa veja resultados
+}
+
+// pontos: 1
+::Q14::Quando o sistema salva respostas durante a prova, isso é chamado de: {
+=Salvamento automático
+~Bloqueio de licença
+~Importação manual
+~Publicação de plano
+}
+
+// pontos: 1
+::Q15::Um teste publicado fica disponível para: {
+=Participantes atribuídos conforme as regras configuradas
+~Qualquer pessoa sem cadastro
+~Somente usuários administradores do servidor
+~Apenas visitantes da página inicial
+}
+
+// pontos: 1
+::Q16::Qual ação deve ser evitada durante uma prova monitorada? {
+=Abrir outra guia ou janela fora do ambiente do teste
+~Responder dentro do tempo definido
+~Manter a tela compartilhada quando exigida
+~Ler as orientações antes de começar
+}
+
+// pontos: 1
+::Q17::A personalização visual do teste pode incluir: {
+=Logo e identidade visual da empresa
+~Senha root do banco de dados
+~Arquivos internos do servidor
+~Configuração do provedor de hospedagem
+}
+
+// pontos: 1
+::Q18::O banco de questões ajuda principalmente a: {
+=Reutilizar perguntas em diferentes testes
+~Excluir todos os participantes automaticamente
+~Alterar o endereço do site
+~Remover a necessidade de correção
+}
+
+// pontos: 1
+::Q19::Em uma questão dissertativa, a resposta esperada normalmente é: {
+=Um texto escrito pelo participante
+~Uma alternativa única marcada
+~Um arquivo de imagem obrigatório
+~Uma senha de retomada
+}
+
+// pontos: 1
+::Q20::O recurso de retomada de avaliação serve para: {
+=Permitir continuação controlada em caso de interrupção autorizada
+~Permitir refazer a prova sem controle
+~Excluir a tentativa anterior
+~Trocar o aplicador automaticamente
+}
+
+// pontos: 1
+::Q21::Qual alternativa indica uma boa prática na criação de questões? {
+=Usar enunciados claros e alternativas objetivas
+~Escrever alternativas confusas de propósito
+~Misturar gabaritos sem revisão
+~Remover instruções do candidato
+}
+
+// pontos: 1
+::Q22::O campo de duração do teste define: {
+=O tempo disponível para realização da avaliação
+~O número de empresas no sistema
+~A cor principal da interface
+~A quantidade de menus do administrador
+}
+
+// pontos: 1
+::Q23::Ao importar questões por arquivo, o sistema deve: {
+=Ler enunciados, alternativas e respostas corretas
+~Criar um usuário administrador novo
+~Alterar automaticamente o domínio
+~Desativar o banco de dados
+}
+
+// pontos: 1
+::Q24::Qual item pode ser usado em auditoria de uma avaliação online? {
+=Registro de acesso e eventos da tentativa
+~Imagem do banner público apenas
+~Lista de planos comerciais
+~Senha temporária do administrador
+}
+
+// pontos: 1
+::Q25::O status “em andamento” indica que: {
+=O participante iniciou e ainda não finalizou a tentativa
+~O teste foi apagado do sistema
+~A licença está sempre vencida
+~O participante não existe
+}
+
+// pontos: 1
+::Q26::Qual opção é mais adequada para uma pergunta de certo ou errado? {
+=Verdadeiro ou falso
+~Upload de arquivo
+~Texto de apresentação
+~Campo de telefone
+}
+
+// pontos: 1
+::Q27::O botão de visualizar prévia na criação do teste deve permitir: {
+=Conferir como o teste está ficando antes da publicação
+~Excluir a empresa automaticamente
+~Alterar a senha do banco
+~Enviar e-mail sem confirmação
+}
+
+// pontos: 1
+::Q28::Um documento de instruções anexado ao teste deve aparecer: {
+=Antes do início da prova para leitura do participante
+~Somente dentro da tela de administração do servidor
+~Depois que o teste for finalizado
+~Apenas na página pública de planos
+}
+
+// pontos: 1
+::Q29::Quando uma empresa possui filiais, é útil permitir: {
+=Selecionar a unidade responsável pelo teste
+~Usar sempre o mesmo nome sem identificação
+~Misturar relatórios sem filtro
+~Excluir o CNPJ principal
+}
+
+// pontos: 1
+::Q30::Qual é o objetivo de revisar uma prova antes de publicar? {
+=Evitar erros de enunciado, gabarito e configuração
+~Aumentar o tempo de carregamento
+~Impedir importação de questões
+~Ocultar os resultados da empresa
+}

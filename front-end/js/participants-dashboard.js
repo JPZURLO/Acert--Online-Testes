@@ -1,45 +1,592 @@
 const state={participants:[],exams:[],selected:new Set(),page:1,pageSize:10,actionParticipantId:null,editingParticipantId:null,searchTimer:null};
 const elements={};
-const statusMeta={active:{label:'Ativo',className:'status-active'},in_progress:{label:'Em andamento',className:'status-in_progress'},pending:{label:'Convite pendente',className:'status-pending'},not_started:{label:'Não iniciado',className:'status-not_started'},inactive:{label:'Inativo',className:'status-inactive'}};
+
+function getParticipantStatusMeta(p){
+  if(p.status==='in_progress') return {label:'Em andamento',className:'status-in_progress'};
+  if(p.status==='submitted'||p.status==='completed') return {label:'Concluído',className:'status-active'};
+  if(p.status==='inactive') return {label:'Inativo',className:'status-inactive'};
+  if(p.inviteSentAt) return {label:'Enviado',className:'status-active'};
+  return {label:'Não enviado',className:'status-pending'};
+}
+
+function getParticipantSituationMeta(p){
+  if(p.status==='inactive') return {label:'Inativo',className:'status-inactive'};
+  return {label:'Ativo',className:'status-active'};
+}
 
 function csrf(){const item=document.cookie.split('; ').find(value=>value.startsWith('acert_csrf_token='));return item?decodeURIComponent(item.split('=').slice(1).join('=')):''}
-async function api(url,options={}){const method=options.method||'GET';const headers=options.body?{'Content-Type':'application/json',...(options.headers||{})}:{...(options.headers||{})};if(!['GET','HEAD','OPTIONS'].includes(method))headers['X-CSRF-Token']=csrf();const response=await fetch(url,{...options,headers});let data={};try{data=await response.json()}catch(_){data={}}if(!response.ok){const error=new Error(data.message||'Não foi possível concluir a operação.');error.status=response.status;throw error}return data}
-function cache(){['company-name','company-initials','stat-total','license-usage-caption','stat-active','stat-pending','stat-completion','active-percentage','search-participant','status-filter','exam-filter','bulk-exam','participants-body','empty-state','select-all','bulk-bar','selected-count','pagination-label','page-indicator','previous-page','next-page','page-size','participant-modal-backdrop','drawer-backdrop','participant-form','participant-exam','csv-input','action-menu','toast-region'].forEach(id=>elements[id]=document.getElementById(id))}
+
+async function api(url,options={}){
+  const method=options.method||'GET';
+  const headers=options.body?{'Content-Type':'application/json',...(window.companyUnitHeaders?.()||{}),...(options.headers||{})}:{...(window.companyUnitHeaders?.()||{}),...(options.headers||{})};
+  if(!['GET','HEAD','OPTIONS'].includes(method))headers['X-CSRF-Token']=csrf();
+  const response=await fetch(url,{...options,headers});
+  let data={};
+  try{data=await response.json()}catch(_){data={}}
+  if(!response.ok){const error=new Error(data.message||'Não foi possível concluir a operação.');error.status=response.status;throw error}
+  return data;
+}
+
+function cache(){
+  ['company-name','company-initials','stat-total','license-usage-caption','stat-active','stat-pending','stat-completion',
+   'active-percentage','search-participant','status-filter','exam-filter','unit-filter','situation-filter','bulk-exam',
+   'participants-body','empty-state','select-all','bulk-bar','selected-count','pagination-label','page-indicator',
+   'previous-page','next-page','page-size','participant-modal-backdrop','drawer-backdrop','participant-form','participant-exam',
+   'csv-input','action-menu','toast-region','assign-exam-modal-backdrop','assign-exam-form'].forEach(id=>elements[id]=document.getElementById(id));
+}
+
 function initials(name){return String(name||'?').split(/\s+/).filter(Boolean).slice(0,2).map(part=>part[0]).join('').toUpperCase()}
 function toast(message,type='success'){const item=document.createElement('div');item.className=`toast ${type==='error'?'error':''}`;item.textContent=message;elements['toast-region'].appendChild(item);setTimeout(()=>item.remove(),3600)}
-function formatDate(value){if(!value)return '—';const date=new Date(value);if(Number.isNaN(date.getTime()))return '—';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date)}
+function formatDate(value){if(!value)return 'Nunca acessou';const date=new Date(value);if(Number.isNaN(date.getTime()))return 'Nunca acessou';return new Intl.DateTimeFormat('pt-BR',{dateStyle:'short',timeStyle:'short'}).format(date)}
 function debounceLoad(){clearTimeout(state.searchTimer);state.searchTimer=setTimeout(()=>{state.page=1;loadParticipants()},350)}
 
-function queryString(){const params=new URLSearchParams();const search=elements['search-participant'].value.trim();const status=elements['status-filter'].value;const examId=elements['exam-filter'].value;if(search)params.set('search',search);if(status)params.set('status',status);if(examId)params.set('examId',examId);return params.toString()}
+function queryString(){
+  const params=new URLSearchParams();
+  const search=elements['search-participant']?.value.trim()||'';
+  const status=elements['status-filter']?.value||'';
+  const examId=elements['exam-filter']?.value||'';
+  if(search)params.set('search',search);
+  if(status)params.set('status',status);
+  if(examId)params.set('examId',examId);
+  return params.toString();
+}
 
-function populateExams(){const controls=[elements['exam-filter'],elements['bulk-exam'],elements['participant-exam']];const labels=['Todos os testes','Selecionar teste','Selecione um teste'];controls.forEach((control,index)=>{const current=control.value;control.replaceChildren(new Option(labels[index],''));state.exams.forEach(exam=>control.appendChild(new Option(exam.title,String(exam.id))));control.value=[...control.options].some(option=>option.value===current)?current:''})}
-function renderStats(stats,licenseUsage={}){const total=Number(stats.total)||0;const active=Number(stats.active)||0;elements['stat-total'].textContent=String(total);elements['license-usage-caption'].textContent=licenseUsage.limit===null||licenseUsage.limit===undefined?`${Number(licenseUsage.used||0)} incluídos neste mês`:`${Number(licenseUsage.used||0)} de ${Number(licenseUsage.limit)} vagas usadas no mês`;elements['stat-active'].textContent=String(active);elements['stat-pending'].textContent=String(Number(stats.pending)||0);elements['stat-completion'].textContent=`${Number(stats.averageCompletion)||0}%`;elements['active-percentage'].textContent=`${total?Math.round(active/total*100):0}% da base`}
+function populateExams(){
+  const controls=[elements['exam-filter'],elements['bulk-exam'],elements['participant-exam']];
+  const labels=['Todos os testes','Selecionar teste','Selecione um teste'];
+  controls.forEach((control,index)=>{
+    if(!control) return;
+    const current=control.value;
+    control.replaceChildren(new Option(labels[index],''));
+    state.exams.forEach(exam=>control.appendChild(new Option(exam.title,String(exam.id))));
+    control.value=[...control.options].some(option=>option.value===current)?current:'';
+  });
+}
 
-function render(){const start=(state.page-1)*state.pageSize;const pageItems=state.participants.slice(start,start+state.pageSize);elements['participants-body'].replaceChildren();pageItems.forEach(participant=>{const fragment=document.getElementById('participant-row-template').content.cloneNode(true);const row=fragment.querySelector('tr');row.dataset.id=String(participant.id);const checkbox=row.querySelector('.row-select');checkbox.checked=state.selected.has(participant.id);checkbox.dataset.id=String(participant.id);row.querySelector('.participant-avatar').textContent=initials(participant.fullName);row.querySelector('.participant-name').textContent=participant.fullName;row.querySelector('.participant-email').textContent=participant.email;const meta=statusMeta[participant.status]||statusMeta.not_started;const chip=row.querySelector('.status-chip');chip.textContent=meta.label;chip.className=`status-chip ${meta.className}`;row.querySelector('.exam-title').textContent=participant.examTitle||'Sem teste atribuído';row.querySelector('.progress-value').textContent=`${participant.progress||0}%`;row.querySelector('.progress-cell b').style.width=`${Math.max(0,Math.min(100,participant.progress||0))}%`;row.querySelector('.last-access').textContent=formatDate(participant.lastAccess);row.querySelector('.row-actions').dataset.id=String(participant.id);elements['participants-body'].appendChild(fragment)});
-  const total=state.participants.length;const totalPages=Math.max(1,Math.ceil(total/state.pageSize));if(state.page>totalPages){state.page=totalPages;render();return}elements['empty-state'].hidden=total>0;document.querySelector('.table-scroll').hidden=total===0;document.querySelector('.table-footer').hidden=total===0;elements['page-indicator'].textContent=String(state.page);elements['previous-page'].disabled=state.page<=1;elements['next-page'].disabled=state.page>=totalPages;elements['pagination-label'].textContent=total?`${start+1}–${Math.min(start+state.pageSize,total)} de ${total}`:'0 participantes';elements['select-all'].checked=pageItems.length>0&&pageItems.every(item=>state.selected.has(item.id));elements['select-all'].indeterminate=pageItems.some(item=>state.selected.has(item.id))&&!elements['select-all'].checked;updateBulk()}
+function populateUnits(){
+  const control=elements['unit-filter'];
+  if(!control) return;
+  const current=control.value;
+  const unitNames=Array.from(new Set(state.participants.map(p=>p.unitName||'Sem instituição'))).sort();
+  control.replaceChildren(new Option('Todas as instituições',''));
+  unitNames.forEach(name=>control.appendChild(new Option(name,name)));
+  control.value=[...control.options].some(o=>o.value===current)?current:'';
+}
+
+function renderStats(stats,licenseUsage={}){
+  const total=Number(stats.total)||0;
+  const active=Number(stats.active)||0;
+  elements['stat-total'].textContent=String(total);
+  elements['license-usage-caption'].textContent=licenseUsage.limit===null||licenseUsage.limit===undefined?`${Number(licenseUsage.used||0)} incluídos neste mês`:`${Number(licenseUsage.used||0)} de ${Number(licenseUsage.limit)} vagas usadas no mês`;
+  elements['stat-active'].textContent=String(active);
+  elements['stat-pending'].textContent=String(Number(stats.pending)||0);
+  elements['stat-completion'].textContent=`${Number(stats.averageCompletion)||0}%`;
+  elements['active-percentage'].textContent=`${total?Math.round(active/total*100):0}% da base`;
+}
+
+function render(){
+  let items = state.participants;
+  const unitVal = elements['unit-filter']?.value;
+  if(unitVal) {
+    items = items.filter(p => (p.unitName || 'Sem instituição') === unitVal);
+  }
+  const sitVal = elements['situation-filter']?.value;
+  if(sitVal === 'active') {
+    items = items.filter(p => p.status !== 'inactive');
+  } else if(sitVal === 'inactive') {
+    items = items.filter(p => p.status === 'inactive');
+  }
+
+  const start=(state.page-1)*state.pageSize;
+  const pageItems=items.slice(start,start+state.pageSize);
+  elements['participants-body'].replaceChildren();
+
+  pageItems.forEach(participant=>{
+    const fragment=document.getElementById('participant-row-template').content.cloneNode(true);
+    const row=fragment.querySelector('tr');
+    row.dataset.id=String(participant.id);
+
+    const checkbox=row.querySelector('.row-select');
+    checkbox.checked=state.selected.has(participant.id);
+    checkbox.dataset.id=String(participant.id);
+
+    // 1. Participante
+    row.querySelector('.participant-avatar').textContent=initials(participant.fullName);
+    row.querySelector('.participant-name').textContent=participant.fullName;
+
+    // 2. E-mail
+    const emailEl = row.querySelector('.participant-email');
+    if(emailEl) emailEl.textContent=participant.email;
+
+    // 3. Telefone
+    const phoneEl = row.querySelector('.participant-phone');
+    if(phoneEl) phoneEl.textContent=participant.phone ? maskPhone(participant.phone) : '-';
+
+    // 4. Cidade / UF
+    const cityEl = row.querySelector('.participant-city');
+    if(cityEl) cityEl.textContent=participant.city || '-';
+
+    // 5. Instituição
+    const unitEl = row.querySelector('.participant-unit');
+    if(unitEl) unitEl.textContent=participant.unitName || 'Sem instituição';
+
+    // 6. Exame Vinculado
+    const examEl = row.querySelector('.exam-title');
+    if(examEl) examEl.textContent=participant.examTitle || 'Sem exame';
+
+    // 7. Progresso
+    const progVal = row.querySelector('.progress-value');
+    if(progVal) progVal.textContent=`${participant.progress||0}%`;
+    const progBar = row.querySelector('.progress-cell b');
+    if(progBar) progBar.style.width=`${Math.max(0,Math.min(100,participant.progress||0))}%`;
+
+    // 8. Situação
+    const sitMeta = getParticipantSituationMeta(participant);
+    const sitChip = row.querySelector('.situation-chip');
+    if(sitChip){
+      sitChip.textContent=sitMeta.label;
+      sitChip.className=`status-chip ${sitMeta.className}`;
+    }
+
+    // 9. Ações
+    row.querySelector('.row-actions').dataset.id=String(participant.id);
+    elements['participants-body'].appendChild(fragment);
+  });
+
+  const total=items.length;
+  const totalPages=Math.max(1,Math.ceil(total/state.pageSize));
+  if(state.page>totalPages && totalPages>0){
+    state.page=totalPages;
+    render();
+    return;
+  }
+  elements['empty-state'].hidden=total>0;
+  document.querySelector('.table-scroll').hidden=total===0;
+  document.querySelector('.table-footer').hidden=total===0;
+  elements['page-indicator'].textContent=String(state.page);
+  elements['previous-page'].disabled=state.page<=1;
+  elements['next-page'].disabled=state.page>=totalPages;
+  elements['pagination-label'].textContent=total?`${start+1}–${Math.min(start+state.pageSize,total)} de ${total}`:'0 participantes';
+  elements['select-all'].checked=pageItems.length>0&&pageItems.every(item=>state.selected.has(item.id));
+  elements['select-all'].indeterminate=pageItems.some(item=>state.selected.has(item.id))&&!elements['select-all'].checked;
+  updateBulk();
+}
+
 function updateBulk(){const count=state.selected.size;elements['bulk-bar'].hidden=count===0;elements['selected-count'].textContent=String(count)}
 
-async function loadParticipants(){try{const data=await api(`/api/company/participants?${queryString()}`);state.participants=data.participants||[];state.exams=data.exams||[];state.selected.clear();elements['company-name'].textContent=data.company.name;elements['company-initials'].textContent=initials(data.company.name);renderStats(data.stats||{},data.licenseUsage||{});populateExams();render()}catch(error){if(error.status===401||error.status===403){window.location.replace('login_empresa.html');return}state.participants=[];render();toast('Não foi possível carregar os participantes. Confirme se a migração 003 foi aplicada.','error')}}
+async function loadParticipants(){
+  try{
+    const data=await api(`/api/company/participants?${queryString()}`);
+    state.participants=data.participants||[];
+    state.exams=data.exams||[];
+    state.selected.clear();
+    elements['company-name'].textContent=data.company.name;
+    elements['company-initials'].textContent=initials(data.company.name);
+    renderStats(data.stats||{},data.licenseUsage||{});
+    populateExams();
+    populateUnits();
+    render();
+  }catch(error){
+    if(error.status===401||error.status===403){window.location.replace('login_empresa.html');return}
+    state.participants=[];
+    render();
+    toast('Não foi possível carregar os participantes.','error');
+  }
+}
 
-function openDrawer(participant=null){state.editingParticipantId=participant?.id||null;elements['participant-form'].reset();document.getElementById('drawer-eyebrow').textContent=participant?'EDITAR ACESSO':'NOVO ACESSO';document.getElementById('drawer-title').textContent=participant?'Editar participante':'Novo participante';document.getElementById('drawer-description').textContent=participant?'Atualize os dados e salve as alterações.':'Preencha os dados para criar o acesso.';document.getElementById('submit-participant').textContent=participant?'Salvar alterações':'Criar participante';if(participant){document.getElementById('participant-name').value=participant.fullName||'';document.getElementById('participant-email').value=participant.email||'';document.getElementById('participant-cpf').value=maskCpf(participant.cpf||'');document.getElementById('participant-phone').value=maskPhone(participant.phone||'');document.getElementById('participant-city').value=participant.city||'';elements['participant-exam'].value=participant.examId?String(participant.examId):'';document.getElementById('send-invite').checked=false}else{document.getElementById('send-invite').checked=true}const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];if(backdrop){backdrop.hidden=false;backdrop.setAttribute('aria-hidden','false')}document.body.classList.add('participant-modal-open');setTimeout(()=>document.getElementById('participant-name')?.focus(),100)}
-function closeDrawer(){const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];if(backdrop){backdrop.hidden=true;backdrop.setAttribute('aria-hidden','true')}document.body.classList.remove('participant-modal-open');elements['participant-form'].reset();document.getElementById('send-invite').checked=true;state.editingParticipantId=null;document.getElementById('drawer-eyebrow').textContent='NOVO ACESSO';document.getElementById('drawer-title').textContent='Novo participante';document.getElementById('drawer-description').textContent='Preencha os dados para criar o acesso.';document.getElementById('submit-participant').textContent='Criar participante'}
-function participantPayload(){return{fullName:document.getElementById('participant-name').value,email:document.getElementById('participant-email').value,cpf:document.getElementById('participant-cpf').value,phone:document.getElementById('participant-phone').value,city:document.getElementById('participant-city').value,accessPassword:document.getElementById('participant-password').value,examId:elements['participant-exam'].value||null,sendInvite:document.getElementById('send-invite').checked}}
-async function saveParticipant(event){event.preventDefault();const editing=state.editingParticipantId;const button=document.getElementById('submit-participant');button.disabled=true;button.textContent=editing?'Salvando...':'Criando...';try{const data=await api(editing?`/api/company/participants/${editing}`:'/api/company/participants',{method:editing?'PUT':'POST',body:JSON.stringify(participantPayload())});closeDrawer();if(data.temporaryPassword){navigator.clipboard?.writeText(data.temporaryPassword);const delivery=data.inviteSent?' Convite enviado por e-mail.':data.inviteError?' Não foi possível enviar o e-mail; entregue a senha manualmente.':'';toast(`${editing?'Participante atualizado':'Participante criado'}. Senha: ${data.temporaryPassword} (copiada).${delivery}`,data.inviteError?'error':'success')}else{toast(editing?'Participante atualizado com sucesso.':'Participante vinculado a uma conta já existente. Ele deve usar a senha atual.')}await loadParticipants()}catch(error){toast(error.message,'error')}finally{button.disabled=false;button.textContent=state.editingParticipantId?'Salvar alterações':'Criar participante'}}
+function localDateTime(value){return value?String(value).slice(0,16):''}
 
-async function deleteParticipants(ids){if(!ids.length)return;const selected=state.participants.filter(item=>ids.includes(item.id));const label=selected.length===1?`“${selected[0].fullName}”`:`${selected.length} participantes`;if(!window.confirm(`Excluir definitivamente ${label}? Tentativas, resultados, documentos e gravações vinculados também serão apagados. Esta ação não pode ser desfeita.`))return;try{for(const id of ids)await api(`/api/company/participants/${id}`,{method:'DELETE'});toast(`${ids.length} participante(s) excluído(s) definitivamente.`);state.selected.clear();closeActionMenu();await loadParticipants()}catch(error){toast(error.message,'error')}}
+function openDrawer(participant=null){
+  state.editingParticipantId=participant?.id||null;
+  elements['participant-form'].reset();
+  document.getElementById('drawer-eyebrow').textContent=participant?'EDITAR ACESSO':'NOVO ACESSO';
+  document.getElementById('drawer-title').textContent=participant?'Editar participante':'Novo participante';
+  document.getElementById('drawer-description').textContent=participant?'Atualize os dados, a prova e o período individual.':'Preencha os dados para criar o acesso.';
+  document.getElementById('submit-participant').textContent=participant?'Salvar alterações':'Criar participante';
 
-async function bulkAction(action,ids=[...state.selected]){if(!ids.length)return;if(action==='delete'){await deleteParticipants(ids);return}const payload={ids,action};if(action==='assign_exam'){if(!elements['bulk-exam'].value){toast('Selecione um teste para atribuir.','error');return}payload.examId=elements['bulk-exam'].value}try{const data=await api('/api/company/participants/bulk',{method:'POST',body:JSON.stringify(payload)});if(action==='resend_invite'){const msg=data.message||`${data.sent||0} acesso(s) enviado(s)`;toast(msg,data.failed>0?'error':'success')}else{toast(`${data.affected} participante(s) atualizado(s).`)}state.selected.clear();closeActionMenu();await loadParticipants()}catch(error){toast(error.message,'error')}}
-function openActionMenu(button){state.actionParticipantId=Number(button.dataset.id);const rect=button.getBoundingClientRect();elements['action-menu'].style.top=`${Math.min(window.innerHeight-130,rect.bottom+4)}px`;elements['action-menu'].style.left=`${Math.max(8,rect.right-170)}px`;elements['action-menu'].hidden=false}
+  const passInput=document.getElementById('participant-password');
+  const confirmInput=document.getElementById('participant-password-confirm');
+  const labelPass=document.getElementById('label-participant-password');
+  const labelConfirm=document.getElementById('label-participant-password-confirm');
+  const helpPass=document.getElementById('help-participant-password');
+
+  if(passInput) passInput.value='';
+  if(confirmInput) confirmInput.value='';
+
+  if(participant){
+    document.getElementById('participant-name').value=participant.fullName||'';
+    document.getElementById('participant-email').value=participant.email||'';
+    document.getElementById('participant-cpf').value=maskCpf(participant.cpf||'');
+    document.getElementById('participant-phone').value=maskPhone(participant.phone||'');
+    document.getElementById('participant-city').value=participant.city||'';
+    elements['participant-exam'].value=participant.examId?String(participant.examId):'';
+    document.getElementById('participant-scheduled-start').value=localDateTime(participant.scheduledStartsAt);
+    document.getElementById('participant-scheduled-end').value=localDateTime(participant.scheduledEndsAt);
+
+    if(labelPass) labelPass.innerHTML='Nova senha <small>(opcional)</small>';
+    if(labelConfirm) labelConfirm.textContent='Confirmar nova senha';
+    if(passInput){passInput.required=false; passInput.placeholder='Deixe em branco para manter a atual';}
+    if(confirmInput){confirmInput.required=false; confirmInput.placeholder='Confirme a nova senha';}
+    if(helpPass) helpPass.textContent='Deixe em branco para manter a senha atual.';
+  }else{
+    if(labelPass) labelPass.innerHTML='Senha de acesso <b>*</b>';
+    if(labelConfirm) labelConfirm.innerHTML='Confirmar senha <b>*</b>';
+    if(passInput){passInput.required=true; passInput.placeholder='Digite a senha de acesso';}
+    if(confirmInput){confirmInput.required=true; confirmInput.placeholder='Confirme a senha';}
+    if(helpPass) helpPass.textContent='Mínimo de 8 caracteres.';
+  }
+  const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];
+  if(backdrop){backdrop.hidden=false;backdrop.setAttribute('aria-hidden','false')}
+  document.body.classList.add('participant-modal-open');
+  setTimeout(()=>document.getElementById('participant-name')?.focus(),100);
+}
+
+function closeDrawer(){
+  const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];
+  if(backdrop){backdrop.hidden=true;backdrop.setAttribute('aria-hidden','true')}
+  document.body.classList.remove('participant-modal-open');
+  elements['participant-form'].reset();
+  const passInput=document.getElementById('participant-password');
+  const confirmInput=document.getElementById('participant-password-confirm');
+  if(passInput) passInput.value='';
+  if(confirmInput) confirmInput.value='';
+  state.editingParticipantId=null;
+  document.getElementById('drawer-eyebrow').textContent='NOVO ACESSO';
+  document.getElementById('drawer-title').textContent='Novo participante';
+  document.getElementById('drawer-description').textContent='Preencha os dados para criar o acesso.';
+  document.getElementById('submit-participant').textContent='Criar participante';
+}
+
+function openAssignExamModal(participant){
+  if(!participant) return;
+  state.actionParticipantId=participant.id;
+  document.getElementById('assign-exam-participant-name').textContent=participant.fullName;
+  document.getElementById('assign-exam-participant-email').textContent=participant.email;
+  document.getElementById('assign-exam-participant-unit').textContent=participant.unitName||'Sem instituição';
+  document.getElementById('assign-exam-participant-current-exam').textContent=participant.examTitle||'Sem exame';
+
+  const select=document.getElementById('assign-exam-select');
+  select.replaceChildren(new Option('Selecione um exame...',''));
+  state.exams.forEach(exam=>{
+    select.appendChild(new Option(exam.title,String(exam.id)));
+  });
+  if(participant.examId){
+    select.value=String(participant.examId);
+  }
+
+  const backdrop=document.getElementById('assign-exam-modal-backdrop');
+  if(backdrop){
+    backdrop.hidden=false;
+    backdrop.setAttribute('aria-hidden','false');
+  }
+}
+
+function closeAssignExamModal(){
+  const backdrop=document.getElementById('assign-exam-modal-backdrop');
+  if(backdrop){
+    backdrop.hidden=true;
+    backdrop.setAttribute('aria-hidden','true');
+  }
+}
+
+async function saveAssignExam(event){
+  event.preventDefault();
+  const participantId=state.actionParticipantId;
+  const examId=document.getElementById('assign-exam-select').value;
+  if(!participantId||!examId){
+    toast('Selecione um exame.','error');
+    return;
+  }
+  const button=document.getElementById('submit-assign-exam');
+  button.disabled=true;
+  button.textContent='Salvando...';
+  try{
+    const data=await api('/api/company/participants/bulk',{
+      method:'POST',
+      body:JSON.stringify({ids:[participantId],action:'assign_exam',examId})
+    });
+    closeAssignExamModal();
+    toast('Exame vinculado com sucesso.');
+
+    const updatedExam=state.exams.find(e=>String(e.id)===String(examId));
+    const participant=state.participants.find(p=>p.id===participantId);
+    if(participant&&updatedExam){
+      participant.examId=updatedExam.id;
+      participant.examTitle=updatedExam.title;
+      if(participant.status==='not_started') participant.status='pending';
+    }
+    render();
+  }catch(error){
+    toast(error.message,'error');
+  }finally{
+    button.disabled=false;
+    button.textContent='Salvar vínculo';
+  }
+}
+
+function participantPayload(){
+  return{
+    fullName:document.getElementById('participant-name').value,
+    email:document.getElementById('participant-email').value,
+    cpf:document.getElementById('participant-cpf').value,
+    phone:document.getElementById('participant-phone').value,
+    city:document.getElementById('participant-city').value,
+    accessPassword:document.getElementById('participant-password').value,
+    confirmPassword:document.getElementById('participant-password-confirm').value,
+    examId:elements['participant-exam'].value||null,
+    scheduledStartsAt:document.getElementById('participant-scheduled-start').value||null,
+    scheduledEndsAt:document.getElementById('participant-scheduled-end').value||null,
+    sendInvite:false
+  };
+}
+
+async function saveParticipant(event){
+  event.preventDefault();
+  const editing=state.editingParticipantId;
+  const password=document.getElementById('participant-password').value;
+  const confirmPassword=document.getElementById('participant-password-confirm').value;
+
+  if(!editing && !password){
+    toast('Preencha a senha de acesso.','error');
+    return;
+  }
+  if(password || confirmPassword){
+    if(password !== confirmPassword){
+      toast('As senhas não coincidem.','error');
+      return;
+    }
+    if(password.length < 8){
+      toast('A senha do participante precisa ter pelo menos 8 caracteres.','error');
+      return;
+    }
+  }
+
+  const button=document.getElementById('submit-participant');
+  button.disabled=true;
+  button.textContent=editing?'Salvando...':'Criando...';
+  try{
+    await api(editing?`/api/company/participants/${editing}`:'/api/company/participants',{method:editing?'PUT':'POST',body:JSON.stringify(participantPayload())});
+    closeDrawer();
+    toast(editing?'Participante atualizado com sucesso.':'Participante criado com sucesso.');
+    await loadParticipants();
+  }catch(error){
+    toast(error.message,'error');
+  }finally{
+    button.disabled=false;
+    button.textContent=state.editingParticipantId?'Salvar alterações':'Criar participante';
+  }
+}
+
+async function deleteParticipants(ids){
+  if(!ids.length)return;
+  const selected=state.participants.filter(item=>ids.includes(item.id));
+  const label=selected.length===1?`“${selected[0].fullName}”`:`${selected.length} participantes`;
+  if(!window.confirm(`Excluir definitivamente ${label}? Tentativas, resultados, documentos e gravações vinculados também serão apagados. Esta ação não pode ser desfeita.`))return;
+  try{
+    for(const id of ids)await api(`/api/company/participants/${id}`,{method:'DELETE'});
+    toast(`${ids.length} participante(s) excluído(s) definitivamente.`);
+    state.selected.clear();
+    closeActionMenu();
+    await loadParticipants();
+  }catch(error){
+    toast(error.message,'error');
+  }
+}
+
+async function toggleActiveParticipant(participantId){
+  const participant=state.participants.find(p=>p.id===participantId);
+  if(!participant) return;
+  const isInactive=participant.status==='inactive';
+  const action=isInactive?'activate':'deactivate';
+  try{
+    await api('/api/company/participants/bulk',{method:'POST',body:JSON.stringify({ids:[participantId],action})});
+    toast(`Participante ${isInactive?'ativado':'desativado'} com sucesso.`);
+    closeActionMenu();
+    await loadParticipants();
+  }catch(error){
+    toast(error.message,'error');
+  }
+}
+
+async function bulkAction(action,ids=[...state.selected]){
+  if(!ids.length)return;
+  if(action==='delete'){await deleteParticipants(ids);return}
+  const payload={ids,action};
+  if(action==='assign_exam'){
+    if(!elements['bulk-exam'].value){toast('Selecione um teste para atribuir.','error');return}
+    payload.examId=elements['bulk-exam'].value;
+  }
+  try{
+    const data=await api('/api/company/participants/bulk',{method:'POST',body:JSON.stringify(payload)});
+    if(action==='resend_invite'){
+      const msg=data.message||`${data.sent||0} acesso(s) enviado(s)`;
+      toast(msg,data.failed>0?'error':'success');
+    }else{
+      toast(`${data.affected||ids.length} participante(s) atualizado(s).`);
+    }
+    state.selected.clear();
+    closeActionMenu();
+    await loadParticipants();
+  }catch(error){
+    toast(error.message,'error');
+  }
+}
+
+function openActionMenu(button){
+  state.actionParticipantId=Number(button.dataset.id);
+  const participant=state.participants.find(item=>item.id===state.actionParticipantId);
+  const resendBtn=elements['action-menu']?.querySelector('[data-row-action="resend_invite"]');
+  if(resendBtn&&participant){
+    resendBtn.textContent=participant.inviteSentAt?'Reenviar acesso':'Enviar acesso';
+  }
+  const toggleBtn=elements['action-menu']?.querySelector('[data-row-action="toggle_active"]');
+  if(toggleBtn&&participant){
+    toggleBtn.textContent=participant.status==='inactive'?'Ativar participante':'Desativar participante';
+  }
+  const rect=button.getBoundingClientRect();
+  elements['action-menu'].style.top=`${Math.min(window.innerHeight-160,rect.bottom+4)}px`;
+  elements['action-menu'].style.left=`${Math.max(8,rect.right-180)}px`;
+  elements['action-menu'].hidden=false;
+}
+
 function closeActionMenu(){elements['action-menu'].hidden=true;state.actionParticipantId=null}
 
 function parseCsvLine(line,delimiter){const cells=[];let value='';let quoted=false;for(let i=0;i<line.length;i++){const char=line[i];if(char==='"'&&line[i+1]==='"'){value+='"';i++}else if(char==='"'){quoted=!quoted}else if(char===delimiter&&!quoted){cells.push(value.trim());value=''}else{value+=char}}cells.push(value.trim());return cells}
 function normalizeHeader(value){return value.normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9]/g,'')}
-async function importCsv(file){if(!file)return;try{const text=await file.text();const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(line=>line.trim());if(lines.length<2)throw new Error('O CSV precisa ter cabeçalho e pelo menos uma linha.');const delimiter=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?';':',';const headers=parseCsvLine(lines[0],delimiter).map(normalizeHeader);const find=(names)=>names.map(name=>headers.indexOf(name)).find(index=>index>=0)??-1;const indexes={fullName:find(['nome','nomecompleto','participante']),email:find(['email','enderecodeemail']),cpf:find(['cpf']),phone:find(['telefone','celular','telefonecelular']),city:find(['cidade','municipio','cidademunicipio']),accessPassword:find(['senha','senhadeacesso','password'])};if(indexes.email<0)throw new Error('O CSV precisa ter uma coluna “email”.');const participants=lines.slice(1,501).map(line=>{const cells=parseCsvLine(line,delimiter);return{fullName:indexes.fullName>=0?cells[indexes.fullName]:'',email:cells[indexes.email],cpf:indexes.cpf>=0?cells[indexes.cpf]:'',phone:indexes.phone>=0?cells[indexes.phone]:'',city:indexes.city>=0?cells[indexes.city]:'',accessPassword:indexes.accessPassword>=0?cells[indexes.accessPassword]:'',sendInvite:true}});const data=await api('/api/company/participants/import',{method:'POST',body:JSON.stringify({participants})});downloadCredentials(data.credentials||[]);toast(`${data.imported} registro(s) processado(s), ${data.created||0} novo(s).${data.credentials?.length?' A planilha de acessos foi baixada.':''}${data.errors?.length?' Verifique os avisos de envio.':''}`,data.errors?.length?'error':'success');await loadParticipants()}catch(error){toast(error.message,'error')}finally{elements['csv-input'].value=''}}
+
+async function importCsv(file){
+  if(!file)return;
+  try{
+    const text=await file.text();
+    const lines=text.replace(/^\uFEFF/,'').split(/\r?\n/).filter(line=>line.trim());
+    if(lines.length<2)throw new Error('O CSV precisa ter cabeçalho e pelo menos uma linha.');
+    const delimiter=(lines[0].match(/;/g)||[]).length>(lines[0].match(/,/g)||[]).length?';':',';
+    const headers=parseCsvLine(lines[0],delimiter).map(normalizeHeader);
+    const find=(names)=>names.map(name=>headers.indexOf(name)).find(index=>index>=0)??-1;
+    const indexes={fullName:find(['nome','nomecompleto','participante']),email:find(['email','enderecodeemail']),cpf:find(['cpf']),phone:find(['telefone','celular','telefonecelular']),city:find(['cidade','municipio','cidademunicipio']),accessPassword:find(['senha','senhadeacesso','password'])};
+    if(indexes.email<0)throw new Error('O CSV precisa ter uma coluna “email”.');
+    const participants=lines.slice(1,501).map(line=>{const cells=parseCsvLine(line,delimiter);return{fullName:indexes.fullName>=0?cells[indexes.fullName]:'',email:cells[indexes.email],cpf:indexes.cpf>=0?cells[indexes.cpf]:'',phone:indexes.phone>=0?cells[indexes.phone]:'',city:indexes.city>=0?cells[indexes.city]:'',accessPassword:indexes.accessPassword>=0?cells[indexes.accessPassword]:'',sendInvite:true}});
+    const data=await api('/api/company/participants/import',{method:'POST',body:JSON.stringify({participants})});
+    downloadCredentials(data.credentials||[]);
+    toast(`${data.imported} registro(s) processado(s), ${data.created||0} novo(s).${data.credentials?.length?' A planilha de acessos foi baixada.':''}${data.errors?.length?' Verifique os avisos de envio.':''}`,data.errors?.length?'error':'success');
+    await loadParticipants();
+  }catch(error){
+    toast(error.message,'error');
+  }finally{
+    elements['csv-input'].value='';
+  }
+}
 
 function downloadCredentials(items){if(!Array.isArray(items)||!items.length)return;const escapeCell=value=>'"'+String(value||'').replace(/"/g,'""')+'"';const rows=[['Nome','E-mail','Senha'],...items.map(item=>[item.name,item.email,item.password])];const csv='\uFEFF'+rows.map(row=>row.map(escapeCell).join(';')).join('\r\n');const url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'}));const link=document.createElement('a');link.href=url;link.download='acessos-participantes.csv';document.body.appendChild(link);link.click();link.remove();setTimeout(()=>URL.revokeObjectURL(url),1000)}
 function maskCpf(value){const digits=value.replace(/\D/g,'').slice(0,11);return digits.replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d)/,'$1.$2').replace(/(\d{3})(\d{1,2})$/,'$1-$2')}
 function maskPhone(value){const digits=value.replace(/\D/g,'').slice(0,11);return digits.length<=10?digits.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{4})(\d)/,'$1-$2'):digits.replace(/(\d{2})(\d)/,'($1) $2').replace(/(\d{5})(\d)/,'$1-$2')}
 
-function bind(){if(document.getElementById('open-drawer'))document.getElementById('open-drawer').addEventListener('click',()=>openDrawer());document.querySelectorAll('[data-open-drawer]').forEach(b=>b.addEventListener('click',()=>openDrawer()));document.querySelectorAll('.help-button').forEach(b=>b.addEventListener('click',()=>window.location.href='SuporteEmpresa.html'));document.getElementById('close-drawer').addEventListener('click',closeDrawer);document.getElementById('cancel-drawer').addEventListener('click',closeDrawer);const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];if(backdrop)backdrop.addEventListener('click',event=>{if(event.target===backdrop)closeDrawer()});elements['participant-form'].addEventListener('submit',saveParticipant);elements['search-participant'].addEventListener('input',debounceLoad);elements['status-filter'].addEventListener('change',()=>{state.page=1;loadParticipants()});elements['exam-filter'].addEventListener('change',()=>{state.page=1;loadParticipants()});document.getElementById('clear-filters').addEventListener('click',()=>{elements['search-participant'].value='';elements['status-filter'].value='';elements['exam-filter'].value='';state.page=1;loadParticipants()});elements['participants-body'].addEventListener('change',event=>{if(!event.target.classList.contains('row-select'))return;const id=Number(event.target.dataset.id);event.target.checked?state.selected.add(id):state.selected.delete(id);render()});elements['select-all'].addEventListener('change',event=>{const start=(state.page-1)*state.pageSize;state.participants.slice(start,start+state.pageSize).forEach(item=>event.target.checked?state.selected.add(item.id):state.selected.delete(item.id));render()});document.getElementById('clear-selection').addEventListener('click',()=>{state.selected.clear();render()});document.querySelectorAll('[data-bulk]').forEach(button=>button.addEventListener('click',()=>bulkAction(button.dataset.bulk)));elements['participants-body'].addEventListener('click',event=>{const button=event.target.closest('.row-actions');if(button)openActionMenu(button)});elements['action-menu'].addEventListener('click',event=>{const button=event.target.closest('[data-row-action]');if(!button||!state.actionParticipantId)return;const participant=state.participants.find(item=>item.id===state.actionParticipantId);if(button.dataset.rowAction==='edit'){closeActionMenu();if(participant)openDrawer(participant)}else bulkAction(button.dataset.rowAction,[state.actionParticipantId])});document.addEventListener('click',event=>{if(!event.target.closest('.row-actions')&&!event.target.closest('#action-menu'))closeActionMenu()});elements['previous-page'].addEventListener('click',()=>{if(state.page>1){state.page--;render()}});elements['next-page'].addEventListener('click',()=>{if(state.page<Math.ceil(state.participants.length/state.pageSize)){state.page++;render()}});elements['page-size'].addEventListener('change',()=>{state.pageSize=Number(elements['page-size'].value);state.page=1;render()});document.getElementById('import-csv').addEventListener('click',()=>elements['csv-input'].click());elements['csv-input'].addEventListener('change',()=>importCsv(elements['csv-input'].files[0]));document.getElementById('participant-cpf').addEventListener('input',event=>event.target.value=maskCpf(event.target.value));document.getElementById('participant-phone').addEventListener('input',event=>event.target.value=maskPhone(event.target.value));document.getElementById('collapse-sidebar').addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));document.getElementById('mobile-menu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));document.querySelectorAll('[data-placeholder]').forEach(button=>button.addEventListener('click',()=>toast(`${button.dataset.placeholder} será conectado na próxima etapa.`)));document.getElementById('logout-button').addEventListener('click',async()=>{try{await fetch('/logout',{method:'POST'})}finally{window.location.replace('login_empresa.html')}});document.addEventListener('keydown',event=>{if(event.key==='Escape'){closeDrawer();closeActionMenu()}})}
+function bind(){
+  if(document.getElementById('open-drawer'))document.getElementById('open-drawer').addEventListener('click',()=>openDrawer());
+  document.querySelectorAll('[data-open-drawer]').forEach(b=>b.addEventListener('click',()=>openDrawer()));
+  document.querySelectorAll('.help-button').forEach(b=>b.addEventListener('click',()=>window.location.href='SuporteEmpresa.html'));
+  document.getElementById('close-drawer').addEventListener('click',closeDrawer);
+  document.getElementById('cancel-drawer').addEventListener('click',closeDrawer);
 
-document.addEventListener('DOMContentLoaded',async()=>{cache();bind();render();await loadParticipants()});
+  const backdrop=elements['participant-modal-backdrop']||elements['drawer-backdrop'];
+  if(backdrop)backdrop.addEventListener('click',event=>{if(event.target===backdrop)closeDrawer()});
+
+  document.getElementById('close-assign-exam-modal')?.addEventListener('click',closeAssignExamModal);
+  document.getElementById('cancel-assign-exam')?.addEventListener('click',closeAssignExamModal);
+  document.getElementById('assign-exam-modal-backdrop')?.addEventListener('click',event=>{if(event.target===document.getElementById('assign-exam-modal-backdrop'))closeAssignExamModal()});
+  document.getElementById('assign-exam-form')?.addEventListener('submit',saveAssignExam);
+
+  elements['participant-form'].addEventListener('submit',saveParticipant);
+  elements['search-participant'].addEventListener('input',debounceLoad);
+  elements['status-filter'].addEventListener('change',()=>{state.page=1;render()});
+  elements['exam-filter'].addEventListener('change',()=>{state.page=1;loadParticipants()});
+  elements['unit-filter']?.addEventListener('change',()=>{state.page=1;render()});
+  elements['situation-filter']?.addEventListener('change',()=>{state.page=1;render()});
+
+  document.getElementById('clear-filters').addEventListener('click',()=>{
+    elements['search-participant'].value='';
+    elements['status-filter'].value='';
+    elements['exam-filter'].value='';
+    if(elements['unit-filter']) elements['unit-filter'].value='';
+    if(elements['situation-filter']) elements['situation-filter'].value='';
+    state.page=1;
+    loadParticipants();
+  });
+
+  elements['participants-body'].addEventListener('change',event=>{
+    if(!event.target.classList.contains('row-select'))return;
+    const id=Number(event.target.dataset.id);
+    event.target.checked?state.selected.add(id):state.selected.delete(id);
+    render();
+  });
+
+  elements['select-all'].addEventListener('change',event=>{
+    const start=(state.page-1)*state.pageSize;
+    state.participants.slice(start,start+state.pageSize).forEach(item=>event.target.checked?state.selected.add(item.id):state.selected.delete(item.id));
+    render();
+  });
+
+  document.getElementById('clear-selection').addEventListener('click',()=>{state.selected.clear();render()});
+  document.querySelectorAll('[data-bulk]').forEach(button=>button.addEventListener('click',()=>bulkAction(button.dataset.bulk)));
+
+  elements['participants-body'].addEventListener('click',event=>{
+    const button=event.target.closest('.row-actions');
+    if(button)openActionMenu(button);
+  });
+
+  elements['action-menu'].addEventListener('click',event=>{
+    const button=event.target.closest('[data-row-action]');
+    if(!button||!state.actionParticipantId)return;
+    const participant=state.participants.find(item=>item.id===state.actionParticipantId);
+    const action=button.dataset.rowAction;
+    closeActionMenu();
+    if(action==='edit'){
+      if(participant)openDrawer(participant);
+    }else if(action==='assign_exam_modal'){
+      if(participant)openAssignExamModal(participant);
+    }else if(action==='toggle_active'){
+      toggleActiveParticipant(state.actionParticipantId);
+    }else{
+      bulkAction(action,[state.actionParticipantId]);
+    }
+  });
+
+  document.addEventListener('click',event=>{if(!event.target.closest('.row-actions')&&!event.target.closest('#action-menu'))closeActionMenu()});
+  elements['previous-page'].addEventListener('click',()=>{if(state.page>1){state.page--;render()}});
+  elements['next-page'].addEventListener('click',()=>{if(state.page<Math.ceil(state.participants.length/state.pageSize)){state.page++;render()}});
+  elements['page-size'].addEventListener('change',()=>{state.pageSize=Number(elements['page-size'].value);state.page=1;render()});
+  document.getElementById('import-csv').addEventListener('click',()=>elements['csv-input'].click());
+  elements['csv-input'].addEventListener('change',()=>importCsv(elements['csv-input'].files[0]));
+  document.getElementById('participant-cpf').addEventListener('input',event=>event.target.value=maskCpf(event.target.value));
+  document.getElementById('participant-phone').addEventListener('input',event=>event.target.value=maskPhone(event.target.value));
+  document.getElementById('toggle-participant-password')?.addEventListener('click',()=>{
+    const input=document.getElementById('participant-password');
+    if(input) input.type = input.type === 'password' ? 'text' : 'password';
+  });
+  document.getElementById('toggle-participant-password-confirm')?.addEventListener('click',()=>{
+    const input=document.getElementById('participant-password-confirm');
+    if(input) input.type = input.type === 'password' ? 'text' : 'password';
+  });
+  document.getElementById('collapse-sidebar').addEventListener('click',()=>document.body.classList.toggle('sidebar-collapsed'));
+  document.getElementById('mobile-menu').addEventListener('click',()=>document.body.classList.toggle('menu-open'));
+  document.querySelectorAll('[data-placeholder]').forEach(button=>button.addEventListener('click',()=>toast(`${button.dataset.placeholder} será conectado na próxima etapa.`)));
+  document.getElementById('logout-button').addEventListener('click',async()=>{try{await fetch('/logout',{method:'POST'})}finally{window.location.replace('login_empresa.html')}});
+  document.addEventListener('keydown',event=>{
+    if(event.key==='Escape'){
+      closeDrawer();
+      closeAssignExamModal();
+      closeActionMenu();
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  cache();
+  bind();
+  const urlStatus = new URLSearchParams(window.location.search).get('status');
+  if(urlStatus && elements['status-filter'] && Array.from(elements['status-filter'].options).some(o=>o.value===urlStatus)){
+    elements['status-filter'].value = urlStatus;
+  }
+  render();
+  await loadParticipants();
+});

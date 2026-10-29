@@ -68,7 +68,7 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
         }
 
         # Seleção totalmente certa -> 100% dos pontos
-        answers, points, total, percentage, correct, _ = score_answers(
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(
             [question],
             {"q-multi": json.dumps(["Python", "JavaScript", "C++"])}
         )
@@ -76,7 +76,7 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
         self.assertTrue(answers[0]["isCorrect"])
 
         # Seleção com 1 incorreta a mais -> 0 pontos (tudo ou nada)
-        answers, points, total, percentage, correct, _ = score_answers(
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(
             [question],
             {"q-multi": json.dumps(["Python", "JavaScript", "C++", "HTML"])}
         )
@@ -84,7 +84,7 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
         self.assertFalse(answers[0]["isCorrect"])
 
         # Seleção incompleta (faltando 1 correta) -> 0 pontos
-        answers, points, total, percentage, correct, _ = score_answers(
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(
             [question],
             {"q-multi": json.dumps(["Python", "JavaScript"])}
         )
@@ -100,11 +100,11 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
             "correctAnswer": "Verdadeiro",
         }
 
-        answers, points, total, percentage, correct, _ = score_answers([question], {"q-tf": "Verdadeiro"})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers([question], {"q-tf": "Verdadeiro"})
         self.assertEqual(points, 15)
         self.assertTrue(answers[0]["isCorrect"])
 
-        answers, points, total, percentage, correct, _ = score_answers([question], {"q-tf": "Falso"})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers([question], {"q-tf": "Falso"})
         self.assertEqual(points, 0)
         self.assertFalse(answers[0]["isCorrect"])
 
@@ -118,17 +118,17 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
         }
 
         # Exato com maiúscula/minúscula misturada e espaços adicionais
-        answers, points, total, percentage, correct, _ = score_answers([question], {"q-short": "   pArIS  "})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers([question], {"q-short": "   pArIS  "})
         self.assertEqual(points, 25)
         self.assertTrue(answers[0]["isCorrect"])
 
         # Outra resposta aceita na lista
-        answers, points, total, percentage, correct, _ = score_answers([question], {"q-short": "cidade de paris"})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers([question], {"q-short": "cidade de paris"})
         self.assertEqual(points, 25)
         self.assertTrue(answers[0]["isCorrect"])
 
         # Incorreta
-        answers, points, total, percentage, correct, _ = score_answers([question], {"q-short": "Londres"})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers([question], {"q-short": "Londres"})
         self.assertEqual(points, 0)
         self.assertFalse(answers[0]["isCorrect"])
 
@@ -142,7 +142,7 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
             "maxCharacters": 2000,
         }
 
-        answers, points, total, percentage, correct, has_essay = score_answers(
+        answers, points, total, percentage, correct, has_essay, _competencies = score_answers(
             [question],
             {"q-long": "A reciclagem diminui a quantidade de lixo nos aterros e preserva recursos naturais."}
         )
@@ -183,7 +183,7 @@ class QuestionTypesRestructuringTests(unittest.TestCase):
         self.assertEqual(sanit[0]["type"], "single_choice")
         self.assertEqual(sanit[1]["type"], "long_answer")
 
-        answers, points, total, percentage, correct, has_essay = score_answers(
+        answers, points, total, percentage, correct, has_essay, _competencies = score_answers(
             cleaned_exam["questions"],
             {"legacy-1": "B", "legacy-2": "Texto da resposta"}
         )

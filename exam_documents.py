@@ -106,13 +106,25 @@ def check_pending_mandatory_documents(connection, exam_id, participant_id):
         pending = []
         for doc in docs:
             st = doc.get("acceptance_status") or "pendente"
-            if st not in {"aceito", "aprovado", "leitura_confirmada"}:
-                action = doc.get("participant_action") or (
-                    "accept_electronic" if doc.get("require_acceptance")
-                    else "confirm_read" if doc.get("require_read")
-                    else "download_sign_return" if doc.get("require_return_signed")
-                    else "view_only"
-                )
+            action = doc.get("participant_action") or (
+                "accept_electronic" if doc.get("require_acceptance")
+                else "confirm_read" if doc.get("require_read")
+                else "download_sign_return" if doc.get("require_return_signed")
+                else "view_only"
+            )
+            if action == "informative":
+                continue
+            if action == "view_only":
+                completed_statuses = {"visualizado", "baixado", "leitura_confirmada", "aceito", "aprovado"}
+            elif action == "confirm_read":
+                completed_statuses = {"leitura_confirmada", "aceito", "aprovado"}
+            elif action == "accept_electronic":
+                completed_statuses = {"aceito", "aprovado"}
+            elif action in {"download_sign_return", "upload_only"}:
+                completed_statuses = {"aprovado"}
+            else:
+                completed_statuses = {"leitura_confirmada", "aceito", "aprovado"}
+            if st not in completed_statuses:
                 pending.append({
                     "id": doc["id"],
                     "title": doc["title"],
@@ -128,6 +140,16 @@ def check_pending_mandatory_documents(connection, exam_id, participant_id):
         return len(pending) > 0, pending
     finally:
         cursor.close()
+
+
+def participant_assignment(cursor, user_id, exam_id, company_id):
+    """Resolve a matrícula da sessão antes de liberar documentos privados."""
+    cursor.execute(
+        "SELECT p.id FROM company_participants p JOIN users u ON LOWER(u.email)=LOWER(p.email) "
+        "WHERE u.id=%s AND p.exam_id=%s AND p.company_id=%s LIMIT 1",
+        (user_id, exam_id, company_id),
+    )
+    return cursor.fetchone()
 
 
 def _serialize_document(row):
@@ -495,6 +517,7 @@ def create_exam_documents_blueprint(open_database, token_payload):
                     "description": row.get("description") or "",
                     "docType": row["doc_type"],
                     "originalName": row["original_name"],
+                    "contentType": row.get("content_type") or "",
                     "sizeBytes": row["size_bytes"],
                     "downloadAllowed": bool(row["download_allowed"]),
                     "requireRead": bool(row["require_read"]),
@@ -556,6 +579,85 @@ def create_exam_documents_blueprint(open_database, token_payload):
                 )
             connection.commit()
             return send_file(file_path, download_name=doc["original_name"], as_attachment=True)
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.get("/api/company/exams/<int:exam_id>/documents/<int:doc_id>/view")
+    def view_company_document(exam_id, doc_id):
+        """Exibe documento inline na prévia da empresa sem forçar download."""
+        payload, error = token_payload("company")
+        if error:
+            return error
+        company_id = int(payload["sub"])
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute(
+                "SELECT * FROM company_exam_documents WHERE id=%s AND exam_id=%s AND company_id=%s AND active=TRUE",
+                (doc_id, exam_id, company_id),
+            )
+            doc = cursor.fetchone()
+            if not doc:
+                return jsonify({"success": False, "message": "Documento não encontrado."}), 404
+            file_path = SECURE_DOCS_DIR / doc["storage_name"]
+            if not file_path.exists():
+                return jsonify({"success": False, "message": "Arquivo indisponível no servidor."}), 404
+            return send_file(
+                file_path,
+                mimetype=doc.get("content_type") or "application/octet-stream",
+                download_name=doc["original_name"],
+                as_attachment=False,
+            )
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.get("/api/participant/exams/<int:exam_id>/documents/<int:doc_id>/view")
+    def view_participant_document(exam_id, doc_id):
+        """Exibe documento inline no pré-início da prova e registra visualização."""
+        payload, error = token_payload("participant")
+        if error:
+            return error
+        participant_id = int(payload["sub"])
+        ip_addr = get_client_ip(request)
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT * FROM company_exam_documents WHERE id=%s AND exam_id=%s AND active=TRUE", (doc_id, exam_id))
+            doc = cursor.fetchone()
+            if not doc:
+                return jsonify({"success": False, "message": "Documento não disponível."}), 404
+            assignment = participant_assignment(cursor, participant_id, exam_id, doc["company_id"])
+            if not assignment:
+                return jsonify({"success": False, "message": "Documento não disponível."}), 404
+
+            file_path = SECURE_DOCS_DIR / doc["storage_name"]
+            if not file_path.exists():
+                return jsonify({"success": False, "message": "Arquivo indisponível no servidor."}), 404
+
+            now = datetime.now(timezone.utc)
+            try:
+                cursor.execute(
+                    "INSERT INTO exam_document_acceptances (company_id, exam_id, participant_id, document_id, downloaded_at, ip_address, status, action_type) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, 'visualizado', 'view') "
+                    "ON DUPLICATE KEY UPDATE downloaded_at=%s, ip_address=%s, status=IF(status='pendente', 'visualizado', status), action_type=IF(status='pendente', 'view', action_type)",
+                    (doc["company_id"], exam_id, assignment["id"], doc_id, now, ip_addr, now, ip_addr),
+                )
+            except Exception:
+                cursor.execute(
+                    "INSERT INTO exam_document_acceptances (company_id, exam_id, participant_id, document_id, downloaded_at, ip_address, status) "
+                    "VALUES (%s, %s, %s, %s, %s, %s, 'visualizado') "
+                    "ON DUPLICATE KEY UPDATE downloaded_at=%s, ip_address=%s, status=IF(status='pendente', 'visualizado', status)",
+                    (doc["company_id"], exam_id, assignment["id"], doc_id, now, ip_addr, now, ip_addr),
+                )
+            connection.commit()
+            return send_file(
+                file_path,
+                mimetype=doc.get("content_type") or "application/octet-stream",
+                download_name=doc["original_name"],
+                as_attachment=False,
+            )
         finally:
             cursor.close()
             connection.close()

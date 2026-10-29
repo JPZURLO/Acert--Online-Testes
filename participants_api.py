@@ -2,11 +2,14 @@ import os
 import re
 import secrets
 import shutil
+from datetime import datetime
 from pathlib import Path
 
 import mysql.connector
 from flask import Blueprint, jsonify, request
 from werkzeug.security import generate_password_hash
+
+from company_units import active_unit_id, unit_columns_available, unit_filter_sql
 
 from license_service import company_license_snapshot, license_block_message
 from exam_email_service import (
@@ -31,7 +34,17 @@ def clean_digits(value, maximum):
     return re.sub(r"\D", "", str(value or ""))[:maximum]
 
 
-def clean_participant(data, require_name=True):
+def clean_datetime(value):
+    raw = clean_text(value, 32)
+    if not raw:
+        return None
+    try:
+        return datetime.fromisoformat(raw.replace("Z", "+00:00")).replace(tzinfo=None).strftime("%Y-%m-%d %H:%M:%S")
+    except ValueError:
+        raise ValueError("Informe uma data e horário válidos.")
+
+
+def clean_participant(data, require_name=True, require_password=False):
     full_name = clean_text(data.get("fullName"), 180)
     email = clean_text(data.get("email"), 180).lower()
     if require_name and not full_name:
@@ -40,13 +53,27 @@ def clean_participant(data, require_name=True):
         raise ValueError("Informe um e-mail válido.")
     status = clean_text(data.get("status"), 24) or "pending"
     access_password = clean_text(data.get("accessPassword"), 128)
-    if access_password and len(access_password) < 8:
-        raise ValueError("A senha do participante precisa ter pelo menos 8 caracteres.")
+    confirm_password = clean_text(data.get("confirmPassword"), 128)
+    if require_password and not access_password:
+        raise ValueError("Informe a senha de acesso do participante.")
+    if access_password or confirm_password:
+        if access_password != confirm_password:
+            raise ValueError("As senhas não coincidem.")
+        if len(access_password) < 8:
+            raise ValueError("A senha do participante precisa ter pelo menos 8 caracteres.")
     exam_id = data.get("examId")
     try:
         exam_id = int(exam_id) if exam_id not in (None, "") else None
     except (TypeError, ValueError):
         exam_id = None
+    scheduled_starts_at = clean_datetime(data.get("scheduledStartsAt"))
+    scheduled_ends_at = clean_datetime(data.get("scheduledEndsAt"))
+    if (scheduled_starts_at or scheduled_ends_at) and not exam_id:
+        raise ValueError("Selecione um teste antes de definir data e horário.")
+    if bool(scheduled_starts_at) != bool(scheduled_ends_at):
+        raise ValueError("Informe o início e o fim do período programado.")
+    if scheduled_starts_at and scheduled_ends_at and scheduled_ends_at <= scheduled_starts_at:
+        raise ValueError("O fim do período deve ser posterior ao início.")
     return {
         "fullName": full_name or email.split("@", 1)[0].replace(".", " ").title(),
         "email": email,
@@ -55,6 +82,8 @@ def clean_participant(data, require_name=True):
         "city": clean_text(data.get("city"), 120),
         "status": status if status in ALLOWED_STATUSES else "pending",
         "examId": exam_id,
+        "scheduledStartsAt": scheduled_starts_at,
+        "scheduledEndsAt": scheduled_ends_at,
         "sendInvite": bool(data.get("sendInvite", True)),
         "accessPassword": access_password,
     }
@@ -71,8 +100,14 @@ def participant_from_row(row):
         "status": row.get("status") or "not_started",
         "examId": row.get("exam_id"),
         "examTitle": row.get("exam_title") or "Sem teste atribuído",
+        "unitName": row.get("unit_name") or None,
+        "scheduledStartsAt": row.get("scheduled_starts_at").isoformat() if row.get("scheduled_starts_at") else None,
+        "scheduledEndsAt": row.get("scheduled_ends_at").isoformat() if row.get("scheduled_ends_at") else None,
         "progress": int(row.get("progress") or 0),
         "lastAccess": row.get("last_access").isoformat() if row.get("last_access") else None,
+        "inviteSentAt": row.get("invite_sent_at").isoformat() if row.get("invite_sent_at") else None,
+        "inviteFailedAt": row.get("invite_failed_at").isoformat() if row.get("invite_failed_at") else None,
+        "inviteError": row.get("invite_error") or None,
         "createdAt": row.get("created_at").isoformat() if row.get("created_at") else None,
     }
 
@@ -106,6 +141,7 @@ def participant_license_usage(connection, company_id, requested=0):
 # participant_login_url e participant_invite foram movidos para exam_email_service.py
 # Use exam_login_url() e build_exam_access_email() do módulo central.
 
+
 def create_participants_blueprint(open_database, token_payload):
     blueprint = Blueprint("company_participants", __name__)
     storage_root = Path(os.getenv("PRIVATE_UPLOAD_DIR", Path(__file__).resolve().parent / "private_uploads")).resolve()
@@ -123,8 +159,16 @@ def create_participants_blueprint(open_database, token_payload):
     def company_owns_exam(cursor, company_id, exam_id):
         if exam_id is None:
             return True
-        cursor.execute("SELECT id FROM company_exams WHERE id = %s AND company_id = %s", (exam_id, company_id))
+        cursor.execute("SELECT id FROM company_exams WHERE id = %s AND company_id = %s AND archived_at IS NULL", (exam_id, company_id))
         return cursor.fetchone() is not None
+
+    def requested_unit_id():
+        return request.headers.get("X-Company-Unit-ID") or request.args.get("unitId")
+
+    def current_unit_id(cursor, company_id):
+        cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
+        company = cursor.fetchone() or {}
+        return active_unit_id(cursor, company_id, company.get("RazaoSocial"), requested_unit_id())
 
     @blueprint.get("/api/company/participants")
     def list_participants():
@@ -153,22 +197,30 @@ def create_participants_blueprint(open_database, token_payload):
         try:
             cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
             company = cursor.fetchone()
+            unit_id = active_unit_id(cursor, company_id, (company or {}).get("RazaoSocial"), requested_unit_id())
+            participant_unit_sql, participant_unit_params = unit_filter_sql(cursor, "p", "company_participants", unit_id)
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
             cursor.execute(
-                "SELECT p.*, e.title AS exam_title FROM company_participants p "
+                "SELECT p.*, e.title AS exam_title, u.name AS unit_name FROM company_participants p "
                 "LEFT JOIN company_exams e ON e.id = p.exam_id AND e.company_id = p.company_id "
-                f"WHERE {' AND '.join(where)} ORDER BY p.created_at DESC LIMIT 1000",
-                tuple(params),
+                "LEFT JOIN company_units u ON u.id = COALESCE(p.unit_id, e.unit_id) AND u.company_id = p.company_id "
+                f"WHERE {' AND '.join(where)}{participant_unit_sql} ORDER BY p.created_at DESC LIMIT 1000",
+                tuple(params + participant_unit_params),
             )
+
             participants = [participant_from_row(row) for row in cursor.fetchall()]
             cursor.execute(
                 "SELECT COUNT(*) AS total, "
                 "SUM(status IN ('active', 'in_progress')) AS active, "
                 "SUM(status = 'pending') AS pending, COALESCE(ROUND(AVG(progress)), 0) AS average_completion "
-                "FROM company_participants WHERE company_id = %s",
-                (company_id,),
+                "FROM company_participants WHERE company_id = %s" + participant_unit_sql.replace("p.", ""),
+                tuple([company_id] + participant_unit_params),
             )
             stats = cursor.fetchone() or {}
-            cursor.execute("SELECT id, title, status FROM company_exams WHERE company_id = %s ORDER BY title", (company_id,))
+            cursor.execute(
+                "SELECT id, title, status FROM company_exams WHERE company_id = %s" + exam_unit_sql + " ORDER BY title",
+                tuple([company_id] + exam_unit_params),
+            )
             exams = cursor.fetchall()
             usage = participant_license_usage(connection, company_id, 0)
             return jsonify(
@@ -216,45 +268,60 @@ def create_participants_blueprint(open_database, token_payload):
             cursor.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
             company_row = cursor.fetchone() or {}
             company_name = company_row.get("RazaoSocial") or "Empresa"
-            status = "pending" if participant["sendInvite"] else "not_started"
+            unit_id = active_unit_id(cursor, company_id, company_name, requested_unit_id())
+            has_unit_column = unit_columns_available(cursor, "company_participants")
+            status = "pending" if participant["examId"] else "not_started"
             try:
-                cursor.execute(
-                    "INSERT INTO company_participants "
-                    "(company_id, full_name, email, cpf, phone, city, status, exam_id, invited_at) "
-                    "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, IF(%s, CURRENT_TIMESTAMP, NULL))",
-                    (
-                        company_id, participant["fullName"], participant["email"], participant["cpf"],
-                        participant["phone"], participant["city"], status, participant["examId"], participant["sendInvite"],
-                    ),
-                )
+                if has_unit_column and unit_id:
+                    cursor.execute(
+                        "INSERT INTO company_participants "
+                        "(company_id, unit_id, full_name, email, cpf, phone, city, status, exam_id, scheduled_starts_at, scheduled_ends_at, invited_at) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, IF(%s, CURRENT_TIMESTAMP, NULL))",
+                        (
+                            company_id, unit_id, participant["fullName"], participant["email"], participant["cpf"],
+                            participant["phone"], participant["city"], status, participant["examId"], participant["scheduledStartsAt"], participant["scheduledEndsAt"], participant["sendInvite"],
+                        ),
+                    )
+                else:
+                    cursor.execute(
+                        "INSERT INTO company_participants "
+                        "(company_id, full_name, email, cpf, phone, city, status, exam_id, scheduled_starts_at, scheduled_ends_at, invited_at) "
+                        "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, IF(%s, CURRENT_TIMESTAMP, NULL))",
+                        (
+                            company_id, participant["fullName"], participant["email"], participant["cpf"],
+                            participant["phone"], participant["city"], status, participant["examId"], participant["scheduledStartsAt"], participant["scheduledEndsAt"], participant["sendInvite"],
+                        ),
+                    )
                 participant_id = cursor.lastrowid
                 cursor.execute("SELECT id FROM users WHERE email = %s LIMIT 1", (participant["email"],))
                 existing_user = cursor.fetchone()
-                temporary_password = None
                 if not existing_user:
-                    temporary_password = participant["accessPassword"] or secrets.token_urlsafe(10)
+                    password_to_hash = participant["accessPassword"] or secrets.token_urlsafe(10)
                     cursor.execute(
                         "INSERT INTO users (NomeCompleto, email, senha) VALUES (%s, %s, %s)",
-                        (participant["fullName"], participant["email"], generate_password_hash(temporary_password, method="pbkdf2:sha256")),
+                        (participant["fullName"], participant["email"], generate_password_hash(password_to_hash, method="pbkdf2:sha256")),
+                    )
+                elif participant["accessPassword"]:
+                    cursor.execute(
+                        "UPDATE users SET NomeCompleto=%s, senha=%s WHERE id=%s",
+                        (participant["fullName"], generate_password_hash(participant["accessPassword"], method="pbkdf2:sha256"), existing_user["id"]),
                     )
                 connection.commit()
             except mysql.connector.IntegrityError:
                 connection.rollback()
                 return jsonify({"success": False, "message": "Já existe um participante com esse e-mail."}), 409
-            # O envio de e-mail de acesso ao exame ocorre agora somente através
-            # da opção escolhida no cadastro do exame (exam_email_service.py).
-            # O campo sendInvite foi preservado para compatibilidade de API,
-            # mas não dispara envio automático de e-mail neste endpoint.
+
             cursor.execute(
-                "SELECT p.*, e.title AS exam_title FROM company_participants p "
+                "SELECT p.*, e.title AS exam_title, u.name AS unit_name FROM company_participants p "
                 "LEFT JOIN company_exams e ON e.id = p.exam_id AND e.company_id = p.company_id "
+                "LEFT JOIN company_units u ON u.id = COALESCE(p.unit_id, e.unit_id) AND u.company_id = p.company_id "
                 "WHERE p.id = %s AND p.company_id = %s",
                 (participant_id, company_id),
             )
             return jsonify({
                 "success": True,
                 "participant": participant_from_row(cursor.fetchone()),
-                "temporaryPassword": temporary_password,
+                "temporaryPassword": None,
                 "inviteSent": False,
                 "inviteError": "",
                 "licenseUsage": {**usage, "used": usage["used"] + 1, "remaining": None if usage["limit"] is None else max(0, usage["remaining"] - 1)},
@@ -269,7 +336,7 @@ def create_participants_blueprint(open_database, token_payload):
         if error:
             return error
         try:
-            participant = clean_participant(request.get_json(silent=True) or {})
+            participant = clean_participant(request.get_json(silent=True) or {}, require_password=True)
         except ValueError as exc:
             return jsonify({"success": False, "message": str(exc)}), 400
 
@@ -331,24 +398,22 @@ def create_participants_blueprint(open_database, token_payload):
                     cursor.execute("UPDATE users SET NomeCompleto=%s WHERE id=%s", (participant["fullName"], target_user["id"]))
 
             cursor.execute(
-                "UPDATE company_participants SET full_name=%s,email=%s,cpf=%s,phone=%s,city=%s,exam_id=%s "
+                "UPDATE company_participants SET full_name=%s,email=%s,cpf=%s,phone=%s,city=%s,exam_id=%s,scheduled_starts_at=%s,scheduled_ends_at=%s,status=CASE WHEN %s IS NULL THEN 'not_started' WHEN status IN ('not_started','pending') THEN 'pending' ELSE status END "
                 "WHERE id=%s AND company_id=%s",
                 (
                     participant["fullName"], new_email, participant["cpf"], participant["phone"],
-                    participant["city"], participant["examId"], participant_id, company_id,
+                    participant["city"], participant["examId"], participant["scheduledStartsAt"], participant["scheduledEndsAt"], participant["examId"], participant_id, company_id,
                 ),
             )
             connection.commit()
             cursor.execute(
-                "SELECT p.*,e.title AS exam_title FROM company_participants p "
-                "LEFT JOIN company_exams e ON e.id=p.exam_id AND e.company_id=p.company_id "
-                "WHERE p.id=%s AND p.company_id=%s",
+                "SELECT p.*, e.title AS exam_title, u.name AS unit_name FROM company_participants p "
+                "LEFT JOIN company_exams e ON e.id = p.exam_id AND e.company_id = p.company_id "
+                "LEFT JOIN company_units u ON u.id = COALESCE(p.unit_id, e.unit_id) AND u.company_id = p.company_id "
+                "WHERE p.id = %s AND p.company_id = %s",
                 (participant_id, company_id),
             )
             updated = participant_from_row(cursor.fetchone())
-            # O envio de e-mail de acesso ocorre somente através da opção
-            # definida no cadastro do exame (exam_email_service.py).
-            # Para reenvio individual explícito, use o endpoint /api/company/participants/<id>/resend-access.
             return jsonify({
                 "success": True,
                 "participant": updated,
@@ -371,6 +436,7 @@ def create_participants_blueprint(open_database, token_payload):
         company_id, error = company_id_or_error()
         if error:
             return error
+
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         removable_paths = []
@@ -457,7 +523,7 @@ def create_participants_blueprint(open_database, token_payload):
                     return jsonify({"success": False, "message": "Selecione um teste."}), 400
                 if not company_owns_exam(cursor, company_id, exam_id):
                     return jsonify({"success": False, "message": "O teste selecionado não pertence à empresa."}), 403
-                sql = f"UPDATE company_participants SET exam_id = %s, status = 'not_started', progress = 0 WHERE company_id = %s AND id IN ({placeholders})"
+                sql = f"UPDATE company_participants SET exam_id = %s, status = 'pending', progress = 0 WHERE company_id = %s AND id IN ({placeholders})"
                 params = [exam_id, company_id, *ids]
             elif action == "resend_invite":
                 # CORREÇÃO DO BUG: anteriormente esta ação apenas atualizava
@@ -514,7 +580,7 @@ def create_participants_blueprint(open_database, token_payload):
                         connection=connection,
                         company_name=company_name,
                         participant=participant,
-                        password="[Use a senha cadastrada ou solicite redefinição]",
+                        password=None,
                         login_url=login_url,
                         exam=exam_info,
                         queue_id=queue_id,

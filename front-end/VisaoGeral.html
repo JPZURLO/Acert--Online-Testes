@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -18,12 +18,12 @@
         <a class="nav-item active" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
         <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Testes</span></a>
         <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
-        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
         <a class="nav-item" href="./Monitoramento.html"><span class="nav-icon">◉</span><span>Monitoramento</span></a>
-        <a class="nav-item" href="./login_cliente.html#kb"><span class="nav-icon">📖</span><span>Manual do Usuário</span></a>
+        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
+        <a class="nav-item" href="./BaseConhecimento.html"><span class="nav-icon">📖</span><span>Manual do Usuário</span></a>
         <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">💬</span><span>Suporte</span></a>
       </nav>
-      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher menu</span></button></div>
     </aside>
 
     <main class="workspace">
@@ -40,10 +40,10 @@
         </div>
 
         <section class="stats-grid" aria-label="Indicadores principais">
-          <article class="stat-card"><span class="stat-icon blue">▣</span><div><small>Testes ativos</small><strong id="stat-exams">0</strong><em id="exam-caption">0 testes cadastrados</em></div></article>
-          <article class="stat-card"><span class="stat-icon blue">♙</span><div><small>Participantes</small><strong id="stat-participants">0</strong><em id="participant-trend">Sem alteração no período</em></div></article>
-          <article class="stat-card"><span class="stat-icon green">✓</span><div><small>Avaliações concluídas</small><strong id="stat-completed">0</strong><em id="completed-trend">Sem alteração no período</em></div></article>
-          <article class="stat-card"><span class="stat-icon purple">%</span><div><small>Taxa de aprovação</small><strong id="stat-approval">0%</strong><em id="approval-trend">Sem alteração no período</em></div></article>
+          <article class="stat-card" id="card-exams-link" style="cursor:pointer;" title="Clique para ver os testes cadastrados"><span class="stat-icon blue">▣</span><div><small>Testes ativos</small><strong id="stat-exams">0</strong><em id="exam-caption">0 testes cadastrados</em></div></article>
+          <article class="stat-card" id="card-participants-link" style="cursor:pointer;" title="Clique para ver os participantes"><span class="stat-icon blue">♙</span><div><small>Participantes</small><strong id="stat-participants">0</strong><em id="participant-trend">Sem alteração no período</em></div></article>
+          <article class="stat-card" id="card-completed-link" style="cursor:pointer;" title="Clique para ver as avaliações concluídas"><span class="stat-icon green">✓</span><div><small>Avaliações concluídas</small><strong id="stat-completed">0</strong><em id="completed-trend">Sem alteração no período</em></div></article>
+          <article class="stat-card" id="card-approval-link" style="cursor:pointer;" title="Clique para ver resultados e taxa de aprovação"><span class="stat-icon purple">%</span><div><small>Taxa de aprovação</small><strong id="stat-approval">0%</strong><em id="approval-trend">Sem alteração no período</em></div></article>
         </section>
 
         <section class="analytics-grid">
@@ -53,7 +53,7 @@
           </article>
           <article class="card status-card">
             <header><div><h2>Status das avaliações</h2><p>Situação atual dos participantes</p></div></header>
-            <div class="status-content"><div class="donut-wrap"><canvas id="status-chart" aria-label="Status das avaliações"></canvas><div class="donut-label"><strong id="status-total">0</strong><span>Total</span></div></div><div class="status-legend"><span><i class="completed"></i>Concluídas <b id="status-completed">0</b></span><span><i class="progress"></i>Em andamento <b id="status-progress">0</b></span><span><i class="not-started"></i>Não iniciadas <b id="status-not-started">0</b></span></div></div>
+            <div class="status-content"><div class="donut-wrap"><canvas id="status-chart" aria-label="Status das avaliações"></canvas><div class="donut-label"><strong id="status-total">0</strong><span>Total</span></div></div><div class="status-legend"><span id="status-link-completed" style="cursor:pointer;" title="Ver avaliações concluídas"><i class="completed"></i>Concluídas <b id="status-completed">0</b></span><span id="status-link-progress" style="cursor:pointer;" title="Ver avaliações em andamento"><i class="progress"></i>Em andamento <b id="status-progress">0</b></span><span id="status-link-not-started" style="cursor:pointer;" title="Ver avaliações não iniciadas"><i class="not-started"></i>Não iniciadas <b id="status-not-started">0</b></span></div></div>
           </article>
         </section>
 
@@ -78,6 +78,7 @@
   </div>
 
   <div class="toast-region" id="toast-region" aria-live="polite"></div>
+  <script src="./js/company-units.js?v=2"></script>
   <script src="./js/license-ui.js?v=1"></script>
   <script src="./js/overview-dashboard.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>

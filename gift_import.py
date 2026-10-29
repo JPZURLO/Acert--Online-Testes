@@ -13,6 +13,12 @@ from question_import import (
 FORMAT_MARKER = re.compile(r"^\[(?:html|moodle|plain|markdown)\]\s*", re.IGNORECASE)
 TITLE_PATTERN = re.compile(r"^::(?:\\.|[^:])*::", re.DOTALL)
 WEIGHT_PATTERN = re.compile(r"^%([+-]?\d+(?:[.,]\d+)?)%")
+POINTS_COMMENT_PATTERN = re.compile(
+    r"(?i)^\s*//\s*(?:pontos|pontuacao|pontuação|nota|max(?:imum)?\s*grade|default\s*mark|grade)\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*$"
+)
+POINTS_TAG_PATTERN = re.compile(
+    r"(?i)(?:\[\s*(?:pontos|pontuacao|pontuação|points|grade)\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*\]|<!--\s*(?:pontos|pontuacao|pontuação|points|grade)\s*[:=]\s*([0-9]+(?:[.,][0-9]+)?)\s*-->)"
+)
 
 
 def gift_unescape(value):
@@ -104,10 +110,19 @@ def gift_blocks(text):
                 current = []
             blocks.append((line_number, stripped))
             continue
+        if not current and stripped.startswith("//") and POINTS_COMMENT_PATTERN.match(stripped):
+            blocks.append((line_number, stripped))
+            continue
         if not current and (not stripped or stripped.startswith("//")):
             continue
         if not current:
             start_line = line_number
+        if stripped.startswith("//") and depth == 0 and POINTS_COMMENT_PATTERN.match(stripped):
+            if current:
+                blocks.append((start_line, "\n".join(current).strip()))
+                current = []
+            blocks.append((line_number, stripped))
+            continue
         if stripped.startswith("//") and depth == 0:
             continue
         if not stripped and depth == 0:
@@ -169,6 +184,26 @@ def answer_value(raw_value):
     return gift_unescape(value), weight
 
 
+def gift_points_value(value):
+    try:
+        number = float(str(value).replace(",", "."))
+    except (TypeError, ValueError):
+        return None
+    if not 0 <= number <= 1000:
+        return None
+    rounded = round(number, 2)
+    return int(rounded) if rounded.is_integer() else rounded
+
+
+def extract_points_tag(value):
+    match = POINTS_TAG_PATTERN.search(value or "")
+    if not match:
+        return value, None
+    raw_points = next((group for group in match.groups() if group), None)
+    cleaned = (value[:match.start()] + value[match.end():]).strip()
+    return cleaned, gift_points_value(raw_points)
+
+
 def distribute_default_points(questions):
     if not questions:
         return
@@ -191,10 +226,16 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
     errors = []
     warnings = []
     current_category = "Geral"
+    pending_points = None
 
     for line_number, raw_block in gift_blocks(text):
         if raw_block.startswith("$CATEGORY:"):
             current_category = raw_block.replace("$CATEGORY:", "").strip()
+            continue
+
+        points_comment = POINTS_COMMENT_PATTERN.match(raw_block)
+        if points_comment:
+            pending_points = gift_points_value(points_comment.group(1))
             continue
 
         if len(questions) >= MAX_IMPORTED_QUESTIONS:
@@ -209,6 +250,9 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
         
         block = TITLE_PATTERN.sub("", raw_block, count=1).strip()
         block = FORMAT_MARKER.sub("", block, count=1).strip()
+        block, tagged_points = extract_points_tag(block)
+        question_points = tagged_points if tagged_points is not None else pending_points
+        pending_points = None
 
         try:
             span = answer_span(block)
@@ -319,7 +363,8 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
                 "imageUrl": image_url,
                 "imageName": "",
                 "imageAlt": image_alt,
-                "points": 10,
+                "points": question_points if question_points is not None else 10,
+                "pointsFromFile": question_points is not None,
                 "required": True,
                 "options": options,
                 "correctAnswer": display_text(correct_answer, 500),
@@ -330,7 +375,8 @@ def parse_gift_questions(stream, return_dict=False, strict_legacy=False):
 
     if not questions and not errors:
         raise QuestionImportError("Nenhuma questão foi encontrada no arquivo GIFT.")
-    distribute_default_points(questions)
+    if not any(question.get("pointsFromFile") for question in questions):
+        distribute_default_points(questions)
 
     if not return_dict:
         if errors:

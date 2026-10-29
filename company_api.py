@@ -16,6 +16,7 @@ from exam_email_service import (
     exam_login_url,
     calculate_scheduled_for,
 )
+from company_units import active_unit_id, clean_unit_payload, list_company_units, unit_columns_available, unit_filter_sql, unit_from_row
 
 
 COLOR_PATTERN = re.compile(r"^#[0-9a-fA-F]{6}$")
@@ -440,6 +441,16 @@ def branding_from_row(row):
 
 
 def exam_from_row(row, include_questions=False):
+    questions_raw = row.get("questions_json") or "[]"
+    question_count = 0
+    if questions_raw:
+        try:
+            parsed = json.loads(questions_raw)
+            if isinstance(parsed, list):
+                question_count = len(parsed)
+        except (TypeError, json.JSONDecodeError):
+            question_count = 0
+
     exam = {
         "id": row["id"],
         "title": row["title"],
@@ -459,11 +470,12 @@ def exam_from_row(row, include_questions=False):
         "showAnswerDetails": bool(row.get("show_answer_details")),
         "emailSendOption": row.get("email_send_option") or "manual",
         "emailScheduleMinutesBefore": row.get("email_schedule_minutes_before"),
+        "questionCount": question_count,
         "updatedAt": row.get("updated_at").isoformat() if row.get("updated_at") else None,
     }
     if include_questions:
         try:
-            exam["questions"] = json.loads(row.get("questions_json") or "[]")
+            exam["questions"] = json.loads(questions_raw)
         except (TypeError, json.JSONDecodeError):
             exam["questions"] = []
     return exam
@@ -501,6 +513,68 @@ def create_company_blueprint(open_database, token_payload):
         except (KeyError, TypeError, ValueError):
             return None, (jsonify({"success": False, "message": "Sessão inválida."}), 401)
 
+    def requested_unit_id():
+        return request.headers.get("X-Company-Unit-ID") or request.args.get("unitId")
+
+    def company_and_active_unit(cursor, company_id):
+        cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
+        company = cursor.fetchone()
+        if not company:
+            return None, None, []
+        company_name = company.get("RazaoSocial") or "Empresa"
+        units = list_company_units(cursor, company_id, company_name)
+        unit_id = active_unit_id(cursor, company_id, company_name, requested_unit_id())
+        return company, unit_id, units
+
+    @blueprint.get("/api/company/units")
+    def list_units():
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            company, unit_id, units = company_and_active_unit(cursor, company_id)
+            if not company:
+                return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
+            connection.commit()
+            return jsonify({
+                "success": True,
+                "company": {"id": company_id, "name": company["RazaoSocial"]},
+                "units": units,
+                "activeUnitId": unit_id,
+            })
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.put("/api/company/units/<int:unit_id>")
+    def update_unit(unit_id):
+        company_id, error = company_id_or_error()
+        if error:
+            return error
+        try:
+            payload = clean_unit_payload(request.get_json(silent=True) or {})
+        except ValueError as exc:
+            return jsonify({"success": False, "message": str(exc)}), 400
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT * FROM company_units WHERE id=%s AND company_id=%s", (unit_id, company_id))
+            current = cursor.fetchone()
+            if not current:
+                return jsonify({"success": False, "message": "Organização não encontrada."}), 404
+            cursor.execute(
+                "UPDATE company_units SET name=%s,responsible_name=%s,email=%s,logo_data=%s,status=%s WHERE id=%s",
+                (payload["name"], payload["responsibleName"], payload["email"], payload["logoData"], payload["status"], unit_id),
+            )
+            connection.commit()
+            cursor.execute("SELECT * FROM company_units WHERE id=%s", (unit_id,))
+            return jsonify({"success": True, "unit": unit_from_row(cursor.fetchone())})
+        finally:
+            cursor.close()
+            connection.close()
+
     @blueprint.get("/api/company/workspace")
     def get_workspace():
         company_id, error = company_id_or_error()
@@ -509,21 +583,24 @@ def create_company_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
-            company = cursor.fetchone()
+            company, unit_id, units = company_and_active_unit(cursor, company_id)
             if not company:
                 return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
             cursor.execute("SELECT * FROM company_brand_settings WHERE company_id = %s", (company_id,))
             branding = branding_from_row(cursor.fetchone())
+            if unit_id:
+                cursor.execute("SELECT logo_data FROM company_units WHERE id=%s AND company_id=%s", (unit_id, company_id))
+                unit = cursor.fetchone() or {}
+                if unit.get("logo_data"):
+                    branding["logoData"] = unit["logo_data"]
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
             cursor.execute(
-                "SELECT id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, "
-                "shuffle_questions, status, result_delivery, available_from, available_until, require_identity, "
-                "require_recording, allow_resume, show_answer_details, updated_at FROM company_exams "
-                "WHERE company_id = %s ORDER BY updated_at DESC LIMIT 100",
-                (company_id,),
+                "SELECT * FROM company_exams WHERE company_id = %s AND archived_at IS NULL" + exam_unit_sql + " ORDER BY updated_at DESC LIMIT 100",
+                tuple([company_id] + exam_unit_params),
             )
             exams = [exam_from_row(row) for row in cursor.fetchall()]
-            return jsonify({"company": {"id": company_id, "name": company["RazaoSocial"]}, "branding": branding, "exams": exams})
+            active_unit = next((item for item in units if item["id"] == unit_id), None)
+            return jsonify({"company": {"id": company_id, "name": company["RazaoSocial"]}, "branding": branding, "exams": exams, "activeUnitId": unit_id, "activeUnit": active_unit, "units": units})
         finally:
             cursor.close()
             connection.close()
@@ -572,24 +649,28 @@ def create_company_blueprint(open_database, token_payload):
         except ValueError as exc:
             return jsonify({"success": False, "message": str(exc)}), 400
         connection = open_database()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
         try:
+            _company, unit_id, _units = company_and_active_unit(cursor, company_id)
+            has_unit_column = unit_columns_available(cursor, "company_exams")
+            columns = "company_id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, shuffle_questions, status, result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, email_send_option, email_schedule_minutes_before, questions_json"
+            placeholders = "%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s"
+            values = [
+                company_id, exam["title"], exam["description"], exam["durationMinutes"],
+                exam["totalPoints"], exam["passingScore"], grading_scale_json(exam["gradingScale"]),
+                exam["shuffleQuestions"], exam["status"], exam["resultDelivery"],
+                exam["availableFrom"], exam["availableUntil"],
+                exam["requireIdentity"], exam["requireRecording"], exam["allowResume"],
+                exam["showAnswerDetails"], exam["emailSendOption"],
+                exam["emailScheduleMinutesBefore"], json.dumps(exam["questions"], ensure_ascii=False),
+            ]
+            if has_unit_column and unit_id:
+                columns = "company_id, unit_id, " + columns[len("company_id, "):]
+                placeholders = "%s, " + placeholders
+                values.insert(1, unit_id)
             cursor.execute(
-                "INSERT INTO company_exams "
-                "(company_id, title, description, duration_minutes, total_points, passing_score, grading_scale_json, shuffle_questions, status, "
-                "result_delivery, available_from, available_until, require_identity, require_recording, allow_resume, show_answer_details, "
-                "email_send_option, email_schedule_minutes_before, questions_json) "
-                "VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)",
-                (
-                    company_id, exam["title"], exam["description"], exam["durationMinutes"],
-                    exam["totalPoints"], exam["passingScore"], grading_scale_json(exam["gradingScale"]),
-                    exam["shuffleQuestions"], exam["status"], exam["resultDelivery"],
-                    exam["availableFrom"], exam["availableUntil"],
-                    exam["requireIdentity"], exam["requireRecording"], exam["allowResume"],
-                    exam["showAnswerDetails"], exam["emailSendOption"],
-                    exam["emailScheduleMinutesBefore"],
-                    json.dumps(exam["questions"], ensure_ascii=False),
-                ),
+                f"INSERT INTO company_exams ({columns}) VALUES ({placeholders})",
+                tuple(values),
             )
             exam_id = cursor.lastrowid
             connection.commit()
@@ -745,7 +826,9 @@ def create_company_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT * FROM company_exams WHERE id = %s AND company_id = %s", (exam_id, company_id))
+            _company, unit_id, _units = company_and_active_unit(cursor, company_id)
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
+            cursor.execute("SELECT * FROM company_exams WHERE id = %s AND company_id = %s" + exam_unit_sql, tuple([exam_id, company_id] + exam_unit_params))
             row = cursor.fetchone()
             if not row:
                 return jsonify({"success": False, "message": "Teste não encontrado."}), 404
@@ -764,8 +847,10 @@ def create_company_blueprint(open_database, token_payload):
         except ValueError as exc:
             return jsonify({"success": False, "message": str(exc)}), 400
         connection = open_database()
-        cursor = connection.cursor()
+        cursor = connection.cursor(dictionary=True)
         try:
+            _company, unit_id, _units = company_and_active_unit(cursor, company_id)
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
             cursor.execute(
                 "UPDATE company_exams SET title = %s, description = %s, duration_minutes = %s, "
                 "total_points = %s, passing_score = %s, grading_scale_json = %s, shuffle_questions = %s, status = %s, result_delivery = %s, "
@@ -773,7 +858,7 @@ def create_company_blueprint(open_database, token_payload):
                 "allow_resume = %s, show_answer_details = %s, "
                 "email_send_option = %s, email_schedule_minutes_before = %s, "
                 "questions_json = %s "
-                "WHERE id = %s AND company_id = %s",
+                "WHERE id = %s AND company_id = %s" + exam_unit_sql,
                 (
                     exam["title"], exam["description"], exam["durationMinutes"],
                     exam["totalPoints"], exam["passingScore"], grading_scale_json(exam["gradingScale"]),
@@ -783,7 +868,7 @@ def create_company_blueprint(open_database, token_payload):
                     exam["allowResume"], exam["showAnswerDetails"],
                     exam["emailSendOption"], exam["emailScheduleMinutesBefore"],
                     json.dumps(exam["questions"], ensure_ascii=False),
-                    exam_id, company_id,
+                    exam_id, company_id, *exam_unit_params,
                 ),
             )
             if cursor.rowcount == 0:
@@ -813,13 +898,20 @@ def create_company_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute(
-                "SELECT id FROM company_exams WHERE id = %s AND company_id = %s",
-                (exam_id, company_id),
-            )
-            if not cursor.fetchone():
+            cursor.execute("SELECT id,title FROM company_exams WHERE id = %s AND company_id = %s", (exam_id, company_id))
+            exam = cursor.fetchone()
+            if not exam:
                 return jsonify({"success": False, "message": "Teste não encontrado."}), 404
-            # Cancela e-mails pendentes antes de excluir
+            cursor.execute("SELECT COUNT(*) AS total FROM company_participants WHERE company_id=%s AND exam_id=%s", (company_id, exam_id))
+            participants = int((cursor.fetchone() or {}).get("total") or 0)
+            cursor.execute("SELECT COUNT(*) AS total FROM exam_attempts WHERE company_id=%s AND exam_id=%s", (company_id, exam_id))
+            attempts = int((cursor.fetchone() or {}).get("total") or 0)
+            cursor.execute("SELECT COUNT(*) AS total FROM company_results WHERE company_id=%s AND exam_id=%s", (company_id, exam_id))
+            results = int((cursor.fetchone() or {}).get("total") or 0)
+            if participants or attempts or results:
+                cursor.execute("UPDATE company_exams SET status='draft', archived_at=NOW() WHERE id=%s AND company_id=%s", (exam_id, company_id))
+                connection.commit()
+                return jsonify({"success": True, "archived": True, "message": "O teste possui participantes, tentativas ou resultados e foi arquivado para preservar o histórico."})
             cancel_exam_email_queue(connection, exam_id)
             cursor.execute(
                 "DELETE FROM company_exams WHERE id = %s AND company_id = %s",
@@ -890,7 +982,7 @@ def create_company_blueprint(open_database, token_payload):
                     connection=connection,
                     company_name=company_name,
                     participant=participant,
-                    password="[Use a senha cadastrada ou solicite redefinição]",
+                    password=None,
                     login_url=login_url,
                     exam=exam_info,
                     queue_id=queue_id,
@@ -968,7 +1060,7 @@ def create_company_blueprint(open_database, token_payload):
                         connection=connection,
                         company_name=company_name,
                         participant=participant,
-                        password="[Use a senha cadastrada ou solicite redefinição]",
+                        password=None,
                         login_url=login_url,
                         exam=exam_info,
                         queue_id=queue_id,

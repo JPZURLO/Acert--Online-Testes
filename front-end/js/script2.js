@@ -39,8 +39,13 @@ loginForm?.addEventListener('submit', function(event) {
                 localStorage.setItem('NomeCompleto', data.NomeCompleto);
 
                 console.log('🔄 Redirecionando para AreaParticipante.html...');
-                // Substitui a página para evitar voltar à tela de login
-                window.location.replace('AreaParticipante.html');
+                const urlParams = new URLSearchParams(window.location.search);
+                const examId = urlParams.get('examId');
+                let targetUrl = 'AreaParticipante.html';
+                if (examId) {
+                    targetUrl += `?examId=${encodeURIComponent(examId)}`;
+                }
+                window.location.replace(targetUrl);
             } else {
                 errorMessage.textContent = data.message || 'Erro no login';
             }

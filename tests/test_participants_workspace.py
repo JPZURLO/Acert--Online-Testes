@@ -85,6 +85,99 @@ class ParticipantsWorkspaceTests(unittest.TestCase):
         self.assertEqual(response.status_code, 401)
         response.close()
 
+    def test_participant_from_row_includes_unit_name(self):
+        from participants_api import participant_from_row
+        row_with_unit = {
+            "id": 1,
+            "full_name": "Maria Silva",
+            "email": "maria@exemplo.com",
+            "cpf": "12345678901",
+            "phone": "11988887777",
+            "city": "São Paulo",
+            "status": "pending",
+            "exam_id": 10,
+            "exam_title": "Exame de Certificação",
+            "unit_name": "Academia Brasileira de Certificações e Treinamentos",
+            "scheduled_starts_at": None,
+            "scheduled_ends_at": None,
+            "progress": 50,
+            "last_access": None,
+            "invite_sent_at": None,
+            "invite_failed_at": None,
+            "invite_error": None,
+            "created_at": None,
+        }
+        res = participant_from_row(row_with_unit)
+        self.assertEqual(res["unitName"], "Academia Brasileira de Certificações e Treinamentos")
+        self.assertEqual(res["city"], "São Paulo")
+        self.assertEqual(res["examTitle"], "Exame de Certificação")
+
+        row_without_unit = {**row_with_unit, "unit_name": None}
+        res_no_unit = participant_from_row(row_without_unit)
+        self.assertIsNone(res_no_unit["unitName"])
+
+    def test_participante_html_has_10_columns_and_new_filters(self):
+        html = Path("front-end/Participante.html").read_text(encoding="utf-8")
+        self.assertIn("<th>Participante</th>", html)
+        self.assertIn("<th>E-mail</th>", html)
+        self.assertIn("<th>Telefone</th>", html)
+        self.assertIn("<th>Cidade / UF</th>", html)
+        self.assertIn("<th>Instituição</th>", html)
+        self.assertIn("<th>Exame vinculado</th>", html)
+        self.assertIn("<th>Progresso</th>", html)
+        self.assertIn("<th>Situação</th>", html)
+        self.assertIn('<th class="actions-cell">Ações</th>', html)
+
+        self.assertNotIn("<th>Status</th>", html)
+        self.assertNotIn("<th>Último acesso</th>", html)
+        self.assertNotIn('data-row-action="resend_invite"', html)
+        self.assertNotIn('data-bulk="resend"', html)
+
+        self.assertIn('id="unit-filter"', html)
+        self.assertIn('id="situation-filter"', html)
+        self.assertIn('id="assign-exam-modal-backdrop"', html)
+        self.assertIn('id="assign-exam-form"', html)
+        self.assertIn('data-bulk="assign_exam"', html)
+
+    def test_manual_password_validation(self):
+        # 1. Mismatch
+        with self.assertRaises(ValueError) as ctx:
+            clean_participant({
+                "fullName": "Maria Silva",
+                "email": "maria@exemplo.com",
+                "accessPassword": "senhaValida123",
+                "confirmPassword": "outraSenha123",
+            })
+        self.assertIn("senhas não coincidem", str(ctx.exception))
+
+        # 2. Too short (< 8 chars)
+        with self.assertRaises(ValueError) as ctx:
+            clean_participant({
+                "fullName": "Maria Silva",
+                "email": "maria@exemplo.com",
+                "accessPassword": "123",
+                "confirmPassword": "123",
+            })
+        self.assertIn("pelo menos 8 caracteres", str(ctx.exception))
+
+        # 3. Required on creation if require_password=True
+        with self.assertRaises(ValueError) as ctx:
+            clean_participant({
+                "fullName": "Maria Silva",
+                "email": "maria@exemplo.com",
+            }, require_password=True)
+        self.assertIn("senha de acesso", str(ctx.exception))
+
+        # 4. Valid manual password matching
+        data = clean_participant({
+            "fullName": "Maria Silva",
+            "email": "maria@exemplo.com",
+            "accessPassword": "senhaSegura123",
+            "confirmPassword": "senhaSegura123",
+        }, require_password=True)
+        self.assertEqual(data["accessPassword"], "senhaSegura123")
+
 
 if __name__ == "__main__":
     unittest.main()
+

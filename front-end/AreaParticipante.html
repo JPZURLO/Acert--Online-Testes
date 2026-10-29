@@ -44,8 +44,11 @@
           </div>
 
           <ul>
-            <li>Reserve um ambiente silencioso e mantenha conexão estável.</li>
-            <li><strong>A prova funcionará em tela cheia.</strong> Trocar de guia ou janela, minimizar, sair da tela cheia, atualizar ou abrir outro item encerrará a tentativa imediatamente.</li>
+            <li><strong>Documento oficial:</strong> Tenha em mãos um documento oficial com foto durante todo o exame.</li>
+            <li><strong>Ambiente privado:</strong> Durante todo o exame você deverá permanecer sozinho no ambiente.</li>
+            <li><strong>Câmera obrigatória:</strong> É obrigatório possuir uma câmera/webcam funcionando no computador durante a realização da prova.</li>
+            <li><strong>Horário e Acesso:</strong> No horário agendado, acesse o link recebido utilizando o login e a senha informados. O responsável/aplicador já estará disponível aguardando para iniciar a avaliação.</li>
+            <li><strong>Ambiente seguro:</strong> A prova funcionará em tela cheia. Trocar de guia ou janela, minimizar, sair da tela cheia, atualizar ou abrir outro item encerrará a tentativa imediatamente.</li>
             <li>Ao terminar o tempo, as respostas serão enviadas automaticamente.</li>
           </ul>
         </section>
@@ -59,8 +62,72 @@
       </div>
     </section>
 
+    <section id="waiting-room-view" class="candidate-view" hidden>
+      <div class="waiting-room-card candidate-panel" style="max-width: 720px; margin: 2rem auto; padding: 2.5rem; text-align: center; border-radius: var(--candidate-radius, 16px); background: #ffffff; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.08);">
+        <div class="waiting-room-header" style="margin-bottom: 2rem;">
+          <img id="waiting-room-logo" src="./assets/images/Logo_com_Slogan (sem fundo).png" alt="Empresa" style="max-height: 60px; margin-bottom: 1rem; object-fit: contain;">
+          <h2 id="waiting-room-company" style="font-size: 1.4rem; color: #1e293b; margin: 0 0 0.5rem 0;">Empresa</h2>
+          <h1 id="waiting-room-exam-title" style="font-size: 1.8rem; color: var(--candidate-primary, #0f6f73); margin: 0;">Nome do Exame</h1>
+        </div>
+
+        <div class="candidate-badge-row" style="display: flex; justify-content: center; align-items: center; gap: 0.5rem; margin-bottom: 1.5rem;">
+          <span style="font-size: 1rem; color: #475569; font-weight: 500;">Candidato:</span>
+          <strong id="waiting-room-candidate-name" style="font-size: 1.1rem; color: #0f172a;">Participante</strong>
+        </div>
+
+        <div class="status-pulse-badge" style="display: inline-flex; align-items: center; gap: 0.6rem; background: #fef3c7; color: #92400e; padding: 0.6rem 1.4rem; border-radius: 50px; font-weight: 600; font-size: 1rem; margin-bottom: 2rem; border: 1px solid #fde68a;">
+          <span class="pulse-dot" style="width: 10px; height: 10px; background-color: #d97706; border-radius: 50%; display: inline-block; animation: pulse-anim 1.5s infinite;"></span>
+          <span id="waiting-room-status-label">Aguardando liberação do proctor...</span>
+        </div>
+
+        <div class="preflight-status-checklist" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.8rem; margin-bottom: 2rem; text-align: left;">
+          <div class="check-item" id="waiting-check-camera" style="padding: 0.8rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #334155;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Câmera validada
+          </div>
+          <div class="check-item" id="waiting-check-mic" style="padding: 0.8rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #334155;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Microfone validado
+          </div>
+          <div class="check-item" id="waiting-check-screen" style="padding: 0.8rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #334155;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Tela compartilhada
+          </div>
+          <div class="check-item" id="waiting-check-identity" style="padding: 0.8rem; background: #f8fafc; border-radius: 10px; border: 1px solid #e2e8f0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.88rem; color: #334155;">
+            <i class="fa-solid fa-circle-check" style="color: #10b981;"></i> Identidade OK
+          </div>
+        </div>
+
+        <div class="waiting-notice" style="background: #e0f2fe; border: 1px solid #bae6fd; border-radius: 12px; padding: 1rem 1.2rem; text-align: left; margin-bottom: 2rem; display: flex; align-items: flex-start; gap: 0.8rem;">
+          <i class="fa-solid fa-circle-info" style="color: #0284c7; font-size: 1.2rem; margin-top: 0.2rem;"></i>
+          <p style="margin: 0; font-size: 0.9rem; color: #0369a1; line-height: 1.4;">
+            <strong>Atenção:</strong> Não feche nem recarregue esta página. As verificações prévias foram concluídas e o seu exame iniciará automaticamente assim que o aplicador/proctor autorizar a liberação.
+          </p>
+        </div>
+
+        <section class="candidate-chat waiting-room-chat" style="text-align: left; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 14px; padding: 1.2rem;">
+          <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 1rem; border-bottom: 1px solid #e2e8f0; padding-bottom: 0.8rem;">
+            <div style="display: flex; align-items: center; gap: 0.6rem;">
+              <i class="fa-regular fa-comments" style="font-size: 1.2rem; color: var(--candidate-primary, #0f6f73);"></i>
+              <div>
+                <h3 style="font-size: 1rem; margin: 0; color: #1e293b;">Fale com o aplicador</h3>
+                <p style="font-size: 0.8rem; margin: 0; color: #64748b;">Tire dúvidas ou solicite liberação enquanto aguarda.</p>
+              </div>
+            </div>
+            <span id="waiting-chat-alert" hidden style="background: #ef4444; color: white; font-size: 0.7rem; font-weight: 700; padding: 0.15rem 0.5rem; border-radius: 10px;">NOVA</span>
+          </header>
+          <div id="waiting-chat-messages" class="candidate-chat-messages" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.6rem; margin-bottom: 1rem; padding-right: 0.4rem;">
+            <p class="chat-empty" style="font-size: 0.85rem; color: #94a3b8; font-style: italic;">Nenhuma mensagem ainda.</p>
+          </div>
+          <form id="waiting-chat-form" style="display: flex; gap: 0.6rem;">
+            <input id="waiting-chat-input" type="text" maxlength="2000" autocomplete="off" placeholder="Digite uma mensagem para o aplicador..." style="flex: 1; padding: 0.6rem 1rem; border: 1px solid #cbd5e1; border-radius: 8px; font-size: 0.9rem;">
+            <button type="submit" style="padding: 0.6rem 1.2rem; background: var(--candidate-primary, #0f6f73); color: white; border: none; border-radius: 8px; font-weight: 600; cursor: pointer;"><i class="fa-solid fa-paper-plane"></i></button>
+          </form>
+        </section>
+      </div>
+    </section>
+
     <section id="exam-view" class="candidate-view exam-view" hidden>
-      <header class="exam-header"><div><p class="eyebrow">TESTE EM ANDAMENTO</p><h1 id="exam-title">Teste</h1><span id="exam-progress-label">Questão 1 de 1</span></div><div class="exam-live-status"><span class="recording-badge" id="recording-badge"><i></i> Gravação ativa</span><div class="timer-card" id="timer-card"><small>Tempo restante</small><strong id="exam-timer">00:00:00</strong></div></div></header>
+      <header class="exam-header"><div><p class="eyebrow">TESTE EM ANDAMENTO</p><h1 id="exam-title">Teste</h1><span id="exam-progress-label">Questão 1 de 1</span></div><div class="exam-live-status"><span id="proctor-speaking-indicator" hidden class="recording-badge" style="background-color: #0284c7; color: white; font-weight: 600;"><i class="fa-solid fa-headset"></i> Proctor falando</span><span class="recording-badge" id="recording-badge"><i></i> Gravação ativa</span><div class="timer-card" id="timer-card"><small>Tempo restante</small><strong id="exam-timer">00:00:00</strong></div></div></header>
+      <div id="proctor-audio-notice" hidden style="background: #fef3c7; color: #92400e; border: 1px solid #fde68a; padding: 0.5rem 1rem; border-radius: 8px; font-size: 0.85rem; cursor: pointer; margin: 0.5rem 1rem 0 1rem;" onclick="document.getElementById('proctor-audio-player')?.play().then(()=>this.hidden=true)"><span>🔊 Clique aqui para ouvir a orientação em áudio do proctor</span></div>
+      <audio id="proctor-audio-player" autoplay playsinline style="display:none;"></audio>
       <div class="exam-layout"><aside class="question-navigation"><h2>Questões</h2><div id="question-navigation"></div><div class="navigation-legend"><span><i class="answered"></i>Respondida</span><span><i></i>Pendente</span></div></aside><section class="question-stage"><div class="autosave-status" id="autosave-status"><i></i> Respostas salvas</div><article id="question-container" class="question-card"></article><footer class="question-actions"><button class="candidate-button secondary" id="previous-question" type="button"><i class="fa-solid fa-arrow-left"></i> Anterior</button><button class="candidate-button primary" id="next-question" type="button">Próxima <i class="fa-solid fa-arrow-right"></i></button><button class="candidate-button finish" id="finish-attempt" type="button" hidden>Finalizar teste <i class="fa-solid fa-check"></i></button></footer></section><aside class="monitoring-panel"><header><div><span class="live-dot"></span><div><h2>Monitoramento</h2><p>Auditoria em andamento</p></div></div></header><video id="monitor-camera" muted playsinline></video><div class="monitoring-checks"><span id="monitor-camera-status"><i class="fa-solid fa-circle-check"></i> Câmera ativa</span><span id="monitor-microphone-status"><i class="fa-solid fa-circle-check"></i> Microfone ativo</span><span id="monitor-screen-status"><i class="fa-solid fa-circle-check"></i> Tela compartilhada</span></div><div class="sync-card"><i class="fa-solid fa-cloud-arrow-up"></i><div><strong id="recording-sync-status">Preparando gravação...</strong><small id="recording-chunk-status">0 fragmentos enviados</small></div></div><p class="monitoring-warning"><i class="fa-solid fa-shield-halved"></i> Não feche esta janela nem interrompa o compartilhamento.</p><section class="candidate-chat"><header><div><i class="fa-regular fa-comments"></i><div><h2>Chat com o aplicador</h2><p>Use somente para orientações durante o teste.</p></div></div><span id="candidate-chat-alert" hidden>NOVA</span></header><div id="candidate-chat-messages" class="candidate-chat-messages" aria-live="polite"><p class="chat-empty">Nenhuma mensagem ainda.</p></div><form id="candidate-chat-form" class="candidate-chat-form"><input id="candidate-chat-input" type="text" maxlength="2000" autocomplete="off" placeholder="Digite uma mensagem..."><button type="submit" aria-label="Enviar mensagem"><i class="fa-solid fa-paper-plane"></i></button></form></section></aside></div>
     </section>
 
@@ -71,6 +138,7 @@
 
   <div class="candidate-toast-region" id="candidate-toast-region" aria-live="polite"></div>
   <div class="confirm-backdrop" id="finish-confirmation" hidden><section role="dialog" aria-modal="true" aria-labelledby="finish-title"><span class="confirm-icon"><i class="fa-regular fa-paper-plane"></i></span><h2 id="finish-title">Finalizar e enviar o teste?</h2><p>Depois do envio, as respostas não poderão ser alteradas.</p><div><button class="candidate-button secondary" id="cancel-finish" type="button">Continuar respondendo</button><button class="candidate-button primary" id="confirm-finish" type="button">Finalizar e enviar</button></div></section></div>
+  <script>window.__ACERT_CONTEXT__ = 'candidate';</script>
   <script src="./js/participant-application.js?v=7"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>

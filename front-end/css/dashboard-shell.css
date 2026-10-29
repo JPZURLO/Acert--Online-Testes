@@ -1,4 +1,5 @@
 /* Estrutura compartilhada entre os módulos da área da empresa. */
+[hidden] { display: none !important; }
 :root {
   --primary: #137879;
   --primary-dark: #0f6364;
@@ -159,6 +160,248 @@
   border-radius: 50%;
   font-size: 12px;
   font-weight: 800;
+}
+
+.account-badge.unit-badge {
+  overflow: hidden;
+  padding: 3px;
+  background: #ffffff;
+  border: 1px solid #cfe4e4;
+}
+
+.account-badge.unit-badge img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.unit-switcher {
+  position: relative;
+}
+
+.unit-switcher-button {
+  min-width: 120px;
+  min-height: 38px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #14213d;
+  background: #fff;
+  border: 1px solid #dbe5ef;
+  border-radius: 999px;
+  font: inherit;
+  font-weight: 700;
+  font-size: 13px;
+  text-align: left;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.unit-switcher .unit-badge {
+  width: 28px;
+  height: 28px;
+  flex: 0 0 28px;
+  display: grid;
+  place-items: center;
+  overflow: hidden;
+  padding: 2px;
+  background: #fff;
+  border: 1px solid #cfe4e4;
+  border-radius: 50%;
+}
+
+.unit-switcher .unit-badge img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
+  border-radius: 50%;
+}
+
+.unit-switcher-button:hover {
+  border-color: #137879;
+  background: #f8fafc;
+}
+
+.unit-switcher-name {
+  max-width: 170px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unit-switcher-caret {
+  color: #137879;
+  font-size: 14px;
+  margin-left: auto;
+}
+
+.unit-switcher-menu {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  z-index: 80;
+  width: min(320px, 86vw);
+  padding: 8px;
+  background: #fff;
+  border: 1px solid #dbe5ef;
+  border-radius: 16px;
+  box-shadow: 0 18px 50px rgba(15, 23, 42, .16);
+}
+
+.unit-switcher-menu > button,
+.unit-actions button {
+  width: 100%;
+  padding: 11px 12px;
+  display: grid;
+  gap: 2px;
+  color: #14213d;
+  background: transparent;
+  border: 0;
+  border-radius: 11px;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.unit-switcher-menu > button:hover,
+.unit-switcher-menu > button.active {
+  background: #eef8f8;
+}
+
+.unit-switcher-menu strong { font-size: 13px; }
+.unit-switcher-menu small { color: #64748b; font-size: 11px; }
+
+.unit-actions {
+  margin-top: 8px;
+  padding-top: 8px;
+  border-top: 1px solid #e2e8f0;
+}
+
+.unit-actions button {
+  color: #137879;
+  font-weight: 800;
+}
+
+.unit-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 120;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(7, 23, 45, .52);
+}
+
+.unit-modal {
+  width: min(560px, 96vw);
+  max-height: 92vh;
+  overflow: auto;
+  padding: 22px;
+  background: #fff;
+  border-radius: 22px;
+  box-shadow: 0 24px 80px rgba(7, 23, 45, .25);
+}
+
+.unit-modal header,
+.unit-modal footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.unit-modal h2 {
+  margin: 4px 0 0;
+  color: #14213d;
+  font-size: 24px;
+}
+
+.unit-modal small,
+.unit-modal label span,
+.unit-form-message {
+  color: #64748b;
+}
+
+.unit-modal-close {
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  font-size: 28px;
+  cursor: pointer;
+}
+
+.unit-form {
+  margin-top: 18px;
+  display: grid;
+  gap: 14px;
+}
+
+.unit-form label {
+  display: grid;
+  gap: 7px;
+  color: #334155;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.unit-form input,
+.unit-form select {
+  min-height: 46px;
+  padding: 0 13px;
+  border: 1px solid #cbd5e1;
+  border-radius: 12px;
+  background: #fff;
+  color: #14213d;
+  font: inherit;
+}
+
+.unit-logo-upload input {
+  padding-top: 10px;
+}
+
+.unit-logo-preview {
+  min-height: 74px;
+  display: grid;
+  place-items: center;
+  border: 1px dashed #94a3b8;
+  border-radius: 14px;
+  background: #f8fafc;
+}
+
+.unit-logo-preview img {
+  max-width: 180px;
+  max-height: 64px;
+  object-fit: contain;
+  padding: 4px;
+  background: #ffffff;
+  border-radius: 10px;
+}
+
+.unit-modal footer {
+  margin-top: 6px;
+}
+
+.unit-modal footer button {
+  min-height: 44px;
+  padding: 0 18px;
+  border: 1px solid #137879;
+  border-radius: 12px;
+  background: #137879;
+  color: #fff;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.unit-modal footer button.secondary {
+  background: #fff;
+  color: #14213d;
+  border-color: #cbd5e1;
 }
 
 .help-button {

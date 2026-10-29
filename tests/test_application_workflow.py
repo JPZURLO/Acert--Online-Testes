@@ -21,7 +21,7 @@ class ApplicationWorkflowTests(unittest.TestCase):
 
     def test_objective_scoring_and_essay_review(self):
         questions = [{"id": "q1", "type": "multiple_choice", "prompt": "Objetiva", "points": 40, "correctAnswer": "A"}, {"id": "q2", "type": "essay", "prompt": "Dissertativa", "points": 60}]
-        answers, points, total, percentage, correct, has_essay = score_answers(questions, {"q1": "A", "q2": "Texto"})
+        answers, points, total, percentage, correct, has_essay, _competencies = score_answers(questions, {"q1": "A", "q2": "Texto"})
         self.assertEqual((points, total, percentage, correct), (40, 100, 40, 1))
         self.assertTrue(has_essay)
         self.assertIsNone(answers[1]["isCorrect"])
@@ -29,17 +29,17 @@ class ApplicationWorkflowTests(unittest.TestCase):
     def test_multiple_select_scoring_requires_exact_set_match(self):
         questions = [{"id": "q1", "type": "multiple_select", "prompt": "Múltiplas", "points": 50, "correctAnswers": ["A", "C"]}]
         # Exact set match -> correct
-        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A", "C"]'})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(questions, {"q1": '["A", "C"]'})
         self.assertEqual((points, total, percentage, correct), (50, 50, 100.0, 1))
         self.assertTrue(answers[0]["isCorrect"])
 
         # Partial set match -> incorrect
-        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A"]'})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(questions, {"q1": '["A"]'})
         self.assertEqual((points, total, percentage, correct), (0, 50, 0.0, 0))
         self.assertFalse(answers[0]["isCorrect"])
 
         # Extra item -> incorrect
-        answers, points, total, percentage, correct, _ = score_answers(questions, {"q1": '["A", "B", "C"]'})
+        answers, points, total, percentage, correct, _has_essay, _competencies = score_answers(questions, {"q1": '["A", "B", "C"]'})
         self.assertEqual((points, total, percentage, correct), (0, 50, 0.0, 0))
         self.assertFalse(answers[0]["isCorrect"])
 

@@ -1,6 +1,7 @@
 import calendar
 import json
 import secrets
+from html import escape
 from datetime import date, datetime, timedelta
 
 from flask import Blueprint, jsonify, request
@@ -162,10 +163,12 @@ def create_support_finance_blueprint(open_database, token_payload):
                 return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
             protocol = "SUP-" + secrets.token_hex(4).upper()
             sla_hours = 4 if priority in {"high", "urgent"} else 24
+            requester_name = clean_text(data.get("requesterName"), 160, company["RazaoSocial"])
+            requester_email = clean_text(data.get("requesterEmail"), 254)
             cursor.execute(
                 "INSERT INTO support_tickets (protocol,company_id,requester_name,requester_email,subject,category,priority,status,sla_due_at) "
                 "VALUES (%s,%s,%s,%s,%s,%s,%s,'new',DATE_ADD(NOW(),INTERVAL %s HOUR))",
-                (protocol, company_id, clean_text(data.get("requesterName"), 160, company["RazaoSocial"]), clean_text(data.get("requesterEmail"), 254), subject, category, priority, sla_hours),
+                (protocol, company_id, requester_name, requester_email, subject, category, priority, sla_hours),
             )
             ticket_id = cursor.lastrowid
             cursor.execute(
@@ -173,6 +176,35 @@ def create_support_finance_blueprint(open_database, token_payload):
                 (ticket_id, company["RazaoSocial"], message),
             )
             connection.commit()
+
+            # Envia cópia por e-mail para comercial@onlineteste.com.br
+            try:
+                from recording_retention import send_email
+                copy_recipient = "comercial@onlineteste.com.br"
+                mail_subject = f"[Novo Chamado {protocol}] {subject} - {company['RazaoSocial']}"
+                mail_text = (
+                    f"Novo chamado de suporte aberto no Online Teste:\n\n"
+                    f"Protocolo: {protocol}\n"
+                    f"Empresa: {company['RazaoSocial']}\n"
+                    f"Solicitante: {requester_name}\n"
+                    f"E-mail de contato: {requester_email or 'Não informado'}\n"
+                    f"Categoria: {category} | Prioridade: {priority}\n"
+                    f"Assunto: {subject}\n\n"
+                    f"Mensagem:\n{message}\n"
+                )
+                mail_html = (
+                    f"<h2>Novo Chamado de Suporte — {protocol}</h2>"
+                    f"<p><strong>Empresa:</strong> {escape(company['RazaoSocial'])}<br>"
+                    f"<strong>Solicitante:</strong> {escape(requester_name)} ({escape(requester_email or 'sem e-mail')})<br>"
+                    f"<strong>Categoria:</strong> {category} | <strong>Prioridade:</strong> {priority}</p>"
+                    f"<p><strong>Assunto:</strong> {escape(subject)}</p>"
+                    f"<h3>Mensagem:</h3>"
+                    f"<p style='background:#f8fafc;padding:12px;border-left:4px solid #2563eb;white-space:pre-wrap;'>{escape(message)}</p>"
+                )
+                send_email(copy_recipient, mail_subject, mail_text, mail_html)
+            except Exception:
+                pass
+
             return jsonify({"success": True, "ticketId": ticket_id, "protocol": protocol}), 201
         finally:
             cursor.close()
@@ -205,8 +237,9 @@ def create_support_finance_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
-            cursor.execute("SELECT id FROM support_tickets WHERE id=%s AND company_id=%s", (ticket_id, company_id))
-            if not cursor.fetchone():
+            cursor.execute("SELECT id, protocol, subject FROM support_tickets WHERE id=%s AND company_id=%s", (ticket_id, company_id))
+            ticket_row = cursor.fetchone()
+            if not ticket_row:
                 return jsonify({"success": False, "message": "Chamado não encontrado."}), 404
             cursor.execute("SELECT RazaoSocial FROM empresas WHERE id=%s", (company_id,))
             company = cursor.fetchone()
@@ -216,6 +249,28 @@ def create_support_finance_blueprint(open_database, token_payload):
             )
             cursor.execute("UPDATE support_tickets SET status='new',updated_at=NOW() WHERE id=%s", (ticket_id,))
             connection.commit()
+
+            # Envia cópia por e-mail para comercial@onlineteste.com.br
+            try:
+                from recording_retention import send_email
+                copy_recipient = "comercial@onlineteste.com.br"
+                protocol = ticket_row.get("protocol") or f"SUP-{ticket_id}"
+                subj = ticket_row.get("subject") or "Atendimento"
+                mail_subject = f"[Nova Resposta {protocol}] {subj} - {company['RazaoSocial']}"
+                mail_text = (
+                    f"Nova mensagem enviada no chamado {protocol}:\n\n"
+                    f"Empresa: {company['RazaoSocial']}\n\n"
+                    f"Mensagem:\n{message}\n"
+                )
+                mail_html = (
+                    f"<h2>Nova resposta no Chamado {protocol}</h2>"
+                    f"<p><strong>Empresa:</strong> {escape(company['RazaoSocial'])}</p>"
+                    f"<p style='background:#f8fafc;padding:12px;border-left:4px solid #2563eb;white-space:pre-wrap;'>{escape(message)}</p>"
+                )
+                send_email(copy_recipient, mail_subject, mail_text, mail_html)
+            except Exception:
+                pass
+
             return jsonify({"success": True})
         finally:
             cursor.close()

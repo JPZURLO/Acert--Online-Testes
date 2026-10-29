@@ -163,6 +163,18 @@ $CATEGORY: Demonstração
         self.assertEqual(len(questions), 40)
         self.assertTrue(all(question["points"] == 2.5 for question in questions))
 
+    def test_gift_preserves_points_from_file_when_declared(self):
+        payload = """// Pontos: 4
+::Q1::Primeira questão? {TRUE}
+
+::Q2::[pontos=6] Segunda questão? {=A ~B}
+
+<!-- points: 8 --> Terceira questão? {=C ~D}
+"""
+        questions = parse_gift_questions(io.BytesIO(payload.encode("utf-8")))
+        self.assertEqual([question["points"] for question in questions], [4, 6, 8])
+        self.assertTrue(all(question["pointsFromFile"] for question in questions))
+
     def test_gift_supports_missing_word_and_escaped_control_characters(self):
         payload = r"""::Lacuna::Dois mais dois {~\= 5 =\= 4 ~\= 3} em aritmética.
 """

@@ -12,6 +12,81 @@
   // --- 1. Banco de Dados Oficial dos 14 Artigos com Mapeamento Exato de Prints ---
   const KNOWLEDGE_ARTICLES = [
     {
+      id: 'tipos-de-questoes-disponiveis',
+      title: 'Tipos de questões disponíveis',
+      summary: 'Veja quais modelos de questão podem ser criados no teste e como utilizar cada um.',
+      category: 'Criação de exames',
+      audience: 'company',
+      readTime: '4 min de leitura',
+      updatedAt: '31/07/2026',
+      lead: 'O Online Teste permite montar avaliações objetivas, discursivas e modelos de triagem/RH. Escolha o tipo de questão de acordo com o objetivo do teste.',
+      toc: [
+        { id: 'sec-objetivas', title: '1. Questões objetivas' },
+        { id: 'sec-discursivas', title: '2. Questões discursivas' },
+        { id: 'sec-imagens', title: '3. Questões com imagem ou gráfico' },
+        { id: 'sec-rh', title: '4. Questões para RH e perfil' }
+      ],
+      steps: [
+        {
+          num: 1,
+          title: 'Escolha única',
+          desc: 'Use quando existe apenas uma alternativa correta. Preencha o enunciado, cadastre as alternativas e marque somente a resposta correta.',
+          image: '',
+          filename: '',
+          alt: 'Questão de escolha única',
+          caption: 'Ideal para testes técnicos, certificações e provas com gabarito objetivo.'
+        },
+        {
+          num: 2,
+          title: 'Múltipla seleção',
+          desc: 'Use quando a questão pode ter duas ou mais alternativas corretas. Marque todas as respostas válidas antes de salvar ou publicar o teste.',
+          image: '',
+          filename: '',
+          alt: 'Questão de múltipla seleção',
+          caption: 'Boa opção para perguntas que avaliam combinações de conceitos.'
+        },
+        {
+          num: 3,
+          title: 'Verdadeiro ou falso',
+          desc: 'Use para afirmações simples. O sistema apresenta as opções Verdadeiro e Falso e corrige automaticamente quando houver gabarito.',
+          image: '',
+          filename: '',
+          alt: 'Questão de verdadeiro ou falso',
+          caption: 'Modelo rápido para validar conceitos objetivos.'
+        },
+        {
+          num: 4,
+          title: 'Resposta curta ou dissertativa',
+          desc: 'Use quando o participante precisa escrever uma resposta. Questões discursivas podem exigir revisão manual antes da liberação do resultado.',
+          image: '',
+          filename: '',
+          alt: 'Questão discursiva',
+          caption: 'Indicada para redações, justificativas e análises abertas.'
+        },
+        {
+          num: 5,
+          title: 'Questões com imagem ou gráfico',
+          desc: 'Ao criar ou importar uma questão, anexe uma imagem ou gráfico quando o enunciado depender de um visual. O participante verá a imagem junto da pergunta durante o teste.',
+          image: '',
+          filename: '',
+          alt: 'Questão com imagem',
+          caption: 'Útil para interpretação de gráficos, diagramas, tabelas e imagens técnicas.'
+        },
+        {
+          num: 6,
+          title: 'Questões de RH e perfil comportamental',
+          desc: 'Quando a licença liberar recursos de RH, as alternativas podem ser associadas a competências ou dimensões de perfil. Nesse caso, o resultado pode ser exibido por aderência ou por competências predominantes, sem nota tradicional.',
+          image: '',
+          filename: '',
+          alt: 'Questão de perfil comportamental',
+          caption: 'Use para triagem, aderência à vaga e leitura de perfil comportamental.'
+        }
+      ],
+      alertTip: 'Se o arquivo importado em GIFT trouxer pontuação, o sistema mantém essa pontuação quando a opção “Substituir pontuação do arquivo” estiver desmarcada.',
+      relatedIds: ['como-importar-questoes-excel-gift', 'como-configurar-seguranca-exame']
+    },
+
+    {
       id: 'como-criar-um-novo-participante',
       title: 'Como criar um novo participante',
       summary: 'Aprenda a cadastrar manualmente um candidato ou aluno no painel da empresa para conceder acesso aos exames.',
@@ -714,19 +789,11 @@
     let stepsHTML = '';
     if (article.steps && article.steps.length > 0) {
       stepsHTML = article.steps.map(step => {
-        const imageSrc = step.image || (IMG_BASE_PATH + '11-empresa-dashboard-main.png');
+        const imageSrc = step.image || '';
         const altText = escapeHTML(step.alt || step.title);
         const captionText = escapeHTML(step.caption || step.title);
         const fileName = step.filename || 'print-da-tela.png';
-
-        return `
-          <div class="kb-step-card kb-block-wrapper">
-            <div class="kb-step-header">
-              <span class="kb-step-number">${step.num}</span>
-              <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
-            </div>
-            <p class="kb-step-desc">${escapeHTML(step.desc)}</p>
-            
+        const figureHTML = imageSrc ? `
             <figure class="kb-step-figure">
               <div class="kb-step-figure-badge">🖼️ Print da Tela: <code>${fileName}</code></div>
               <button class="kb-image-zoom-btn" type="button" aria-label="Ampliar captura de tela" onclick="window.openKnowledgeImageZoom('${imageSrc}', '${altText}', '${captionText}')">
@@ -737,6 +804,16 @@
                 <span class="kb-zoom-badge">🔍 Clique para ampliar em tela cheia</span>
               </figcaption>
             </figure>
+        ` : `<div class="kb-step-note">${captionText}</div>`;
+
+        return `
+          <div class="kb-step-card kb-block-wrapper">
+            <div class="kb-step-header">
+              <span class="kb-step-number">${step.num}</span>
+              <h3 class="kb-step-title">${escapeHTML(step.title)}</h3>
+            </div>
+            <p class="kb-step-desc">${escapeHTML(step.desc)}</p>
+            ${figureHTML}
           </div>
         `;
       }).join('');

@@ -25,12 +25,12 @@ class ExamExpansionFeaturesTests(unittest.TestCase):
         self.assertEqual(cleaned["options"], ["Conforme", "Não conforme"])
 
         # Correção com seleção correta
-        answers, points, _, _, _, _ = score_answers([cleaned], {"q-bin": "Conforme"})
+        answers, points, _, _, _, _, _ = score_answers([cleaned], {"q-bin": "Conforme"})
         self.assertEqual(points, 10)
         self.assertTrue(answers[0]["isCorrect"])
 
         # Correção com seleção incorreta
-        answers, points, _, _, _, _ = score_answers([cleaned], {"q-bin": "Não conforme"})
+        answers, points, _, _, _, _, _ = score_answers([cleaned], {"q-bin": "Não conforme"})
         self.assertEqual(points, 0)
         self.assertFalse(answers[0]["isCorrect"])
 
@@ -61,13 +61,13 @@ class ExamExpansionFeaturesTests(unittest.TestCase):
 
         # Correção com ambas as lacunas corretas
         user_input = json.dumps({"blank-1": "   pYtHoN ", "blank-2": "guido"})
-        answers, points, _, _, _, _ = score_answers([cleaned], {"q-blank": user_input})
+        answers, points, _, _, _, _, _ = score_answers([cleaned], {"q-blank": user_input})
         self.assertEqual(points, 20)
         self.assertTrue(answers[0]["isCorrect"])
 
         # Correção com uma lacuna errada
         user_input_err = json.dumps({"blank-1": "Python", "blank-2": "Outro"})
-        answers, points, _, _, _, _ = score_answers([cleaned], {"q-blank": user_input_err})
+        answers, points, _, _, _, _, _ = score_answers([cleaned], {"q-blank": user_input_err})
         self.assertEqual(points, 0)
         self.assertFalse(answers[0]["isCorrect"])
 
@@ -82,7 +82,7 @@ class ExamExpansionFeaturesTests(unittest.TestCase):
         }
 
         # Exatamente 2 corretas -> OK
-        answers, points, _, _, _, _ = score_answers(
+        answers, points, _, _, _, _, _ = score_answers(
             [question],
             {"q-limit": json.dumps(["Python", "Java"])}
         )
@@ -90,7 +90,7 @@ class ExamExpansionFeaturesTests(unittest.TestCase):
         self.assertTrue(answers[0]["isCorrect"])
 
         # Selecionou 3 (violou exactSelections = 2) -> 0 pontos
-        answers, points, _, _, _, _ = score_answers(
+        answers, points, _, _, _, _, _ = score_answers(
             [question],
             {"q-limit": json.dumps(["Python", "Java", "C++"])}
         )

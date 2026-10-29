@@ -1,13 +1,12 @@
 .kb-rich-editor {
-  position: fixed;
-  inset: 0;
-  z-index: 1700;
-  background: #151d29;
-  color: #d7e1ef;
-  overflow: hidden;
+  position: relative;
+  z-index: 1;
+  background: transparent;
+  color: inherit;
 }
 
-.kb-rich-editor[hidden] {
+.kb-rich-editor[hidden],
+.kb-rich-editor-panel[hidden] {
   display: none !important;
 }
 

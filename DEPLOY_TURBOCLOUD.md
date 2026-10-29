@@ -94,6 +94,8 @@ Com o ambiente virtual indicado pelo Setup Python App ativado:
 cd ~/online_test_app
 python scripts/migrate_company_operations.py
 python scripts/migrate_password_hashes.py
+python scripts/migrate_company_units.py
+python scripts/migrate_participant_exam_schedule.py
 ```
 
 Crie o administrador apenas se o banco de produção ainda não possuir um:
@@ -111,6 +113,15 @@ cd /home/USUARIO_CPANEL/online_test_app && /home/USUARIO_CPANEL/virtualenv/onlin
 ```
 
 O caminho exato do virtualenv aparece no topo da tela **Setup Python App**.
+
+Para executar uma migração usando o caminho completo do Python do ambiente, passe
+o script diretamente após o executável (não acrescente outro `python`):
+
+```bash
+cd /home/USUARIO_CPANEL/online_test_app
+/home/USUARIO_CPANEL/virtualenv/online_test_app/3.11/bin/python scripts/migrate_company_units.py
+/home/USUARIO_CPANEL/virtualenv/online_test_app/3.11/bin/python scripts/migrate_participant_exam_schedule.py
+```
 
 ## 9. Reiniciar e validar
 

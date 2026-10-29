@@ -1,15 +1,17 @@
 """
 tests/test_knowledge_base_editor.py
 
-Testes automatizados do novo Editor Visual Inline por Blocos da Base de Conhecimento.
-Testa rotas de upload seguro de imagens, salvamento de rascunhos, publicação e listagem pública.
+Testes automatizados do Editor da Base de Conhecimento em Admin.
 """
 import json
 import io
 import os
-import shutil
-import tempfile
 import unittest
+import tempfile
+import shutil
+os.environ.setdefault("JWT_SECRET", "test_jwt_secret_32_bytes_minimum_string")
+os.environ.setdefault("ADMIN_USER", "admin")
+os.environ.setdefault("ADMIN_PASSWORD_HASH", "scrypt:32768:8:1$test$test")
 
 import secure_app
 from secure_app import app, issue_token, JWT_COOKIE_NAME, CSRF_COOKIE_NAME

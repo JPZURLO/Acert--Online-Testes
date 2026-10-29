@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -21,7 +21,7 @@
       <div class="admin-sidebar-footer"><button id="admin-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i><span>Sair</span></button></div>
     </aside>
     <main class="admin-workspace">
-      <header class="admin-topbar"><button id="admin-mobile-menu" aria-label="Abrir menu"><i class="fa-solid fa-bars"></i></button><div class="admin-breadcrumb"><span>Administração</span><i class="fa-solid fa-chevron-right"></i><strong id="admin-breadcrumb">Visão geral</strong></div><div class="admin-view-as"><button class="admin-secondary" id="admin-view-as-trigger" type="button"><i class="fa-regular fa-eye"></i> Visualizar como <i class="fa-solid fa-chevron-down"></i></button><div class="admin-view-as-menu" id="admin-view-as-menu" hidden><button type="button" data-simulation-mode="company"><i class="fa-solid fa-building"></i> Empresa</button><button type="button" data-simulation-mode="participant"><i class="fa-regular fa-user"></i> Participante</button><button type="button" id="admin-view-as-reset"><i class="fa-solid fa-shield-halved"></i> Voltar para Admin</button></div></div><div class="admin-profile"><span id="admin-initials">AD</span><div><strong id="admin-name">Administrador</strong><small>Acesso total</small></div></div></header>
+      <header class="admin-topbar"><button id="admin-mobile-menu" aria-label="Abrir menu"><i class="fa-solid fa-bars"></i></button><div class="admin-breadcrumb"><span>Administração</span><i class="fa-solid fa-chevron-right"></i><strong id="admin-breadcrumb">Visão geral</strong></div><div class="admin-view-as"><button class="admin-secondary" id="admin-view-as-trigger" type="button"><i class="fa-regular fa-eye"></i> Visualizar como <i class="fa-solid fa-chevron-down"></i></button><div class="admin-view-as-menu" id="admin-view-as-menu" hidden><button type="button" data-simulation-mode="company"><i class="fa-solid fa-building"></i> Empresa</button><button type="button" data-simulation-mode="participant"><i class="fa-regular fa-user"></i> Participante</button><button type="button" id="admin-view-as-reset"><i class="fa-solid fa-shield-halved"></i> Voltar para Admin</button></div></div><div class="admin-profile-container" id="admin-profile-container"><button class="admin-profile" id="admin-profile-trigger" type="button"><span id="admin-initials">AD</span><div><strong id="admin-name">Administrador</strong><small>Acesso total <i class="fa-solid fa-chevron-down"></i></small></div></button><div class="admin-profile-menu" id="admin-profile-menu" hidden><button type="button" id="admin-profile-change-password"><i class="fa-solid fa-key"></i> Alterar senha</button><button type="button" id="admin-profile-logout"><i class="fa-solid fa-arrow-right-from-bracket"></i> Sair</button></div></div></header>
       <div class="admin-content">
         <section class="admin-view" data-admin-section="overview">
           <div class="admin-heading"><div><span class="admin-eyebrow">PAINEL ADMINISTRATIVO</span><h1>Visão geral</h1><p>Acompanhe acessos, clientes e licenças em um único lugar.</p></div><button class="admin-primary" data-go-admin="plans"><i class="fa-solid fa-plus"></i> Criar plano</button></div>
@@ -48,44 +48,210 @@
           <div class="admin-split plans-layout"><article class="admin-panel"><div class="admin-panel-heading"><div><h2>Planos cadastrados</h2><p>Selecione um plano para editar.</p></div></div><div class="plan-list" id="plan-list"></div></article><aside class="admin-panel plan-editor"><form id="plan-form"><input type="hidden" id="plan-id"><div class="admin-panel-heading"><div><span class="admin-status" id="plan-editor-status">Novo plano</span><h2 id="plan-editor-title">Configuração</h2></div></div><label>Nome do plano<input id="plan-name" maxlength="120" required></label><label>Descrição<textarea id="plan-description" rows="2" maxlength="500"></textarea></label><label>Valor mensal do plano (R$)<input id="plan-monthly-price" type="number" min="0" step="0.01" placeholder="0,00"></label><div class="admin-form-grid"><label>Status<select id="plan-status" class="admin-select"><option value="active">Ativo</option><option value="draft">Rascunho</option><option value="archived">Arquivado</option></select></label><label>Testes ativos<input id="plan-max-exams" type="number" min="0" placeholder="Sem limite"></label><label>Participantes/mês<input id="plan-max-participants" type="number" min="0" placeholder="Sem limite"></label><label>Usuários gestores<input id="plan-max-admins" type="number" min="0" placeholder="Sem limite"></label><label>Retenção de resultados (meses)<input id="plan-retention" type="number" min="1" placeholder="Sem limite"></label><label>Retenção das gravações (dias)<input id="plan-recording-retention" type="number" min="1" max="365" value="5" required></label></div><fieldset><legend>Recursos incluídos</legend><div class="feature-grid" id="plan-features"><label><input type="checkbox" value="exams"> Criação e edição de testes</label><label><input type="checkbox" value="excel_import"> Importação por Excel e GIFT</label><label><input type="checkbox" value="branding"> Logo e cores da empresa</label><label><input type="checkbox" value="participants"> Gestão de participantes</label><label><input type="checkbox" value="results"> Painel de resultados</label><label><input type="checkbox" value="export_results"> Exportação avançada</label><label><input type="checkbox" value="api_access"> Integração via API</label><label><input type="checkbox" value="priority_support"> Suporte prioritário</label></div></fieldset><div id="plan-message" class="admin-form-message"></div><button class="admin-primary" type="submit">Salvar plano</button></form></aside></div>
         </section>
         <section class="admin-view" data-admin-section="knowledge-base" hidden>
-          <div class="admin-heading"><div><span class="admin-eyebrow">CENTRAL DE TUTORIAIS</span><h1>Manual do Usuário</h1><p>Crie, edite ou remova tutoriais, passos orientados e prints de telas exibidos na plataforma.</p></div><button class="admin-primary" id="btn-admin-kb-new" type="button"><i class="fa-solid fa-plus"></i> Novo artigo</button></div>
-          <div class="admin-panel" style="margin-bottom: 20px; padding: 16px;">
-            <div style="display: flex; gap: 12px; flex-wrap: wrap;">
-              <input type="text" id="admin-kb-search" class="admin-input" placeholder="Buscar artigo por título ou categoria..." style="flex: 1; min-width: 250px;">
-              <select id="admin-kb-category-filter" class="admin-select">
-                <option value="">Todas as categorias</option>
-                <option value="Primeiros passos">Primeiros passos</option>
-                <option value="Criação de exames">Criação de exames</option>
-                <option value="Questões e importação">Questões e importação</option>
-                <option value="Participantes">Participantes</option>
-                <option value="Documentos e termos">Documentos e termos</option>
-                <option value="Convites e acessos">Convites e acessos</option>
-                <option value="Monitoramento">Monitoramento</option>
-                <option value="Resultados">Resultados</option>
-                <option value="Personalização">Personalização</option>
-                <option value="Conheça a plataforma">Conheça a plataforma</option>
-              </select>
+          <!-- Sub-view 1: Listagem de Artigos -->
+          <div id="admin-kb-list-view">
+            <div class="admin-heading">
+              <div>
+                <span class="admin-eyebrow">CENTRAL DE TUTORIAIS</span>
+                <h1>Manual do Usuário</h1>
+                <p>Crie, edite ou remova tutoriais, passos orientados e prints de telas exibidos na plataforma.</p>
+              </div>
+              <button class="admin-primary" id="btn-admin-kb-new" type="button">
+                <i class="fa-solid fa-plus"></i> Novo artigo
+              </button>
+            </div>
+
+            <div class="admin-panel" style="margin-bottom: 20px; padding: 16px;">
+              <div style="display: flex; gap: 12px; flex-wrap: wrap;">
+                <input type="text" id="admin-kb-search" class="admin-input" placeholder="Buscar artigo por título ou categoria..." style="flex: 1; min-width: 250px;">
+                <select id="admin-kb-category-filter" class="admin-select">
+                  <option value="">Todas as categorias</option>
+                  <option value="Primeiros passos">Primeiros passos</option>
+                  <option value="Criação de exames">Criação de exames</option>
+                  <option value="Questões e importação">Questões e importação</option>
+                  <option value="Participantes">Participantes</option>
+                  <option value="Documentos e termos">Documentos e termos</option>
+                  <option value="Convites e acessos">Convites e acessos</option>
+                  <option value="Monitoramento">Monitoramento</option>
+                  <option value="Resultados">Resultados</option>
+                  <option value="Personalização">Personalização</option>
+                  <option value="Conheça a plataforma">Conheça a plataforma</option>
+                </select>
+              </div>
+            </div>
+
+            <article class="admin-panel">
+              <div class="admin-panel-heading">
+                <div>
+                  <h2>Artigos Cadastrados</h2>
+                  <p id="admin-kb-count">Carregando artigos...</p>
+                </div>
+              </div>
+              <div class="admin-table-wrap">
+                <table>
+                  <thead>
+                    <tr>
+                      <th>Título do Artigo</th>
+                      <th>Categoria</th>
+                      <th>Público-Alvo</th>
+                      <th>Passos</th>
+                      <th>Leitura</th>
+                      <th>Status</th>
+                      <th>Ações</th>
+                    </tr>
+                  </thead>
+                  <tbody id="admin-kb-table-body"></tbody>
+                </table>
+              </div>
+            </article>
+          </div>
+
+          <!-- Sub-view 2: Editor Rico de Artigos (dentro do layout Admin) -->
+          <div id="kb-rich-editor" hidden>
+            <div class="admin-heading" style="margin-bottom: 16px;">
+              <div>
+                <button class="admin-secondary" id="kb-rich-back" type="button" style="margin-bottom: 8px;">
+                  <i class="fa-solid fa-arrow-left"></i> Voltar para lista de artigos
+                </button>
+                <span class="admin-eyebrow" id="kb-rich-status">EDIÇÃO DE ARTIGO</span>
+                <h1 id="admin-kb-editor-heading">Editar Artigo</h1>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="admin-secondary" id="kb-rich-preview" type="button">
+                  <i class="fa-regular fa-eye"></i> Visualizar prévia
+                </button>
+                <button class="admin-secondary" id="kb-rich-save-draft" type="button">
+                  <i class="fa-regular fa-floppy-disk"></i> Salvar rascunho
+                </button>
+                <button class="admin-primary" id="kb-rich-publish" type="button">
+                  <i class="fa-solid fa-paper-plane"></i> Publicar artigo
+                </button>
+                <button class="admin-secondary danger" id="kb-rich-delete" type="button">
+                  <i class="fa-solid fa-trash"></i> Excluir
+                </button>
+              </div>
+            </div>
+
+            <div class="admin-panel" style="padding: 24px; margin-bottom: 24px;">
+              <div class="kb-rich-title-row" style="margin-bottom: 16px;">
+                <input id="kb-rich-title" type="text" maxlength="160" class="admin-input" placeholder="Título do artigo *" style="font-size: 18px; font-weight: 800; padding: 12px 16px;">
+                <button id="kb-rich-copy-link" class="admin-secondary" type="button" title="Copiar link do artigo" style="height: 48px; width: 48px; padding: 0;">
+                  <i class="fa-solid fa-link"></i>
+                </button>
+              </div>
+
+              <div class="admin-form-grid" style="display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Categoria
+                  <select id="kb-rich-category" class="admin-select">
+                    <option value="Primeiros passos">Primeiros passos</option>
+                    <option value="Criação de exames">Criação de exames</option>
+                    <option value="Questões e importação">Questões e importação</option>
+                    <option value="Participantes">Participantes</option>
+                    <option value="Documentos e termos">Documentos e termos</option>
+                    <option value="Convites e acessos">Convites e acessos</option>
+                    <option value="Monitoramento">Monitoramento</option>
+                    <option value="Resultados">Resultados</option>
+                    <option value="Personalização">Personalização</option>
+                    <option value="Conheça a plataforma">Conheça a plataforma</option>
+                  </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Público-Alvo
+                  <select id="kb-rich-audience" class="admin-select">
+                    <option value="company">Empresas (Painel)</option>
+                    <option value="participant">Participantes</option>
+                    <option value="platform">Geral / Plataforma</option>
+                  </select>
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Tempo de Leitura
+                  <input id="kb-rich-readtime" class="admin-input" type="text" maxlength="40" placeholder="3 min de leitura" value="3 min de leitura">
+                </label>
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Status
+                  <select id="kb-rich-status-select" class="admin-select">
+                    <option value="published">🟢 Publicado</option>
+                    <option value="draft">🟡 Rascunho</option>
+                  </select>
+                </label>
+              </div>
+
+              <div style="margin-bottom: 16px;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Resumo / Apresentação (Lead) *
+                  <textarea id="kb-rich-lead" class="admin-input" rows="2" placeholder="Explique brevemente o objetivo deste tutorial..."></textarea>
+                </label>
+              </div>
+
+              <div style="margin-bottom: 20px;">
+                <label style="display: flex; flex-direction: column; gap: 4px; font-weight: 700; font-size: 13px;">Dica Útil / Alerta (Opcional)
+                  <input id="kb-rich-alert-input" class="admin-input" placeholder="Dica importante exibida em destaque para o leitor...">
+                </label>
+              </div>
+
+              <hr style="margin: 20px 0; border: 0; border-top: 1px solid var(--line, #e2e8f0);">
+
+              <!-- Ferramentas e Área de Conteúdo -->
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                <h3 style="font-size: 16px; font-weight: 800; margin: 0;">Conteúdo e Passos do Tutorial</h3>
+                <div style="display: flex; gap: 8px;">
+                  <button class="admin-secondary" id="kb-rich-add-step" type="button"><i class="fa-solid fa-plus"></i> Passo</button>
+                  <button class="admin-secondary" id="kb-rich-add-alert" type="button"><i class="fa-regular fa-lightbulb"></i> Dica</button>
+                  <button class="admin-secondary" id="kb-rich-upload-image" type="button"><i class="fa-regular fa-image"></i> Imagem</button>
+                </div>
+              </div>
+
+              <div class="kb-rich-toolbar" aria-label="Ferramentas do editor" style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px 6px 0 0; padding: 8px 12px;">
+                <button type="button" data-command="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
+                <button type="button" data-command="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
+                <button type="button" data-command="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
+                <select id="kb-rich-block-style" aria-label="Estilo do bloco" class="admin-select" style="min-height: 32px; padding: 4px 8px;">
+                  <option value="p">Normal</option>
+                  <option value="h2">Título 2</option>
+                  <option value="h3">Título 3</option>
+                  <option value="blockquote">Citação</option>
+                </select>
+                <button type="button" data-command="insertUnorderedList" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
+                <button type="button" data-command="insertOrderedList" title="Lista numerada"><i class="fa-solid fa-list-ol"></i></button>
+                <button type="button" data-command="undo" title="Desfazer"><i class="fa-solid fa-rotate-left"></i></button>
+                <button type="button" data-command="removeFormat" title="Limpar formatação"><i class="fa-solid fa-eraser"></i></button>
+              </div>
+
+              <div class="kb-rich-document-wrap" style="border: 1px solid #cbd5e1; border-top: 0; border-radius: 0 0 6px 6px; padding: 16px; background: #ffffff;">
+                <article id="kb-rich-document" class="kb-rich-document" contenteditable="true" spellcheck="true" style="min-height: 250px; outline: none;"></article>
+              </div>
+
+              <footer class="kb-rich-attachment-bar" style="margin-top: 16px; display: flex; align-items: center; gap: 12px; font-size: 12px; color: #64748b;">
+                <button id="kb-rich-attach" class="admin-secondary" type="button" style="font-size: 12px; padding: 6px 12px;"><i class="fa-solid fa-paperclip"></i> Anexar Imagem / Print</button>
+                <span>Arraste uma imagem para o editor ou clique no botão acima para selecionar o arquivo.</span>
+              </footer>
+
+              <input id="kb-rich-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+
+              <div id="admin-kb-editor-message" class="admin-form-message" style="margin-top: 16px;"></div>
+
+              <footer style="margin-top: 24px; display: flex; justify-content: flex-end; gap: 10px; border-top: 1px solid #e2e8f0; padding-top: 16px;">
+                <button class="admin-secondary" id="kb-rich-cancel" type="button">Cancelar</button>
+                <button class="admin-secondary" id="kb-rich-save-draft-bottom" type="button">Salvar rascunho</button>
+                <button class="admin-primary" id="kb-rich-publish-bottom" type="button">Publicar artigo</button>
+              </footer>
             </div>
           </div>
-          <article class="admin-panel">
-            <div class="admin-panel-heading"><div><h2>Artigos Cadastrados</h2><p id="admin-kb-count">Carregando artigos...</p></div></div>
-            <div class="admin-table-wrap">
-              <table>
-                <thead>
-                  <tr>
-                    <th>Título do Artigo</th>
-                    <th>Categoria</th>
-                    <th>Público-Alvo</th>
-                    <th>Passos</th>
-                    <th>Leitura</th>
-                    <th>Atualizado</th>
-                    <th>Ações</th>
-                  </tr>
-                </thead>
-                <tbody id="admin-kb-table-body"></tbody>
-              </table>
+
+          <!-- Sub-view 3: Prévia de Artigos (dentro do layout Admin) -->
+          <div id="kb-rich-preview-container" hidden>
+            <div class="admin-heading" style="margin-bottom: 16px;">
+              <div>
+                <button class="admin-secondary" id="btn-admin-kb-preview-back" type="button" style="margin-bottom: 8px;">
+                  <i class="fa-solid fa-arrow-left"></i> Voltar para Edição
+                </button>
+                <span class="admin-eyebrow">PRÉVIA DE VISUALIZAÇÃO</span>
+                <h1 id="admin-kb-preview-heading">Prévia do Artigo</h1>
+              </div>
+              <button class="admin-primary" id="btn-admin-kb-preview-publish" type="button">
+                <i class="fa-solid fa-paper-plane"></i> Publicar Artigo
+              </button>
             </div>
-          </article>
+            <div class="admin-panel" style="padding: 24px;">
+              <div id="admin-kb-preview-body"></div>
+            </div>
+          </div>
         </section>
         <section class="admin-view" data-admin-section="errors" hidden>
           <div class="admin-heading"><div><span class="admin-eyebrow">MONITORAMENTO AUTOMÁTICO</span><h1>Central de erros</h1><p>Acompanhe falhas, impacto nos clientes e andamento das correções em tempo real.</p></div><button class="admin-secondary" id="refresh-errors"><i class="fa-solid fa-rotate"></i> Atualizar</button></div>
@@ -112,6 +278,7 @@
   </div>
   <div class="admin-modal" id="admin-simulation-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="admin-simulation-title"><header><div><span class="admin-eyebrow">MODO SIMULAÇÃO</span><h2 id="admin-simulation-title">Visualizar como</h2></div><button type="button" id="close-admin-simulation" aria-label="Fechar">×</button></header><form id="admin-simulation-form"><input type="hidden" id="admin-simulation-mode"><p class="admin-simulation-intro">Escolha a conta para abrir uma visualização real, em modo somente leitura. Nenhuma alteração será salva durante a simulação.</p><label>Cliente / empresa<select id="admin-simulation-company" class="admin-select" required></select></label><label id="admin-simulation-participant-wrap" hidden>Participante<select id="admin-simulation-participant" class="admin-select"></select><small class="admin-field-help">Apenas participantes com usuário de login vinculado podem ser simulados.</small></label><div id="admin-simulation-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-admin-simulation" type="button">Cancelar</button><button class="admin-primary" type="submit"><i class="fa-regular fa-eye"></i> Abrir simulação</button></footer></form></section></div>
   <div class="admin-modal" id="license-password-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="license-password-title"><header><div><span class="admin-eyebrow">SEGURANÇA</span><h2 id="license-password-title">Alterar senha da empresa</h2></div><button type="button" id="close-license-password" aria-label="Fechar">×</button></header><form id="license-password-form"><p class="admin-simulation-intro" id="license-password-company">Selecione uma empresa para alterar a senha de acesso.</p><label>Nova senha<input id="license-new-password" type="password" minlength="8" autocomplete="new-password" required><small class="admin-field-help">Mínimo de 8 caracteres, com maiúscula, minúscula e número.</small></label><label>Confirmar nova senha<input id="license-confirm-password" type="password" minlength="8" autocomplete="new-password" required></label><div id="license-password-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-license-password" type="button">Cancelar</button><button class="admin-primary" type="submit"><i class="fa-solid fa-key"></i> Salvar nova senha</button></footer></form></section></div>
+  <div class="admin-modal" id="admin-change-password-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="admin-change-password-title"><header><div><span class="admin-eyebrow">MINHA CONTA</span><h2 id="admin-change-password-title">Alterar minha senha</h2></div><button type="button" id="close-admin-change-password" aria-label="Fechar">×</button></header><form id="admin-change-password-form"><label>Senha atual<input id="change-password-current" type="password" autocomplete="current-password" required></label><label>Nova senha<input id="change-password-new" type="password" minlength="8" autocomplete="new-password" required><small class="admin-field-help">A nova senha deve ter pelo menos 8 caracteres.</small></label><label>Confirmar nova senha<input id="change-password-confirm" type="password" minlength="8" autocomplete="new-password" required></label><div id="change-password-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-change-password" type="button">Cancelar</button><button class="admin-primary" id="submit-change-password" type="submit"><i class="fa-solid fa-key"></i> Salvar nova senha</button></footer></form></section></div>
   <div class="admin-modal" id="payment-modal" hidden><section role="dialog" aria-modal="true" aria-labelledby="payment-title"><header><div><span class="admin-eyebrow">FINANCEIRO</span><h2 id="payment-title">Registrar pagamento</h2></div><button type="button" id="close-payment" aria-label="Fechar">×</button></header><form id="payment-form"><label>Cliente<select id="payment-company" class="admin-select" required></select></label><div class="admin-form-grid"><label>Competência<input id="payment-competence" type="month" required></label><label>Valor recebido (R$)<input id="payment-amount" type="number" min="0.01" step="0.01" required></label><label>Data do pagamento<input id="payment-date" type="date" required></label><label>Forma de pagamento<select id="payment-method" class="admin-select"><option>Transferência bancária</option><option>PIX</option><option>Boleto</option><option>Cartão</option><option>Outro</option></select></label></div><label>Observação<textarea id="payment-notes" rows="3" maxlength="1000"></textarea></label><label class="admin-check"><input id="payment-release" type="checkbox" checked> Liberar licença após confirmar</label><div id="payment-message" class="admin-form-message"></div><footer><button class="admin-secondary" id="cancel-payment" type="button">Cancelar</button><button class="admin-primary" type="submit">Confirmar pagamento</button></footer></form></section></div>  <div class="admin-modal" id="admin-kb-modal" hidden>
     <section role="dialog" aria-modal="true" aria-labelledby="admin-kb-modal-title" style="max-width: 850px; width: 95%;">
       <header>
@@ -186,95 +353,7 @@
     </section>
   </div>
 
-  <!-- Editor profissional do Manual do Usuário dentro do Admin -->
-  <div class="kb-rich-editor" id="kb-rich-editor" hidden>
-    <header class="kb-rich-topbar">
-      <button class="kb-rich-back" id="kb-rich-back" type="button">
-        <i class="fa-solid fa-chevron-left"></i>
-        <span>Editar artigo</span>
-      </button>
-      <div class="kb-rich-status" id="kb-rich-status">Rascunho local</div>
-      <div class="kb-rich-actions">
-        <button class="kb-rich-btn primary" id="kb-rich-publish" type="button">
-          <i class="fa-solid fa-paper-plane"></i> Publicar
-        </button>
-        <button class="kb-rich-btn outline" id="kb-rich-save-draft" type="button">
-          <i class="fa-regular fa-floppy-disk"></i> Salvar rascunho
-        </button>
-        <button class="kb-rich-btn outline" id="kb-rich-preview" type="button">
-          <i class="fa-regular fa-eye"></i> Visualizar
-        </button>
-        <button class="kb-rich-btn ghost" id="kb-rich-cancel" type="button">Cancelar</button>
-      </div>
-    </header>
 
-    <main class="kb-rich-workspace">
-      <section class="kb-rich-frame" aria-label="Editor do artigo">
-        <div class="kb-rich-title-row">
-          <input id="kb-rich-title" type="text" maxlength="160" placeholder="Título do artigo">
-          <button id="kb-rich-copy-link" type="button" aria-label="Copiar link do artigo">
-            <i class="fa-solid fa-link"></i>
-          </button>
-        </div>
-
-        <div class="kb-rich-meta-row">
-          <label>Categoria
-            <select id="kb-rich-category">
-              <option value="Primeiros passos">Primeiros passos</option>
-              <option value="Criação de exames">Criação de testes</option>
-              <option value="Questões e importação">Questões e importação</option>
-              <option value="Participantes">Participantes</option>
-              <option value="Documentos e termos">Documentos e termos</option>
-              <option value="Convites e acessos">Convites e acessos</option>
-              <option value="Monitoramento">Monitoramento</option>
-              <option value="Resultados">Resultados</option>
-              <option value="Personalização">Personalização</option>
-              <option value="Conheça a plataforma">Conheça a plataforma</option>
-            </select>
-          </label>
-          <label>Público
-            <select id="kb-rich-audience">
-              <option value="company">Empresa</option>
-              <option value="participant">Participante</option>
-              <option value="platform">Geral</option>
-            </select>
-          </label>
-          <label>Leitura
-            <input id="kb-rich-readtime" type="text" maxlength="40" placeholder="3 min de leitura">
-          </label>
-        </div>
-
-        <div class="kb-rich-toolbar" aria-label="Ferramentas do editor">
-          <button type="button" data-command="bold" title="Negrito"><i class="fa-solid fa-bold"></i></button>
-          <button type="button" data-command="italic" title="Itálico"><i class="fa-solid fa-italic"></i></button>
-          <button type="button" data-command="underline" title="Sublinhado"><i class="fa-solid fa-underline"></i></button>
-          <select id="kb-rich-block-style" aria-label="Estilo do bloco">
-            <option value="p">Normal</option>
-            <option value="h2">Título 2</option>
-            <option value="h3">Título 3</option>
-            <option value="blockquote">Citação</option>
-          </select>
-          <button type="button" data-command="insertUnorderedList" title="Lista"><i class="fa-solid fa-list-ul"></i></button>
-          <button type="button" data-command="insertOrderedList" title="Lista numerada"><i class="fa-solid fa-list-ol"></i></button>
-          <button type="button" id="kb-rich-add-step" title="Adicionar passo"><i class="fa-solid fa-square-plus"></i><span>Passo</span></button>
-          <button type="button" id="kb-rich-add-alert" title="Adicionar alerta"><i class="fa-regular fa-lightbulb"></i><span>Dica</span></button>
-          <button type="button" id="kb-rich-upload-image" title="Inserir imagem"><i class="fa-regular fa-image"></i><span>Imagem</span></button>
-          <button type="button" data-command="undo" title="Desfazer"><i class="fa-solid fa-rotate-left"></i></button>
-          <button type="button" data-command="removeFormat" title="Limpar formatação"><i class="fa-solid fa-eraser"></i></button>
-        </div>
-
-        <div class="kb-rich-document-wrap">
-          <article id="kb-rich-document" class="kb-rich-document" contenteditable="true" spellcheck="true"></article>
-        </div>
-
-        <footer class="kb-rich-attachment-bar">
-          <button id="kb-rich-attach" type="button"><i class="fa-solid fa-paperclip"></i> Anexo / imagem do passo</button>
-          <span>Arraste uma imagem para o editor ou clique em “Imagem”.</span>
-        </footer>
-        <input id="kb-rich-file" type="file" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
-      </section>
-    </main>
-  </div>
 
   <div id="admin-toast-region" class="admin-toast-region" aria-live="polite"></div>
   <script src="./js/admin-dashboard.js?v=11"></script>

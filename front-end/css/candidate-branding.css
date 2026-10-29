@@ -5,8 +5,8 @@
   --candidate-radius: 14px;
 }
 
-html,
-body {
+#candidate-preview-container,
+#candidate-preview-container .candidate-shell {
   background: var(--candidate-background);
 }
 

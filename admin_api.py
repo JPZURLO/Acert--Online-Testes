@@ -8,7 +8,7 @@ from datetime import date, datetime, timedelta
 from html import escape
 
 from flask import Blueprint, current_app, jsonify, request
-from werkzeug.security import generate_password_hash
+from werkzeug.security import check_password_hash, generate_password_hash
 
 from license_service import ALL_LICENSE_FEATURES, company_license_snapshot
 from recording_retention import send_email
@@ -134,8 +134,6 @@ def proposal_message(data):
         "<h2>Nova solicitação de proposta</h2>"
         "<p>Uma nova solicitação foi recebida pelo site Online Teste.</p>"
         f"<table style='border-collapse:collapse;border:1px solid #dbe5e7'>{rows}</table>"
-        "<h3>Necessidade informada</h3>"
-        f"<p>{escape(data['needs'] or 'Não informada.')}</p>"
         "<p>A solicitação também está disponível no painel administrativo.</p>"
     )
     return subject, "\n".join(lines), html
@@ -147,9 +145,43 @@ def notify_proposal(data):
         try:
             send_email(recipient, *proposal_message(data))
         except Exception:
-            # A solicitação já está salva no painel; uma indisponibilidade do
-            # SMTP não deve apagar o pedido nem interromper a resposta HTTP.
             current_app.logger.exception("Falha ao enviar solicitação de proposta por e-mail")
+            return False
+    return True
+
+
+def contact_email_message(data):
+    subject = f"Mensagem do site — {data.get('subject') or 'Contato'} (De: {data['contactName']})"
+    lines = [
+        f"Nova mensagem recebida pelo site Online Teste:",
+        "",
+        f"Nome: {data['contactName']}",
+        f"E-mail: {data['email']}",
+        f"Telefone/WhatsApp: {data['phone'] or 'Não informado'}",
+        f"Assunto: {data.get('subject') or 'Contato'}",
+        "",
+        "Mensagem:",
+        data['message'],
+    ]
+    html = (
+        "<h2>Nova mensagem recebida pelo site</h2>"
+        f"<p><strong>Nome:</strong> {escape(data['contactName'])}<br>"
+        f"<strong>E-mail:</strong> {escape(data['email'])}<br>"
+        f"<strong>Telefone:</strong> {escape(data['phone'] or 'Não informado')}<br>"
+        f"<strong>Assunto:</strong> {escape(data.get('subject') or 'Contato')}</p>"
+        "<h3>Mensagem</h3>"
+        f"<p style='white-space:pre-wrap;background:#f8fafc;padding:12px;border:1px solid #e2e8f0;border-radius:6px'>{escape(data['message'])}</p>"
+    )
+    return subject, "\n".join(lines), html
+
+
+def notify_contact_message(data):
+    recipient = os.getenv("COMMERCIAL_EMAIL", os.getenv("PROPOSAL_EMAIL", "comercial@onlineteste.com.br")).strip()
+    if recipient:
+        try:
+            send_email(recipient, *contact_email_message(data))
+        except Exception:
+            current_app.logger.exception("Falha ao enviar mensagem de contato por e-mail")
             return False
     return True
 
@@ -258,6 +290,34 @@ def create_admin_blueprint(open_database, token_payload):
         finally:
             cursor.close()
             connection.close()
+
+    @blueprint.post("/api/contact-message")
+    def send_contact_message():
+        data = request.get_json(silent=True) or {}
+        contact_name = text(data.get("contactName") or data.get("name"), 160)
+        email = text(data.get("email"), 254).lower()
+        phone = text(data.get("phone"), 32)
+        subject_text = text(data.get("subject"), 180)
+        message_text = text(data.get("message"), 5000)
+
+        if not contact_name or not email or not message_text:
+            return jsonify({"success": False, "message": "Preencha seu nome, e-mail e a mensagem."}), 400
+        if not EMAIL_PATTERN.fullmatch(email):
+            return jsonify({"success": False, "message": "Informe um e-mail válido."}), 400
+
+        payload = {
+            "contactName": contact_name,
+            "email": email,
+            "phone": phone,
+            "subject": subject_text,
+            "message": message_text,
+        }
+        sent = notify_contact_message(payload)
+        return jsonify({
+            "success": True,
+            "message": "Sua mensagem foi enviada com sucesso! Nossa equipe comercial entrará em contato em breve.",
+            "notificationSent": sent,
+        }), 200
 
     @blueprint.get("/api/admin/overview")
     def overview():
@@ -635,6 +695,46 @@ def create_admin_blueprint(open_database, token_payload):
             )
             connection.commit()
             return jsonify({"success": True, "message": "Senha da empresa alterada com sucesso."})
+        finally:
+            cursor.close()
+            connection.close()
+
+    @blueprint.put("/api/admin/change-password")
+    def change_admin_password():
+        admin_id, error = admin_id_or_error()
+        if error:
+            return error
+        data = request.get_json(silent=True) or {}
+        current_password = str(data.get("currentPassword") or "")
+        new_password = str(data.get("newPassword") or "")
+        confirm_password = str(data.get("confirmPassword") or "")
+
+        if not current_password or not new_password or not confirm_password:
+            return jsonify({"success": False, "message": "Preencha todos os campos."}), 400
+        if new_password != confirm_password:
+            return jsonify({"success": False, "message": "As novas senhas não coincidem."}), 400
+        if new_password == current_password:
+            return jsonify({"success": False, "message": "A nova senha deve ser diferente da senha atual."}), 400
+        if len(new_password) < 8:
+            return jsonify({"success": False, "message": "A nova senha deve ter pelo menos 8 caracteres."}), 400
+
+        connection = open_database()
+        cursor = connection.cursor(dictionary=True)
+        try:
+            cursor.execute("SELECT id, password_hash FROM admin_users WHERE id = %s LIMIT 1", (admin_id,))
+            admin = cursor.fetchone()
+            if not admin or not admin.get("password_hash"):
+                return jsonify({"success": False, "message": "Administrador não encontrado."}), 404
+            if not check_password_hash(admin["password_hash"], current_password):
+                return jsonify({"success": False, "message": "Senha atual inválida."}), 401
+
+            new_hash = generate_password_hash(new_password, method="pbkdf2:sha256")
+            cursor.execute(
+                "UPDATE admin_users SET password_hash = %s WHERE id = %s",
+                (new_hash, admin_id),
+            )
+            connection.commit()
+            return jsonify({"success": True, "message": "Senha alterada com sucesso."})
         finally:
             cursor.close()
             connection.close()

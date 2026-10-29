@@ -38,6 +38,16 @@ APP_ENV = os.getenv("APP_ENV", "development").lower()
 MAX_LOGIN_ATTEMPTS = max(1, int(os.getenv("LOGIN_RATE_LIMIT_ATTEMPTS", "5")))
 LOGIN_WINDOW_SECONDS = max(60, int(os.getenv("LOGIN_RATE_LIMIT_WINDOW_SECONDS", "300")))
 BLOCKED_PUBLIC_EXTENSIONS = {".bat", ".cmd", ".env", ".exe", ".ini", ".log", ".msi", ".php", ".ps1", ".py", ".sh", ".sql", ".zip"}
+COMPANY_PROTECTED_PAGES = {
+    "visaogeral.html",
+    "login_cliente.html",
+    "resultados.html",
+    "participante.html",
+    "suporteempresa.html",
+    "monitoramento.html",
+}
+PARTICIPANT_PROTECTED_PAGES = {"areaparticipante.html"}
+
 
 app.config["MAX_CONTENT_LENGTH"] = int(os.getenv("MAX_CONTENT_LENGTH", str(5 * 1024 * 1024)))
 trusted_hosts = [host.strip() for host in os.getenv("APP_TRUSTED_HOSTS", "").split(",") if host.strip()]
@@ -352,12 +362,14 @@ def request_too_large(_error):
 
 
 from exam_documents import create_exam_documents_blueprint
+from webrtc_signaling_api import create_webrtc_signaling_blueprint
 app.register_blueprint(create_exam_documents_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_blueprint(open_database, token_payload))
 app.register_blueprint(create_company_operations_blueprint(open_database, token_payload))
 app.register_blueprint(create_overview_blueprint(open_database, token_payload))
 app.register_blueprint(create_participants_blueprint(open_database, token_payload))
 app.register_blueprint(create_participant_blueprint(open_database, token_payload))
+app.register_blueprint(create_webrtc_signaling_blueprint(open_database, token_payload))
 app.register_blueprint(create_results_blueprint(open_database, token_payload))
 app.register_blueprint(create_admin_blueprint(open_database, token_payload))
 app.register_blueprint(create_support_finance_blueprint(open_database, token_payload))
@@ -680,6 +692,35 @@ def logout():
     return response
 
 
+def redirect_to_company_login(message=None):
+    location = "login_empresa.html"
+    if message:
+        location = f"{location}?message={message}"
+    response = make_response("", 302)
+    response.headers["Location"] = location
+    response.delete_cookie(JWT_COOKIE_NAME, path="/", samesite="Strict")
+    response.delete_cookie(CSRF_COOKIE_NAME, path="/", samesite="Strict")
+    return response
+
+
+def protect_company_html_page(page_name):
+    if page_name not in COMPANY_PROTECTED_PAGES:
+        return None
+    payload = decode_cookie_token()
+    if not payload or payload.get("account_type") != "company":
+        return redirect_to_company_login("login")
+    if payload.get("admin_impersonation"):
+        return None
+    connection = open_database()
+    try:
+        snapshot = company_license_snapshot(connection, int(payload["sub"]))
+        blocked_message = license_block_message(snapshot)
+        if blocked_message:
+            return redirect_to_company_login("license")
+    finally:
+        connection.close()
+    return None
+
 
 @app.route("/", defaults={"path": ""})
 @app.route("/<path:path>")
@@ -688,6 +729,9 @@ def serve_file(path):
     extension = os.path.splitext(path)[1].lower()
     if path.startswith("api/") or "node_modules" in normalized_parts or extension in BLOCKED_PUBLIC_EXTENSIONS:
         return jsonify({"success": False, "message": "Endpoint não encontrado."}), 404
+    page_guard = protect_company_html_page(normalized_parts[-1] if normalized_parts else "")
+    if page_guard:
+        return page_guard
     requested_file = safe_join(app.static_folder, path) if path else None
     if requested_file and os.path.isfile(requested_file):
         return send_from_directory(app.static_folder, path)

@@ -305,7 +305,7 @@
                   <input id="qimp-total-points-input" type="number" min="0" max="1000" step="0.01" value="100">
                 </label>
                 <label class="qimp-score-toggle" for="qimp-override-file-points">
-                  <input id="qimp-override-file-points" type="checkbox" checked>
+                  <input id="qimp-override-file-points" type="checkbox">
                   <span>Substituir pontuação do arquivo</span>
                 </label>
                 <small id="qimp-score-preview">Ex.: 40 questões com 100 pontos = 2,5 por questão.</small>
@@ -608,6 +608,14 @@ Questão 4: Verdadeiro</div>
     alert(message);
   }
 
+  function showInlineImportInfo(message) {
+    if (typeof window.toast === 'function') {
+      window.toast(message, 'success');
+      return;
+    }
+    alert(message);
+  }
+
   function updateFileCardsUI() {
     // Single file
     const singleCard = document.getElementById('qimp-single-file-card');
@@ -671,6 +679,8 @@ Questão 4: Verdadeiro</div>
       updateFileCardsUI();
       updateScorePreview();
       validateStep1();
+      goToStep1();
+      showInlineImportInfo('Arquivo removido. Selecione outro arquivo para continuar.');
     }
   };
 
@@ -751,7 +761,7 @@ Questão 4: Verdadeiro</div>
       showInlineImportError('Selecione o arquivo antes de analisar.');
       return;
     }
-    if (configuredImportTotalPoints() <= 0) {
+    if (shouldOverrideFilePoints() && configuredImportTotalPoints() <= 0) {
       showInlineImportError('Informe uma pontuação total maior que zero para distribuir entre as questões.');
       return;
     }
@@ -763,7 +773,7 @@ Questão 4: Verdadeiro</div>
       body.append('file', file);
       const response = await fetch('/api/company/question-imports', {
         method: 'POST',
-        headers: { 'X-CSRF-Token': getCsrfToken() },
+        headers: { 'X-CSRF-Token': getCsrfToken(), ...(window.companyUnitHeaders?.() || {}) },
         body,
       });
       const data = await response.json().catch(() => ({}));
@@ -812,6 +822,7 @@ Questão 4: Verdadeiro</div>
       options,
       correctAnswers: correctAnswers.length ? correctAnswers : fallbackCorrectAnswers(question, options, type),
       points: Number(question.points) || 0,
+      pointsFromFile: Boolean(question.pointsFromFile),
       explanation: question.explanation || '',
       status: 'ready',
       statusDetail: 'Pronta para importar',
@@ -871,8 +882,20 @@ Questão 4: Verdadeiro</div>
     const validQuestions = state.questions.filter(q => !q.isExcluded);
     if (!validQuestions.length) return;
     const override = force || shouldOverrideFilePoints();
-    const allSameDefault = validQuestions.every(q => Number(q.points) === 10 || Number(q.points) === 0);
-    if (!override && !allSameDefault) return;
+    if (!override) {
+      const missingFilePoints = validQuestions.some(q => !q.pointsFromFile || !(Number(q.points) > 0));
+      if (missingFilePoints) {
+        const totalPoints = configuredImportTotalPoints();
+        if (totalPoints > 0) {
+          const basePoints = Math.round((totalPoints / validQuestions.length) * 100) / 100;
+          validQuestions.forEach(q => {
+            if (!q.pointsFromFile || !(Number(q.points) > 0)) q.points = basePoints;
+          });
+        }
+      }
+      updateScorePreview();
+      return;
+    }
     const totalPoints = configuredImportTotalPoints();
     if (totalPoints <= 0) return;
     const basePoints = Math.round((totalPoints / validQuestions.length) * 100) / 100;
@@ -1212,7 +1235,7 @@ Questão 4: Verdadeiro</div>
     document.getElementById('qimp-confirm-overlay').hidden = true;
   }
 
-  function executeSimulatedImport() {
+  async function executeSimulatedImport() {
     closeConfirmModal();
     closeModal();
 
@@ -1220,7 +1243,7 @@ Questão 4: Verdadeiro</div>
     const mode = document.getElementById('question-import-mode')?.value || 'replace';
 
     if (typeof window.importQuestionsToExam === 'function') {
-      window.importQuestionsToExam(activeQuestions, mode);
+      await window.importQuestionsToExam(activeQuestions, mode);
     } else if (typeof window.toast === 'function') {
       window.toast(`Sucesso: ${activeQuestions.length} questão(ões) importada(s) com sucesso!`, 'success');
     }

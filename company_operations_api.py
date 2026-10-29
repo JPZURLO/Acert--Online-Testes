@@ -9,7 +9,7 @@ from werkzeug.security import generate_password_hash
 from recording_retention import send_email
 
 
-ATTEMPT_ACTIONS = {"pause", "generate_resume", "close"}
+ATTEMPT_ACTIONS = {"pause", "generate_resume", "close", "authorize_start"}
 CHAT_SENDERS = {"company", "participant"}
 
 
@@ -29,6 +29,12 @@ def operation_from_row(row):
         "participantId": row["participant_id"],
         "participantName": row.get("participant_name") or "Participante",
         "participantEmail": row.get("participant_email") or "",
+        "unitName": row.get("unit_name") or None,
+        "cameraChecked": bool(row.get("camera_checked")),
+        "microphoneChecked": bool(row.get("microphone_checked")),
+        "screenChecked": bool(row.get("screen_checked")),
+        "identityStatus": row.get("identity_status") or "not_required",
+        "createdAt": row["created_at"].isoformat() if row.get("created_at") else None,
         "startedAt": row["started_at"].isoformat() if row.get("started_at") else None,
         "pausedAt": row["paused_at"].isoformat() if row.get("paused_at") else None,
         "submittedAt": row["submitted_at"].isoformat() if row.get("submitted_at") else None,
@@ -124,10 +130,12 @@ def create_company_operations_blueprint(open_database, token_payload):
         try:
             cursor.execute(
                 "SELECT a.id,a.status,a.exam_id,a.participant_id,a.remaining_seconds,a.started_at,a.paused_at,a.submitted_at,a.expires_at,a.resume_code_expires_at,"
-                "e.title AS exam_title,e.allow_resume,p.full_name AS participant_name,p.email AS participant_email,"
+                "a.camera_checked,a.microphone_checked,a.screen_checked,a.identity_status,a.created_at,"
+                "e.title AS exam_title,e.allow_resume,p.full_name AS participant_name,p.email AS participant_email,u.name AS unit_name,"
                 "(SELECT COUNT(*) FROM attempt_chat_messages m WHERE m.attempt_id=a.id AND m.sender_type='participant' AND m.read_at IS NULL) AS unread_messages "
                 "FROM exam_attempts a JOIN company_exams e ON e.id=a.exam_id AND e.company_id=a.company_id "
                 "JOIN company_participants p ON p.id=a.participant_id AND p.company_id=a.company_id "
+                "LEFT JOIN company_units u ON u.id=COALESCE(p.unit_id,e.unit_id) AND u.company_id=a.company_id "
                 "WHERE a.company_id=%s ORDER BY COALESCE(a.started_at,a.created_at) DESC LIMIT 500",
                 (company_id,),
             )
@@ -137,12 +145,16 @@ def create_company_operations_blueprint(open_database, token_payload):
             cursor.close()
             connection.close()
 
+    @blueprint.post("/api/company/attempts/<int:attempt_id>/authorize-start")
     @blueprint.post("/api/company/attempts/<int:attempt_id>/action")
     def company_attempt_action(attempt_id):
         company_id, error = account_id("company")
         if error:
             return error
-        action = clean_text((request.get_json(silent=True) or {}).get("action"), 32)
+        payload = request.get_json(silent=True) or {}
+        action = clean_text(payload.get("action"), 32)
+        if request.path.endswith("/authorize-start"):
+            action = "authorize_start"
         if action not in ATTEMPT_ACTIONS:
             return jsonify({"success": False, "message": "Ação inválida."}), 400
         connection = open_database()
@@ -151,7 +163,22 @@ def create_company_operations_blueprint(open_database, token_payload):
             row = company_attempt(cursor, company_id, attempt_id)
             if not row:
                 return jsonify({"success": False, "message": "Aplicação não encontrada."}), 404
-            if action == "pause":
+            if action == "authorize_start":
+                if row.get("status") not in {"waiting_proctor", "not_started", "paused"}:
+                    return jsonify({"success": False, "message": "A autorização só pode ser concedida enquanto o candidato aguarda."}), 409
+                cursor.execute(
+                    "UPDATE exam_attempts a JOIN company_exams e ON e.id=a.exam_id "
+                    "SET a.status='in_progress',a.started_at=COALESCE(a.started_at,NOW()),"
+                    "a.expires_at=COALESCE(a.expires_at,DATE_ADD(NOW(),INTERVAL e.duration_minutes MINUTE)),a.last_saved_at=NOW() "
+                    "WHERE a.id=%s AND a.company_id=%s AND a.status IN ('waiting_proctor','not_started','paused')",
+                    (attempt_id, company_id),
+                )
+                cursor.execute("UPDATE company_participants SET status='in_progress',progress=1,last_access=NOW() WHERE id=%s AND company_id=%s", (row["participant_id"], company_id))
+                cursor.execute(
+                    "INSERT INTO attempt_audit_events (attempt_id,event_type,severity,details_json) VALUES (%s,'proctor_authorized','info',%s)",
+                    (attempt_id, json.dumps({"authorizedBy": "company"}, ensure_ascii=False)),
+                )
+            elif action == "pause":
                 cursor.execute(
                     "UPDATE exam_attempts SET status='paused',remaining_seconds=GREATEST(TIMESTAMPDIFF(SECOND,NOW(),expires_at),0),"
                     "resume_authorized=FALSE,paused_at=NOW() WHERE id=%s AND company_id=%s AND status='in_progress'",
@@ -173,14 +200,14 @@ def create_company_operations_blueprint(open_database, token_payload):
             else:
                 cursor.execute(
                     "UPDATE exam_attempts SET status='closed',resume_authorized=FALSE,resume_code_hash=NULL,closed_by_company_at=NOW() "
-                    "WHERE id=%s AND company_id=%s AND status IN ('not_started','in_progress','paused')",
+                    "WHERE id=%s AND company_id=%s AND status IN ('not_started','waiting_proctor','in_progress','paused')",
                     (attempt_id, company_id),
                 )
             if not cursor.rowcount:
                 connection.rollback()
                 return jsonify({"success": False, "message": "A ação não é permitida no estado atual."}), 409
             connection.commit()
-            return jsonify({"success": True, "notificationSent": action == "generate_resume"})
+            return jsonify({"success": True, "status": "in_progress" if action == "authorize_start" else row.get("status"), "notificationSent": action == "generate_resume"})
         except Exception as exc:
             connection.rollback()
             if action == "generate_resume":

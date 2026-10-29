@@ -13,10 +13,14 @@ Não exibe senhas, tokens ou credenciais nos logs.
 """
 import os
 import sys
-import fcntl
+try:
+    import fcntl
+except ImportError:
+    fcntl = None
 import secrets
 from datetime import datetime, timezone
 from pathlib import Path
+
 
 # Adiciona o diretório do projeto ao sys.path
 PROJECT_DIR = Path(__file__).resolve().parent
@@ -50,6 +54,8 @@ def acquire_lock():
     Tenta adquirir o lock exclusivo do processo.
     Retorna o file descriptor se bem-sucedido, None caso contrário.
     """
+    if fcntl is None:
+        return True
     LOCK_FILE.parent.mkdir(parents=True, exist_ok=True)
     try:
         fd = open(LOCK_FILE, "w")
@@ -62,13 +68,14 @@ def acquire_lock():
 
 
 def release_lock(fd):
-    if fd:
+    if fd and fcntl is not None:
         try:
             fcntl.flock(fd, fcntl.LOCK_UN)
             fd.close()
             LOCK_FILE.unlink(missing_ok=True)
         except OSError:
             pass
+
 
 
 def fetch_pending_emails(cursor):
@@ -80,12 +87,14 @@ def fetch_pending_emails(cursor):
         "SELECT q.id AS queue_id, q.exam_id, q.participant_id, q.send_option, "
         "q.scheduled_for, q.attempt_count, "
         "p.full_name, p.email AS participant_email, p.id AS p_id, "
-        "e.title AS exam_title, e.available_from, "
-        "c.RazaoSocial AS company_name, q.company_id "
+        "p.scheduled_starts_at, p.scheduled_ends_at, "
+        "e.title AS exam_title, e.available_from, e.available_until, e.duration_minutes, "
+        "COALESCE(u.name, c.RazaoSocial) AS company_name, q.company_id "
         "FROM exam_email_queue q "
         "JOIN company_participants p ON p.id = q.participant_id "
         "JOIN company_exams e ON e.id = q.exam_id "
         "JOIN empresas c ON c.id = q.company_id "
+        "LEFT JOIN company_units u ON u.id = COALESCE(p.unit_id, e.unit_id) AND u.company_id = q.company_id "
         "WHERE q.status = 'pending' "
         "AND (q.scheduled_for IS NULL OR q.scheduled_for <= NOW()) "
         "ORDER BY q.scheduled_for ASC "
@@ -93,6 +102,7 @@ def fetch_pending_emails(cursor):
         (MAX_BATCH,),
     )
     return cursor.fetchall()
+
 
 
 def fetch_participant_password(cursor, participant_id):
@@ -114,7 +124,6 @@ def process_pending_emails(connection, cursor):
         return {"sent": 0, "failed": 0, "skipped": 0}
 
     log(f"{len(rows)} e-mail(s) pendente(s) encontrado(s).")
-    login_url = exam_login_url()
     sent = 0
     failed = 0
     skipped = 0
@@ -126,11 +135,17 @@ def process_pending_emails(connection, cursor):
             "id": participant_id,
             "fullName": row["full_name"],
             "email": row["participant_email"],
+            "scheduledStartsAt": row.get("scheduled_starts_at"),
+            "scheduledEndsAt": row.get("scheduled_ends_at"),
         }
         exam = {
+            "id": row["exam_id"],
             "title": row["exam_title"],
             "availableFrom": row["available_from"],
+            "availableUntil": row.get("available_until"),
+            "durationMinutes": row.get("duration_minutes"),
         }
+        login_url = exam_login_url(row["exam_id"])
 
         # Busca a senha do participante em users
         cursor.execute(
@@ -150,9 +165,9 @@ def process_pending_emails(connection, cursor):
             skipped += 1
             continue
 
-        # Para reenvio pelo cron, usamos placeholder — o participante deve
-        # usar a senha que já possui ou solicitar redefinição
-        password_display = "[Use a senha cadastrada ou solicite redefinição]"
+        # O cron envia sem senha em texto plano (CENÁRIO B);
+        # o participante é instruído a usar a senha cadastrada ou redefinir
+        password_display = None
 
         success, error = send_exam_access_email(
             connection=connection,

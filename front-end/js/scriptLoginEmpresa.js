@@ -37,6 +37,7 @@ loginForm?.addEventListener('submit', function(event) {
                 alert('Login realizado com sucesso!');
 
                 localStorage.setItem('RazaoSocial', data.RazaoSocial);
+                localStorage.removeItem('online-teste-active-unit-id');
 
                 console.log('🔄 Redirecionando para VisaoGeral.html...');
                 window.location.replace('VisaoGeral.html');

@@ -1,0 +1,142 @@
+// Arquivo de teste para importação GIFT - Online Teste
+// Contém 20 questões de múltipla escolha com alternativas e gabarito.
+
+::Q01::Qual é a principal finalidade de uma plataforma de testes online? {
+=Aplicar, gerenciar e acompanhar avaliações pela internet
+~Substituir totalmente o professor em sala
+~Criar redes sociais para alunos
+~Editar imagens e vídeos automaticamente
+}
+
+::Q02::Qual recurso ajuda a reduzir fraude em avaliações online? {
+~Aumentar o tempo da prova sem controle
+=Monitoramento por câmera, tela e regras de navegação
+~Permitir consulta livre durante todo o teste
+~Enviar o gabarito antes da avaliação
+}
+
+::Q03::Em uma questão de múltipla escolha, o que representa a alternativa marcada com sinal de igual no formato GIFT? {
+~Uma alternativa incorreta
+~Uma alternativa opcional
+=A alternativa correta
+~Uma alternativa que deve ser ignorada
+}
+
+::Q04::Qual informação é essencial no cadastro de um participante? {
+~Cor favorita
+=Nome e e-mail de acesso
+~Modelo do computador
+~Quantidade de abas abertas no navegador
+}
+
+::Q05::O que significa correção automática em uma avaliação? {
+=O sistema calcula o resultado com base no gabarito configurado
+~O participante escolhe sua própria nota
+~A empresa corrige manualmente todas as questões
+~O sistema apaga as respostas após o envio
+}
+
+::Q06::Qual é uma boa prática para criar um teste online? {
+~Usar enunciados confusos
+~Não definir pontuação
+=Definir objetivo, perguntas, alternativas e pontuação
+~Criar perguntas sem resposta correta
+}
+
+::Q07::Qual tipo de questão possui apenas as respostas Verdadeiro ou Falso? {
+~Dissertativa
+~Múltipla escolha com cinco alternativas
+=Verdadeiro/Falso
+~Upload de arquivo
+}
+
+::Q08::Por que a personalização visual pode ser importante para uma empresa? {
+~Para esconder o nome da plataforma
+=Para aplicar testes com identidade da marca contratante
+~Para impedir o acesso dos participantes
+~Para remover o controle administrativo
+}
+
+::Q09::Qual item normalmente faz parte de um relatório de resultado? {
+~Senha do banco de dados
+=Nota obtida e situação do participante
+~Código fonte completo do sistema
+~Dados de outros clientes
+}
+
+::Q10::O que deve acontecer quando o participante finaliza um teste? {
+=As respostas devem ser registradas para cálculo e consulta do resultado
+~O teste deve ser apagado imediatamente sem registro
+~A página deve fechar sem salvar nada
+~Todas as alternativas devem virar corretas
+}
+
+::Q11::Qual é uma vantagem de importar questões por arquivo? {
+~Obrigar cadastro manual de todas as perguntas
+=Agilizar a criação de testes com muitas questões
+~Remover o gabarito do sistema
+~Impedir revisão das perguntas
+}
+
+::Q12::Em uma licença de uso, o limite de participantes serve para: {
+~Definir a cor do site
+~Alterar automaticamente a senha do administrador
+=Controlar a quantidade de pessoas permitidas no plano contratado
+~Excluir todos os testes publicados
+}
+
+::Q13::Qual cuidado é importante ao cadastrar senhas temporárias? {
+=Gerar senha segura e orientar troca ou uso controlado
+~Usar sempre 123456
+~Enviar a senha em páginas públicas
+~Usar o mesmo acesso para todos os clientes
+}
+
+::Q14::O que é uma tentativa de avaliação? {
+~Um banner da página inicial
+=O registro de uma participação em um teste
+~Um plano comercial sem cliente
+~Uma imagem enviada no suporte
+}
+
+::Q15::Qual ação pode ser feita antes de publicar um teste? {
+~Remover todas as questões obrigatórias sem revisar
+=Visualizar prévia e revisar perguntas, alternativas e pontuação
+~Enviar senha do banco para o participante
+~Bloquear todos os administradores
+}
+
+::Q16::Qual dado ajuda a identificar um pedido de acesso comercial? {
+~Cor do mouse do usuário
+=Nome, telefone, e-mail e plano de interesse
+~Quantidade de janelas abertas no navegador
+~Tipo de papel usado na impressora
+}
+
+::Q17::Qual é a função de um painel administrativo? {
+=Controlar clientes, licenças, planos, suporte e indicadores do sistema
+~Substituir o navegador do participante
+~Apagar todos os relatórios automaticamente
+~Criar arquivos sem autorização
+}
+
+::Q18::Por que é importante revisar questões importadas? {
+~Para alterar todas as respostas corretas aleatoriamente
+=Para conferir enunciado, alternativas, gabarito, tipo e pontuação
+~Para impedir que o teste seja publicado
+~Para remover a identidade visual da empresa
+}
+
+::Q19::Qual opção descreve melhor o Plano Flex? {
+~Plano obrigatório com mensalidade fixa
+=Modelo para demandas pontuais ou sazonais, com créditos de uso
+~Plano usado apenas para redes sociais
+~Plano sem possibilidade de suporte
+}
+
+::Q20::O que um sistema de suporte deve registrar? {
+~Somente elogios sem identificação
+=Chamados, dúvidas, bugs, prioridade e andamento do atendimento
+~Senhas visíveis de todos os usuários
+~Arquivos temporários sem relação com o cliente
+}

@@ -1,8 +1,9 @@
 from datetime import datetime, timedelta
 
-from flask import Blueprint, jsonify
+from flask import Blueprint, jsonify, request
 
 from company_api import branding_from_row
+from company_units import active_unit_id, list_company_units, unit_filter_sql
 
 
 def percentage_change(current, previous):
@@ -41,26 +42,34 @@ def create_overview_blueprint(open_database, token_payload):
             company = cursor.fetchone()
             if not company:
                 return jsonify({"success": False, "message": "Empresa não encontrada."}), 404
+            units = list_company_units(cursor, company_id, company["RazaoSocial"])
+            unit_id = active_unit_id(cursor, company_id, company["RazaoSocial"], request.headers.get("X-Company-Unit-ID"))
+            active_unit = next((unit for unit in units if unit["id"] == unit_id), None)
 
             cursor.execute("SELECT * FROM company_brand_settings WHERE company_id = %s", (company_id,))
             branding = branding_from_row(cursor.fetchone())
+            if active_unit and active_unit.get("logoData"):
+                branding["logoData"] = active_unit["logoData"]
 
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
             cursor.execute(
                 "SELECT COUNT(*) AS total, SUM(status = 'published') AS active "
-                "FROM company_exams WHERE company_id = %s",
-                (company_id,),
+                "FROM company_exams WHERE company_id = %s" + exam_unit_sql,
+                tuple([company_id] + exam_unit_params),
             )
             exam_counts = cursor.fetchone() or {}
 
+            participant_unit_sql, participant_unit_params = unit_filter_sql(cursor, "", "company_participants", unit_id)
             cursor.execute(
                 "SELECT COUNT(*) AS total, "
                 "SUM(created_at >= %s) AS current_count, "
                 "SUM(created_at >= %s AND created_at < %s) AS previous_count "
-                "FROM company_participants WHERE company_id = %s",
-                (current_start, previous_start, current_start, company_id),
+                "FROM company_participants WHERE company_id = %s" + participant_unit_sql,
+                tuple([current_start, previous_start, current_start, company_id] + participant_unit_params),
             )
             participant_counts = cursor.fetchone() or {}
 
+            result_unit_sql, result_unit_params = unit_filter_sql(cursor, "r", "company_results", unit_id)
             cursor.execute(
                 "SELECT COUNT(*) AS total, "
                 "SUM(r.completed_at >= %s) AS current_count, "
@@ -68,8 +77,8 @@ def create_overview_blueprint(open_database, token_payload):
                 "SUM(r.completed_at >= %s AND r.score >= e.passing_score) AS current_approved, "
                 "SUM(r.completed_at >= %s AND r.completed_at < %s AND r.score >= e.passing_score) AS previous_approved "
                 "FROM company_results r JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
-                "WHERE r.company_id = %s",
-                (current_start, previous_start, current_start, current_start, previous_start, current_start, company_id),
+                "WHERE r.company_id = %s" + result_unit_sql,
+                tuple([current_start, previous_start, current_start, current_start, previous_start, current_start, company_id] + result_unit_params),
             )
             result_counts = cursor.fetchone() or {}
             current_results = int(result_counts.get("current_count") or 0)
@@ -81,9 +90,9 @@ def create_overview_blueprint(open_database, token_payload):
 
             cursor.execute(
                 "SELECT DATE(completed_at) AS result_date, COUNT(*) AS total "
-                "FROM company_results WHERE company_id = %s AND completed_at >= %s "
+                "FROM company_results WHERE company_id = %s AND completed_at >= %s" + result_unit_sql.replace("r.", "") + " "
                 "GROUP BY DATE(completed_at) ORDER BY result_date",
-                (company_id, current_start),
+                tuple([company_id, current_start] + result_unit_params),
             )
             trend_rows = {row["result_date"]: int(row["total"]) for row in cursor.fetchall()}
             trend = []
@@ -97,8 +106,8 @@ def create_overview_blueprint(open_database, token_payload):
                 "COUNT(DISTINCT CASE WHEN r.participant_id IS NULL AND p.status IN ('active', 'in_progress') THEN p.id END) AS in_progress, "
                 "COUNT(DISTINCT CASE WHEN r.participant_id IS NULL AND p.status NOT IN ('active', 'in_progress') THEN p.id END) AS not_started "
                 "FROM company_participants p LEFT JOIN company_results r "
-                "ON r.participant_id = p.id AND r.company_id = p.company_id WHERE p.company_id = %s",
-                (company_id,),
+                "ON r.participant_id = p.id AND r.company_id = p.company_id WHERE p.company_id = %s" + participant_unit_sql.replace("unit_id", "p.unit_id"),
+                tuple([company_id] + participant_unit_params),
             )
             status_counts = cursor.fetchone() or {}
 
@@ -108,8 +117,8 @@ def create_overview_blueprint(open_database, token_payload):
                 "FROM company_results r "
                 "JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
-                "WHERE r.company_id = %s ORDER BY r.completed_at DESC LIMIT 5",
-                (company_id,),
+                "WHERE r.company_id = %s" + result_unit_sql + " ORDER BY r.completed_at DESC LIMIT 5",
+                tuple([company_id] + result_unit_params),
             )
             activities = []
             for row in cursor.fetchall():
@@ -129,14 +138,14 @@ def create_overview_blueprint(open_database, token_payload):
                 )
 
             cursor.execute(
-                "SELECT e.id, e.title, COUNT(DISTINCT p.id) AS assigned, "
+                "SELECT e.id, e.title, e.status, COUNT(DISTINCT p.id) AS assigned, "
                 "COUNT(DISTINCT r.participant_id) AS completed "
                 "FROM company_exams e LEFT JOIN company_participants p "
                 "ON p.exam_id = e.id AND p.company_id = e.company_id "
                 "LEFT JOIN company_results r ON r.exam_id = e.id AND r.participant_id = p.id AND r.company_id = e.company_id "
-                "WHERE e.company_id = %s AND e.status = 'published' "
-                "GROUP BY e.id, e.title ORDER BY assigned DESC, e.updated_at DESC LIMIT 4",
-                (company_id,),
+                "WHERE e.company_id = %s" + exam_unit_sql.replace("unit_id", "e.unit_id") + " "
+                "GROUP BY e.id, e.title, e.status ORDER BY e.updated_at DESC LIMIT 20",
+                tuple([company_id] + exam_unit_params),
             )
             exams = []
             for row in cursor.fetchall():
@@ -146,6 +155,7 @@ def create_overview_blueprint(open_database, token_payload):
                     {
                         "id": row["id"],
                         "title": row["title"],
+                        "status": row.get("status") or "draft",
                         "assigned": assigned,
                         "completed": completed,
                         "progress": round(completed / assigned * 100) if assigned else 0,
@@ -157,6 +167,8 @@ def create_overview_blueprint(open_database, token_payload):
             return jsonify(
                 {
                     "company": {"id": company_id, "name": company["RazaoSocial"]},
+                    "units": units,
+                    "activeUnit": active_unit,
                     "branding": branding,
                     "stats": {
                         "activeExams": int(exam_counts.get("active") or 0),

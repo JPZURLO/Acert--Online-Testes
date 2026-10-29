@@ -46,35 +46,7 @@ function newId() {
 }
 
 function defaultQuestions() {
-  return [
-    {
-      id: newId(),
-      type: 'multiple_choice',
-      prompt: 'Qual das alternativas melhor descreve o princípio da comunicação eficaz?',
-      points: 20,
-      required: true,
-      options: ['Clareza e objetividade', 'Uso de termos complexos', 'Comunicação sem retorno'],
-      correctAnswer: 'Clareza e objetividade'
-    },
-    {
-      id: newId(),
-      type: 'true_false',
-      prompt: 'Feedback deve ser sempre específico e focado em comportamentos.',
-      points: 20,
-      required: true,
-      options: ['Verdadeiro', 'Falso'],
-      correctAnswer: 'Verdadeiro'
-    },
-    {
-      id: newId(),
-      type: 'essay',
-      prompt: 'Descreva uma situação em que você resolveu um problema complexo.',
-      points: 60,
-      required: true,
-      options: [],
-      correctAnswer: ''
-    }
-  ];
+  return [];
 }
 
 async function api(url, options = {}) {
@@ -82,8 +54,8 @@ async function api(url, options = {}) {
   const response = await fetch(url, {
     ...options,
     headers: options.body && !isFormData
-      ? { 'Content-Type': 'application/json', ...(options.headers || {}) }
-      : options.headers
+      ? { 'Content-Type': 'application/json', ...(window.companyUnitHeaders?.() || {}), ...(options.headers || {}) }
+      : { ...(window.companyUnitHeaders?.() || {}), ...(options.headers || {}) }
   });
   let data = {};
   try {
@@ -167,42 +139,49 @@ function toast(message, type = 'success') {
 }
 
 function setSaveStatus(label, kind = '') {
-  elements['save-status'].className = `save-status ${kind}`.trim();
-  elements['save-status'].querySelector('span').textContent = label;
+  const el = elements['save-status'] || document.getElementById('save-status');
+  if (!el) return;
+  el.className = `save-status ${kind}`.trim();
+  const span = el.querySelector('span');
+  if (span) span.textContent = label;
 }
 
 function getRadiusValue() {
-  return { small: '8px', medium: '14px', large: '22px' }[state.branding.borderRadius] || '14px';
+  return { small: '8px', medium: '14px', large: '22px' }[state.branding?.borderRadius] || '14px';
 }
 
 function applyBranding() {
   const preview = document.querySelector('.candidate-preview');
-  preview.style.setProperty('--primary', state.branding.primaryColor);
-  preview.style.setProperty('--accent', state.branding.accentColor);
-  preview.style.setProperty('--canvas', state.branding.backgroundColor);
-  preview.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
-  preview.style.setProperty('--radius', getRadiusValue());
+  if (preview) {
+    preview.style.setProperty('--primary', state.branding.primaryColor);
+    preview.style.setProperty('--accent', state.branding.accentColor);
+    preview.style.setProperty('--canvas', state.branding.backgroundColor);
+    preview.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
+    preview.style.setProperty('--radius', getRadiusValue());
+  }
 
-  elements['primary-color'].value = state.branding.primaryColor;
-  elements['accent-color'].value = state.branding.accentColor;
-  elements['background-color'].value = state.branding.backgroundColor;
-  elements['primary-value'].textContent = state.branding.primaryColor;
-  elements['accent-value'].textContent = state.branding.accentColor;
-  elements['background-value'].textContent = state.branding.backgroundColor;
-  elements['font-family'].value = state.branding.fontFamily;
-  elements['border-radius'].value = state.branding.borderRadius;
-  elements['candidate-instructions'].value = state.branding.candidateInstructions;
-  elements['preview-instructions'].textContent = state.branding.candidateInstructions;
+  if (elements['primary-color']) elements['primary-color'].value = state.branding.primaryColor;
+  if (elements['accent-color']) elements['accent-color'].value = state.branding.accentColor;
+  if (elements['background-color']) elements['background-color'].value = state.branding.backgroundColor;
+  if (elements['primary-value']) elements['primary-value'].textContent = state.branding.primaryColor;
+  if (elements['accent-value']) elements['accent-value'].textContent = state.branding.accentColor;
+  if (elements['background-value']) elements['background-value'].textContent = state.branding.backgroundColor;
+  if (elements['font-family']) elements['font-family'].value = state.branding.fontFamily;
+  if (elements['border-radius']) elements['border-radius'].value = state.branding.borderRadius;
+  if (elements['candidate-instructions']) elements['candidate-instructions'].value = state.branding.candidateInstructions;
+  if (elements['preview-instructions']) elements['preview-instructions'].textContent = state.exam?.description || 'Confira as instruções antes de iniciar a avaliação.';
 
-  const image = elements['preview-logo'].querySelector('img');
-  if (state.branding.logoData) {
-    image.src = state.branding.logoData;
-    image.style.filter = 'none';
-    elements['remove-logo'].hidden = false;
-  } else {
-    image.src = './assets/images/Logo_com_Slogan (sem fundo).png';
-    image.style.filter = 'brightness(0) invert(1)';
-    elements['remove-logo'].hidden = true;
+  const image = elements['preview-logo'] ? elements['preview-logo'].querySelector('img') : null;
+  if (image) {
+    if (state.branding.logoData) {
+      image.src = state.branding.logoData;
+      image.style.filter = 'none';
+      if (elements['remove-logo']) elements['remove-logo'].hidden = false;
+    } else {
+      image.src = './assets/images/Logo_com_Slogan (sem fundo).png';
+      image.style.filter = 'brightness(0) invert(1)';
+      if (elements['remove-logo']) elements['remove-logo'].hidden = true;
+    }
   }
 }
 
@@ -469,22 +448,47 @@ function renderOptions(question, container, questionIndex = 0) {
 
 function renderQuestions() {
   const template = document.getElementById('question-template');
-  elements['questions-list'].replaceChildren();
+  const container = elements['questions-list'] || document.getElementById('questions-list');
+  if (!container) return;
+  container.replaceChildren();
+
+  if (!state.questions || state.questions.length === 0) {
+    const emptyNotice = document.createElement('div');
+    emptyNotice.className = 'empty-state-card';
+    emptyNotice.style.cssText = 'padding:32px;text-align:center;border:2px dashed #CBD5E1;border-radius:12px;margin:16px 0;background:#F8FAFC;';
+    emptyNotice.innerHTML = `
+      <span style="font-size:36px;display:block;margin-bottom:8px;">📝</span>
+      <h3 style="margin:0 0 6px;font-size:16px;color:#1E293B;">Este teste ainda não possui questões</h3>
+      <p style="margin:0 0 16px;color:#64748B;font-size:13px;">Clique no botão abaixo para adicionar a primeira questão ao seu teste.</p>
+      <button class="button primary" type="button" id="btn-add-first-question" style="font-weight:700;">➕ Adicionar Questão</button>
+    `;
+    container.appendChild(emptyNotice);
+    document.getElementById('btn-add-first-question')?.addEventListener('click', addQuestion);
+    updateSummary();
+    return;
+  }
+
   state.questions.forEach((question, index) => {
+    if (!template) return;
     const fragment = template.content.cloneNode(true);
     const card = fragment.querySelector('.question-card');
+    if (!card) return;
     card.dataset.index = String(index);
-    card.querySelector('.question-number').textContent = String(index + 1);
-    card.querySelector('.question-type').value = question.type;
+    const qNum = card.querySelector('.question-number');
+    if (qNum) qNum.textContent = String(index + 1);
+    const qType = card.querySelector('.question-type');
+    if (qType) qType.value = question.type;
     const pointsField = card.querySelector('.points-field');
     const pointsInput = card.querySelector('.question-points');
     if (pointsInput) pointsInput.value = question.points;
     if (pointsField) pointsField.hidden = isBehaviorProfileMode();
-    card.querySelector('.question-required').checked = question.required;
-    card.querySelector('.question-prompt').value = question.prompt;
+    const qReq = card.querySelector('.question-required');
+    if (qReq) qReq.checked = question.required;
+    const qPrompt = card.querySelector('.question-prompt');
+    if (qPrompt) qPrompt.value = question.prompt;
     renderQuestionImageEditor(question, card);
     renderOptions(question, card.querySelector('.question-options'), index);
-  elements['questions-list'].appendChild(fragment);
+    container.appendChild(fragment);
   });
   updateSummary();
 }
@@ -551,15 +555,15 @@ function renderQuestionImageEditor(question, card) {
 
 function updateSummary() {
   const scoreless = isBehaviorProfileMode();
-  const total = state.questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0);
-  const count = state.questions.length;
-  elements['question-count'].textContent = `(${count})`;
-  elements['question-total'].textContent = scoreless
+  const total = state.questions ? state.questions.reduce((sum, question) => sum + (Number(question.points) || 0), 0) : 0;
+  const count = state.questions ? state.questions.length : 0;
+  if (elements['question-count']) elements['question-count'].textContent = `(${count})`;
+  if (elements['question-total']) elements['question-total'].textContent = scoreless
     ? `Perfil comportamental: ${count} ${count === 1 ? 'questão' : 'questões'}`
     : `Pontuação total: ${formatPoints(total)} pontos`;
-  elements['preview-questions'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
-  elements['modal-question-count'].textContent = String(count);
-  elements['modal-total-points'].textContent = scoreless ? 'Perfil RH' : String(total);
+  if (elements['preview-questions']) elements['preview-questions'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
+  if (elements['modal-question-count']) elements['modal-question-count'].textContent = String(count);
+  if (elements['modal-total-points']) elements['modal-total-points'].textContent = scoreless ? 'Perfil RH' : String(total);
 }
 
 function formatPoints(value) {
@@ -606,57 +610,61 @@ function collectGradingScale() {
 }
 
 function updateGradingPreview() {
-  const score = Math.max(0, Math.min(100, Number(elements['passing-score'].value) || 0));
+  const score = Math.max(0, Math.min(100, Number(elements['passing-score']?.value) || 0));
   const scale = collectGradingScale();
-  const passingField = elements['passing-score'].closest('.metric-field');
+  const passingField = elements['passing-score'] ? elements['passing-score'].closest('.metric-field') : null;
   const scoreless = scale.type === 'none';
-  elements['passing-score'].disabled = scoreless;
+  if (elements['passing-score']) elements['passing-score'].disabled = scoreless;
   passingField?.classList.toggle('is-disabled', scoreless);
   if (scoreless) {
-    elements['grading-preview'].textContent = 'Relatório por competências';
-    elements['grading-scale-summary-label'].textContent = 'Perfil comportamental';
-    elements['total-points'].textContent = '—';
-    elements['total-points-unit'].textContent = 'perfil';
+    if (elements['grading-preview']) elements['grading-preview'].textContent = 'Relatório por competências';
+    if (elements['grading-scale-summary-label']) elements['grading-scale-summary-label'].textContent = 'Perfil comportamental';
+    if (elements['total-points']) elements['total-points'].textContent = '—';
+    if (elements['total-points-unit']) elements['total-points-unit'].textContent = 'perfil';
   } else if (scale.type === 'concept') {
     const bands = [...scale.bands].sort((a, b) => a.min - b.min);
     const band = bands.reduce((current, item) => score >= item.min ? item : current, bands[0]);
-    elements['grading-preview'].textContent = band ? `${band.code} — ${band.label}` : 'Configure os conceitos';
-    elements['grading-scale-summary-label'].textContent = 'Escala por conceitos';
-    elements['total-points'].textContent = bands.length ? (bands[0].code + '–' + bands.at(-1).code) : '—';
-    elements['total-points-unit'].textContent = 'conceitos';
+    if (elements['grading-preview']) elements['grading-preview'].textContent = band ? `${band.code} — ${band.label}` : 'Configure os conceitos';
+    if (elements['grading-scale-summary-label']) elements['grading-scale-summary-label'].textContent = 'Escala por conceitos';
+    if (elements['total-points']) elements['total-points'].textContent = bands.length ? (bands[0].code + '–' + bands.at(-1).code) : '—';
+    if (elements['total-points-unit']) elements['total-points-unit'].textContent = 'conceitos';
   } else {
     const converted = score * scale.maximum / 100;
-    elements['grading-preview'].textContent = `${converted.toLocaleString('pt-BR', { maximumFractionDigits: scale.decimals })} / ${scale.maximum}`;
-    elements['grading-scale-summary-label'].textContent = 'Escala 0 a ' + scale.maximum;
-    elements['total-points'].textContent = String(scale.maximum);
-    elements['total-points-unit'].textContent = 'pontos';
+    if (elements['grading-preview']) elements['grading-preview'].textContent = `${converted.toLocaleString('pt-BR', { maximumFractionDigits: scale.decimals })} / ${scale.maximum}`;
+    if (elements['grading-scale-summary-label']) elements['grading-scale-summary-label'].textContent = 'Escala 0 a ' + scale.maximum;
+    if (elements['total-points']) elements['total-points'].textContent = String(scale.maximum);
+    if (elements['total-points-unit']) elements['total-points-unit'].textContent = 'pontos';
   }
 }
 
 function renderGradingScale(scale = defaultGradingScale()) {
   const normalized = scale && typeof scale === 'object' ? scale : defaultGradingScale();
-  elements['grading-scale-type'].value = normalized.type === 'none' ? 'none' : normalized.type === 'concept' ? 'concept' : `numeric-${[5, 10, 100].includes(Number(normalized.maximum)) ? Number(normalized.maximum) : 100}`;
+  if (elements['grading-scale-type']) {
+    elements['grading-scale-type'].value = normalized.type === 'none' ? 'none' : normalized.type === 'concept' ? 'concept' : `numeric-${[5, 10, 100].includes(Number(normalized.maximum)) ? Number(normalized.maximum) : 100}`;
+  }
   const bands = Array.isArray(normalized.bands) && normalized.bands.length ? normalized.bands : defaultGradingScale().bands;
-  elements['concept-bands'].replaceChildren();
-  bands.forEach((band, index) => {
-    const row = document.createElement('div');
-    row.className = 'concept-band';
-    [['code', band.code], ['label', band.label], ['min', band.min]].forEach(([field, value]) => {
-      const input = document.createElement('input');
-      input.dataset.field = field;
-      input.value = value ?? '';
-      input.maxLength = field === 'code' ? 8 : field === 'label' ? 50 : 3;
-      if (field === 'min') {
-        input.type = 'number';
-        input.min = '0';
-        input.max = '100';
-        input.disabled = index === 0;
-      }
-      row.appendChild(input);
+  if (elements['concept-bands']) {
+    elements['concept-bands'].replaceChildren();
+    bands.forEach((band, index) => {
+      const row = document.createElement('div');
+      row.className = 'concept-band';
+      [['code', band.code], ['label', band.label], ['min', band.min]].forEach(([field, value]) => {
+        const input = document.createElement('input');
+        input.dataset.field = field;
+        input.value = value ?? '';
+        input.maxLength = field === 'code' ? 8 : field === 'label' ? 50 : 3;
+        if (field === 'min') {
+          input.type = 'number';
+          input.min = '0';
+          input.max = '100';
+          input.disabled = index === 0;
+        }
+        row.appendChild(input);
+      });
+      elements['concept-bands'].appendChild(row);
     });
-    elements['concept-bands'].appendChild(row);
-  });
-  elements['concept-scale-editor'].hidden = normalized.type !== 'concept';
+  }
+  if (elements['concept-scale-editor']) elements['concept-scale-editor'].hidden = normalized.type !== 'concept';
   updateGradingPreview();
 }
 function collectExam() {
@@ -666,33 +674,33 @@ function collectExam() {
     : null;
   const gradingScale = collectGradingScale();
   return {
-    title: elements['exam-title'].value.trim(),
-    description: elements['exam-description'].value.trim(),
-    durationMinutes: Number(elements['exam-duration'].value) || 60,
-    passingScore: gradingScale.type === 'none' ? 0 : Number(elements['passing-score'].value) || 0,
+    title: elements['exam-title'] ? elements['exam-title'].value.trim() : 'Seu novo teste',
+    description: elements['exam-description'] ? elements['exam-description'].value.trim() : '',
+    durationMinutes: elements['exam-duration'] ? (Number(elements['exam-duration'].value) || 60) : 60,
+    passingScore: gradingScale.type === 'none' ? 0 : (elements['passing-score'] ? (Number(elements['passing-score'].value) || 0) : 0),
     gradingScale,
-    shuffleQuestions: elements['shuffle-questions'].checked,
+    shuffleQuestions: elements['shuffle-questions'] ? Boolean(elements['shuffle-questions'].checked) : false,
     status: state.status,
-    resultDelivery: elements['result-delivery'].value,
-    availableFrom: elements['available-from'].value || null,
-    availableUntil: elements['available-until'].value || null,
-    requireIdentity: elements['require-identity'].checked,
-    requireRecording: elements['require-recording'].checked,
-    allowResume: elements['allow-resume'].checked,
-    showAnswerDetails: elements['show-answer-details'].checked,
+    resultDelivery: elements['result-delivery'] ? elements['result-delivery'].value : 'manual',
+    availableFrom: elements['available-from'] ? (elements['available-from'].value || null) : null,
+    availableUntil: elements['available-until'] ? (elements['available-until'].value || null) : null,
+    requireIdentity: elements['require-identity'] ? Boolean(elements['require-identity'].checked) : false,
+    requireRecording: elements['require-recording'] ? Boolean(elements['require-recording'].checked) : false,
+    allowResume: elements['allow-resume'] ? Boolean(elements['allow-resume'].checked) : true,
+    showAnswerDetails: elements['show-answer-details'] ? Boolean(elements['show-answer-details'].checked) : false,
     emailSendOption: sendOption,
     emailScheduleMinutesBefore: minutesBefore,
-    questions: state.questions
+    questions: state.questions || []
   };
 }
 
 function updatePreview() {
-  const title = elements['exam-title'].value.trim() || 'Seu novo teste';
-  const duration = Number(elements['exam-duration'].value) || 0;
-  elements['preview-title'].textContent = title;
-  elements['preview-duration'].textContent = `${duration} min`;
-  elements['modal-duration'].textContent = String(duration);
-  elements['title-count'].textContent = `${elements['exam-title'].value.length}/180`;
+  const title = elements['exam-title'] ? (elements['exam-title'].value.trim() || 'Seu novo teste') : 'Seu novo teste';
+  const duration = elements['exam-duration'] ? (Number(elements['exam-duration'].value) || 0) : 0;
+  if (elements['preview-title']) elements['preview-title'].textContent = title;
+  if (elements['preview-duration']) elements['preview-duration'].textContent = `${duration} min`;
+  if (elements['modal-duration']) elements['modal-duration'].textContent = String(duration);
+  if (elements['title-count'] && elements['exam-title']) elements['title-count'].textContent = `${elements['exam-title'].value.length}/180`;
   updateGradingPreview();
   updateSummary();
 }
@@ -707,7 +715,8 @@ function markDirty() {
   saveTemporaryDraft();
   clearTimeout(state.autosaveTimer);
   if (state.examId) {
-    state.autosaveTimer = setTimeout(() => saveExam('draft', true), 1200);
+    // Uma edição não pode transformar, silenciosamente, um teste publicado em rascunho.
+    state.autosaveTimer = setTimeout(() => saveExam(state.status === 'published' ? 'published' : 'draft', true), 1200);
   }
 }
 
@@ -1095,27 +1104,31 @@ function fillExam(exam) {
   state.examId = exam.id || null;
   state.status = exam.status || 'draft';
   state.questions = Array.isArray(exam.questions) ? exam.questions : defaultQuestions();
-  elements['exam-title'].value = exam.title || 'Avaliação de Competências';
-  elements['exam-description'].value = exam.description || '';
-  elements['exam-duration'].value = exam.durationMinutes || 60;
-  elements['passing-score'].value = exam.passingScore ?? 60;
+  if (elements['exam-title']) elements['exam-title'].value = exam.title || 'Avaliação de Competências';
+  if (elements['exam-description']) elements['exam-description'].value = exam.description || '';
+  if (elements['exam-duration']) elements['exam-duration'].value = exam.durationMinutes || 60;
+  if (elements['passing-score']) elements['passing-score'].value = exam.passingScore ?? 60;
   renderGradingScale(exam.gradingScale);
-  elements['shuffle-questions'].checked = Boolean(exam.shuffleQuestions);
-  elements['result-delivery'].value = exam.resultDelivery || 'manual';
-  elements['available-from'].value = String(exam.availableFrom || '').replace(' ', 'T').slice(0, 16);
-  elements['available-until'].value = String(exam.availableUntil || '').replace(' ', 'T').slice(0, 16);
-  elements['require-identity'].checked = Boolean(exam.requireIdentity);
-  elements['require-recording'].checked = Boolean(exam.requireRecording);
-  elements['allow-resume'].checked = exam.allowResume !== false;
-  elements['show-answer-details'].checked = Boolean(exam.showAnswerDetails);
+  if (elements['shuffle-questions']) elements['shuffle-questions'].checked = Boolean(exam.shuffleQuestions);
+  if (elements['result-delivery']) elements['result-delivery'].value = exam.resultDelivery || 'manual';
+  if (elements['available-from']) elements['available-from'].value = String(exam.availableFrom || '').replace(' ', 'T').slice(0, 16);
+  if (elements['available-until']) elements['available-until'].value = String(exam.availableUntil || '').replace(' ', 'T').slice(0, 16);
+  if (elements['require-identity']) elements['require-identity'].checked = Boolean(exam.requireIdentity);
+  if (elements['require-recording']) elements['require-recording'].checked = Boolean(exam.requireRecording);
+  if (elements['allow-resume']) elements['allow-resume'].checked = exam.allowResume !== false;
+  if (elements['show-answer-details']) elements['show-answer-details'].checked = Boolean(exam.showAnswerDetails);
   // Opção de envio de e-mail
   const sendOption = exam.emailSendOption || 'manual';
   if (elements['email-send-option']) elements['email-send-option'].value = sendOption;
   if (elements['email-schedule-minutes']) elements['email-schedule-minutes'].value = exam.emailScheduleMinutesBefore || '';
   updateEmailScheduleVisibility();
-  elements['page-title'].textContent = state.examId ? 'Editar teste' : 'Criar novo teste';
-  elements['breadcrumb-mode'].textContent = state.examId ? 'Editar teste' : 'Criar teste';
-  elements['exam-picker'].value = state.examId ? String(state.examId) : '';
+  if (elements['page-title']) elements['page-title'].textContent = state.examId ? 'Editar teste' : 'Criar novo teste';
+  if (elements['breadcrumb-mode']) elements['breadcrumb-mode'].textContent = state.examId ? 'Editar teste' : 'Criar teste';
+  if (elements['exam-picker']) elements['exam-picker'].value = state.examId ? String(state.examId) : '';
+  const saveButton = document.getElementById('save-draft');
+  if (saveButton) saveButton.textContent = state.examId ? 'Salvar alterações' : 'Salvar rascunho';
+  const deleteButton = document.getElementById('delete-exam');
+  if (deleteButton) deleteButton.hidden = !state.examId;
   state.dirty = false;
   renderQuestions();
   updatePreview();
@@ -1141,7 +1154,7 @@ function resetExam() {
   fillExam({
     id: null,
     title: 'Avaliação de Competências',
-    description: 'Avaliação para identificar competências técnicas e comportamentais alinhadas à vaga.',
+    description: '',
     durationMinutes: 60,
     passingScore: 60,
     gradingScale: defaultGradingScale(),
@@ -1162,12 +1175,16 @@ function resetExam() {
 }
 
 function populateExamPicker() {
-  elements['exam-picker'].replaceChildren(new Option('Novo teste', ''));
-  state.exams.forEach(exam => {
-    const suffix = exam.status === 'published' ? 'Publicado' : 'Rascunho';
-    elements['exam-picker'].appendChild(new Option(`${exam.title} · ${suffix}`, String(exam.id)));
-  });
-  if (state.examId) elements['exam-picker'].value = String(state.examId);
+  const picker = elements['exam-picker'] || document.getElementById('exam-picker');
+  if (!picker) return;
+  picker.replaceChildren(new Option('Novo teste', ''));
+  if (Array.isArray(state.exams)) {
+    state.exams.forEach(exam => {
+      const suffix = exam.status === 'published' ? 'Publicado' : 'Rascunho';
+      picker.appendChild(new Option(`${exam.title || 'Sem título'} · ${suffix}`, String(exam.id)));
+    });
+  }
+  if (state.examId) picker.value = String(state.examId);
 }
 
 async function loadExam(examId) {
@@ -1207,13 +1224,8 @@ async function saveExam(status = 'draft', silent = false) {
   const method = state.examId ? 'PUT' : 'POST';
   const url = state.examId ? `/api/company/exams/${state.examId}` : '/api/company/exams';
 
-  console.log('saveExam iniciado');
-  console.log('payload do exame:', exam);
-  console.log('endpoint utilizado:', url);
-
   try {
     const data = await api(url, { method, body: JSON.stringify(exam) });
-    console.log('resposta recebida:', data);
 
     state.examId = data.exam.id;
     state.status = data.exam.status;
@@ -1224,8 +1236,8 @@ async function saveExam(status = 'draft', silent = false) {
     if (existingIndex >= 0) state.exams[existingIndex] = summary;
     else state.exams.unshift(summary);
     populateExamPicker();
-    elements['page-title'].textContent = 'Editar teste';
-    elements['breadcrumb-mode'].textContent = 'Editar teste';
+    if (elements['page-title']) elements['page-title'].textContent = 'Editar teste';
+    if (elements['breadcrumb-mode']) elements['breadcrumb-mode'].textContent = 'Editar teste';
     setSaveStatus(status === 'published' ? 'Teste publicado' : 'Alterações salvas', 'saved');
 
     if (!silent) {
@@ -1295,6 +1307,142 @@ function updateEmailStatusPanel(emailResult) {
   }
 }
 
+function escapeHtml(str) {
+  return String(str || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+function renderMyExamsTable() {
+  const tbody = document.getElementById('my-exams-tbody');
+  const emptyState = document.getElementById('my-exams-empty');
+  const countBadge = document.getElementById('my-exams-count');
+
+  if (countBadge) countBadge.textContent = state.exams ? state.exams.length : 0;
+  if (!tbody) return;
+
+  if (!state.exams || state.exams.length === 0) {
+    tbody.innerHTML = '';
+    if (emptyState) emptyState.style.display = 'block';
+    return;
+  }
+
+  if (emptyState) emptyState.style.display = 'none';
+
+  tbody.innerHTML = state.exams.map(exam => {
+    const isPublished = exam.status === 'published';
+    const statusBadge = isPublished
+      ? '<span class="result-chip approved" style="font-size:11px;padding:4px 10px;">🟢 Publicado</span>'
+      : '<span class="result-chip review" style="font-size:11px;padding:4px 10px;">🟡 Rascunho</span>';
+
+    const qCount = Array.isArray(exam.questions) ? exam.questions.length : (exam.questionCount || 0);
+    const duration = exam.durationMinutes ? `${exam.durationMinutes} min` : '60 min';
+    const sendOpt = exam.emailSendOption === 'scheduled'
+      ? `Agendado (${exam.emailScheduleMinutesBefore || 0}m antes)`
+      : (exam.emailSendOption === 'on_save' ? 'No cadastro' : 'Manual / Convite');
+
+    return `
+      <tr>
+        <td>
+          <div style="display:grid;gap:2px;">
+            <strong style="font-size:14px;color:var(--navy,#071c36);">${escapeHtml(exam.title || 'Sem título')}</strong>
+            <small style="color:var(--muted,#718096);font-size:11px;">${escapeHtml((exam.description || '').slice(0, 75))}${exam.description && exam.description.length > 75 ? '...' : ''}</small>
+          </div>
+        </td>
+        <td>${statusBadge}</td>
+        <td><strong>${qCount}</strong> questões</td>
+        <td>${duration}</td>
+        <td><small style="color:var(--muted,#718096);">${sendOpt}</small></td>
+        <td>
+          <div style="display:flex;gap:6px;flex-wrap:wrap;">
+            <button class="button primary btn-edit-exam-row" data-id="${exam.id}" type="button" style="padding:4px 10px;min-height:32px;font-size:12px;font-weight:700;">
+              ✏️ Editar
+            </button>
+            <button class="button secondary btn-copy-link-row" data-id="${exam.id}" data-title="${escapeHtml(exam.title)}" type="button" style="padding:4px 10px;min-height:32px;font-size:12px;">
+              🔗 Link
+            </button>
+            <button class="button secondary btn-assign-row" data-id="${exam.id}" type="button" style="padding:4px 10px;min-height:32px;font-size:12px;">
+              ♙ Participantes
+            </button>
+            <button class="button secondary btn-delete-exam-row" data-id="${exam.id}" type="button" style="padding:4px 10px;min-height:32px;font-size:12px;color:#ef4444;border-color:#fecaca;">
+              🗑 Excluir
+            </button>
+          </div>
+        </td>
+      </tr>
+    `;
+  }).join('');
+
+  // Event listeners para os botões da tabela
+  tbody.querySelectorAll('.btn-edit-exam-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      await loadExam(btn.dataset.id);
+      switchExamView('create');
+    });
+  });
+
+  tbody.querySelectorAll('.btn-copy-link-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const link = `${window.location.origin}/login.html`;
+      if (navigator.clipboard?.writeText) {
+        navigator.clipboard.writeText(link);
+      }
+      toast(`Link de acesso copiado: ${link}`, 'success');
+    });
+  });
+
+  tbody.querySelectorAll('.btn-assign-row').forEach(btn => {
+    btn.addEventListener('click', () => {
+      window.location.href = `Participante.html?examId=${btn.dataset.id}`;
+    });
+  });
+
+  tbody.querySelectorAll('.btn-delete-exam-row').forEach(btn => {
+    btn.addEventListener('click', async () => {
+      if (!confirm('Deseja realmente excluir este teste? Esta ação não poderá ser desfeita.')) return;
+      try {
+        const result = await api(`/api/company/exams/${btn.dataset.id}`, { method: 'DELETE' });
+        toast(result.message || (result.archived ? 'Teste arquivado.' : 'Teste excluído com sucesso.'), 'success');
+        state.exams = state.exams.filter(e => String(e.id) !== String(btn.dataset.id));
+        renderMyExamsTable();
+        populateExamPicker();
+      } catch (err) {
+        toast(err.message || 'Falha ao excluir o teste.', 'error');
+      }
+    });
+  });
+}
+
+function switchExamView(viewName) {
+  const myExamsSec = document.getElementById('my-exams-section');
+  const builderSec = document.getElementById('exam-builder-section');
+  const tabMyExams = document.getElementById('tab-my-exams');
+  const tabCreateExam = document.getElementById('tab-create-exam');
+
+  if (viewName === 'my-exams') {
+    if (myExamsSec) {
+      myExamsSec.removeAttribute('hidden');
+      myExamsSec.style.display = 'block';
+    }
+    if (builderSec) {
+      builderSec.setAttribute('hidden', '');
+      builderSec.style.display = 'none';
+    }
+    if (tabMyExams) tabMyExams.className = 'button primary';
+    if (tabCreateExam) tabCreateExam.className = 'button secondary';
+    renderMyExamsTable();
+  } else {
+    if (myExamsSec) {
+      myExamsSec.setAttribute('hidden', '');
+      myExamsSec.style.display = 'none';
+    }
+    if (builderSec) {
+      builderSec.removeAttribute('hidden');
+      builderSec.style.display = 'block';
+    }
+    if (tabMyExams) tabMyExams.className = 'button secondary';
+    if (tabCreateExam) tabCreateExam.className = 'button primary';
+  }
+}
+
 async function sendManualAccess() {
   const btn = document.getElementById('manual-send-access-btn');
   if (!state.examId) { toast('Salve o teste antes de enviar.', 'error'); return; }
@@ -1314,6 +1462,203 @@ async function sendManualAccess() {
 
 function showQuestionImportErrors(message, details = []) {
   const container = elements['question-import-errors'];
+  if (!container) return;
+  container.replaceChildren();
+  const title = document.createElement('strong');
+  title.textContent = message;
+  container.appendChild(title);
+  if (details.length) {
+    const list = document.createElement('ul');
+    details.forEach(detail => {
+      const item = document.createElement('li');
+      item.textContent = detail;
+      list.appendChild(item);
+    });
+    container.appendChild(list);
+  }
+  container.hidden = false;
+}
+
+async function importQuestionsFromFile() {
+  const [file] = elements['question-import-file'].files;
+  if (!file) return;
+  const button = document.getElementById('import-questions');
+  elements['question-import-errors'].hidden = true;
+  elements['question-import-errors'].replaceChildren();
+
+  const extension = file.name.toLowerCase().split('.').pop();
+  if (!['xlsx', 'csv', 'gift', 'txt', 'docx'].includes(extension)) {
+    showQuestionImportErrors('Selecione um arquivo Excel (.xlsx, .csv), Word (.docx) ou GIFT (.gift, .txt).');
+    elements['question-import-file'].value = '';
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showQuestionImportErrors('O arquivo deve ter no máximo 5 MB.');
+    elements['question-import-file'].value = '';
+    return;
+  }
+
+  const formatLabel = extension === 'xlsx' ? 'Excel' : 'GIFT';
+  button.disabled = true;
+  button.textContent = 'Importando...';
+  setSaveStatus(`Validando ${formatLabel}...`, 'saving');
+  try {
+    const body = new FormData();
+    body.append('file', file);
+    const data = await api('/api/company/question-imports', { method: 'POST', body });
+    const importedQuestions = Array.isArray(data.questions) ? data.questions : [];
+    const append = elements['question-import-mode'].value === 'append';
+    const nextQuestions = append ? [...state.questions, ...importedQuestions] : importedQuestions;
+    if (nextQuestions.length > 200) {
+      throw new Error('O teste pode ter no máximo 200 questões. Escolha substituir ou reduza o arquivo.');
+    }
+
+    state.questions = nextQuestions;
+    state.dirty = true;
+    renderQuestions();
+    updatePreview();
+    saveTemporaryDraft();
+    const saved = await saveExam('draft', true);
+    if (!saved) {
+      throw new Error('As questões foram carregadas na tela, mas o rascunho não pôde ser salvo. Informe o título e tente salvar novamente.');
+    }
+    toast(`${data.count} ${data.count === 1 ? 'questão importada' : 'questões importadas'} e salvas no rascunho.`);
+  } catch (error) {
+    setSaveStatus('Falha na importação');
+    showQuestionImportErrors(error.message, error.details || []);
+    toast(`Revise o arquivo ${formatLabel} e tente novamente.`, 'error');
+  } finally {
+    button.disabled = false;
+    button.textContent = 'Importar arquivo';
+    elements['question-import-file'].value = '';
+  }
+}
+
+function collectBranding() {
+  return {
+    ...state.branding,
+    primaryColor: elements['primary-color'].value.toUpperCase(),
+    accentColor: elements['accent-color'].value.toUpperCase(),
+    backgroundColor: elements['background-color'].value.toUpperCase(),
+    fontFamily: elements['font-family'].value,
+    borderRadius: elements['border-radius'].value,
+    candidateInstructions: elements['candidate-instructions'].value.trim()
+  };
+}
+
+async function saveBranding() {
+  state.branding = collectBranding();
+  applyBranding();
+  try {
+    const data = await api('/api/company/branding', { method: 'PUT', body: JSON.stringify(state.branding) });
+    state.branding = data.branding;
+    applyBranding();
+    toast('A identidade visual foi salva para sua empresa.');
+  } catch (error) {
+    toast(error.message, 'error');
+  }
+}
+
+function handleBrandingInput() {
+  state.branding = collectBranding();
+  applyBranding();
+}
+
+function handleLogo(event) {
+  const [file] = event.target.files;
+  if (!file) return;
+  if (!['image/png', 'image/jpeg', 'image/webp'].includes(file.type) || file.size > 2 * 1024 * 1024) {
+    toast('Use uma imagem PNG, JPG ou WEBP de até 2 MB.', 'error');
+    event.target.value = '';
+    return;
+  }
+  const reader = new FileReader();
+  reader.onload = () => {
+    state.branding.logoData = String(reader.result);
+    applyBranding();
+    toast('Logo carregado. Clique em “Salvar aparência” para confirmar.');
+  };
+  reader.readAsDataURL(file);
+}
+
+let appearanceStepPinned = false;
+let stepScrollFrame = null;
+
+function setActiveStep(step) {
+  const items = [...document.querySelectorAll('.stepper li')];
+  const activeIndex = items.findIndex(item => {
+    const button = item.querySelector('button');
+    return button?.dataset.scroll === step || button?.dataset.action === step;
+  });
+  items.forEach((item, index) => {
+    const active = index === activeIndex;
+    item.classList.toggle('active', active);
+    item.classList.toggle('completed', activeIndex > -1 && index < activeIndex);
+    const button = item.querySelector('button');
+    if (active) button?.setAttribute('aria-current', 'step');
+    else button?.removeAttribute('aria-current');
+  });
+}
+
+function updateActiveStep() {
+  const stepper = document.querySelector('.stepper');
+  if (!stepper) return;
+  stepper.classList.toggle('is-stuck', stepper.getBoundingClientRect().top <= 69 && window.scrollY > 40);
+  if (!elements['publish-modal'].hidden) {
+    setActiveStep('publish');
+    return;
+  }
+  const threshold = 68 + stepper.offsetHeight + 32;
+  const questions = document.getElementById('questions-section');
+  const application = document.getElementById('application-settings');
+  if (appearanceStepPinned) {
+    setActiveStep('branding-panel');
+  } else if (application.getBoundingClientRect().top <= threshold) {
+    setActiveStep('application-settings');
+  } else if (questions.getBoundingClientRect().top <= threshold) {
+    setActiveStep('questions-section');
+  } else {
+    setActiveStep('exam-information');
+  }
+}
+
+function scheduleStepUpdate() {
+  if (stepScrollFrame) return;
+  stepScrollFrame = requestAnimationFrame(() => {
+    stepScrollFrame = null;
+    updateActiveStep();
+  });
+}
+
+function navigateToStep(button) {
+  const targetId = button.dataset.scroll;
+```javascript
+    }
+    if (tabMyExams) tabMyExams.className = 'button secondary';
+    if (tabCreateExam) tabCreateExam.className = 'button primary';
+  }
+}
+
+async function sendManualAccess() {
+  const btn = document.getElementById('manual-send-access-btn');
+  if (!state.examId) { toast('Salve o teste antes de enviar.', 'error'); return; }
+  if (btn) { btn.disabled = true; btn.textContent = 'Enviando...'; }
+  try {
+    const data = await api(`/api/company/exams/${state.examId}/send-access`, { method: 'POST', body: JSON.stringify({}) });
+    let msg = `✉ ${data.sent} acesso(s) enviado(s) com sucesso.`;
+    if (data.failed > 0) msg += ` ${data.failed} falhou.`;
+    toast(msg, data.failed > 0 ? 'error' : 'success');
+    updateEmailStatusPanel({ option: 'manual', sent: data.sent, failed: data.failed, error: data.failedDetails?.[0] || '' });
+  } catch (error) {
+    toast(error.message, 'error');
+  } finally {
+    if (btn) { btn.disabled = false; btn.textContent = '✉ Enviar acesso ao exame agora'; }
+  }
+}
+
+function showQuestionImportErrors(message, details = []) {
+  const container = elements['question-import-errors'];
+  if (!container) return;
   container.replaceChildren();
   const title = document.createElement('strong');
   title.textContent = message;
@@ -1488,116 +1833,91 @@ function navigateToStep(button) {
   document.getElementById(targetId)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+let previewTimerInterval = null;
+
+window.CandidatePreviewAdapter = window.CandidatePreviewAdapter || {
+  active: false,
+  mockState: { answers: {}, currentQuestionIndex: 0 },
+  activate(draftExamData) {
+    this.active = true;
+    this.mockState = { exam: draftExamData, answers: {}, currentQuestionIndex: 0 };
+  },
+  deactivate() {
+    this.active = false;
+    this.mockState = { answers: {}, currentQuestionIndex: 0 };
+  },
+  async handleApi(url, options = {}) {
+    const method = (options.method || 'GET').toUpperCase();
+    if (['POST', 'PUT', 'PATCH', 'DELETE'].includes(method)) {
+      if (url.includes('/answers')) {
+        return { success: true, simulated: true, message: 'Resposta registrada em memória (Modo de Prévia).' };
+      }
+      if (url.includes('/submit') || url.includes('/finish')) {
+        return { success: true, simulated: true, score: 100, grade: null, resultStatus: 'completed', releaseStatus: 'pending', message: 'Exame concluído em Modo de Prévia.' };
+      }
+      if (url.includes('/documents')) {
+        return { success: true, simulated: true, message: 'Operação de documento simulada (Modo de Prévia).' };
+      }
+      if (url.includes('/proctoring')) {
+        return { success: true, simulated: true, message: 'Proctoring simulado (Modo de Prévia).' };
+      }
+      return { success: true, simulated: true, message: 'Operação simulada (Modo de Prévia).' };
+    }
+    if (url.includes('/assignments')) {
+      return { user: { name: 'Participante (Prévia)' }, assignments: [] };
+    }
+    if (url.includes('/documents')) {
+      return { documents: (candidateState.exam && candidateState.exam.documents) || [] };
+    }
+    return { success: true, simulated: true };
+  }
+};
+
 function openCandidatePreviewModal() {
-  const exam = collectExam();
-  const count = state.questions.length;
-  const total = state.questions.reduce((sum, q) => sum + (Number(q.points) || 0), 0);
-  const duration = Number(elements['exam-duration'].value) || 60;
-
-  const container = elements['candidate-preview-container'];
-  if (container) {
-    container.style.setProperty('--primary', state.branding.primaryColor);
-    container.style.setProperty('--accent', state.branding.accentColor);
-    container.style.setProperty('--canvas', state.branding.backgroundColor);
-    container.style.setProperty('--font', `${state.branding.fontFamily}, "Segoe UI", Arial, sans-serif`);
-    container.style.setProperty('--radius', getRadiusValue());
+  if (!state.questions || state.questions.length === 0) {
+    toast('Adicione pelo menos uma questão antes de visualizar a prévia.', 'error');
+    return;
   }
 
-  const companyName = (state.company?.name || 'SUA EMPRESA').toUpperCase();
-  if (elements['modal-preview-company']) elements['modal-preview-company'].textContent = companyName;
-  if (elements['modal-preview-exam-title']) elements['modal-preview-exam-title'].textContent = exam.title || 'Seu novo teste';
-  if (elements['modal-preview-instructions']) elements['modal-preview-instructions'].textContent = state.branding.candidateInstructions || 'Leia as instruções com atenção antes de iniciar a avaliação.';
-  if (elements['modal-preview-duration-tag']) elements['modal-preview-duration-tag'].textContent = `${duration} min`;
-  if (elements['modal-preview-questions-tag']) elements['modal-preview-questions-tag'].textContent = `${count} ${count === 1 ? 'questão' : 'questões'}`;
-  if (elements['modal-preview-points-tag']) elements['modal-preview-points-tag'].textContent = exam.gradingScale?.type === 'none' ? 'Perfil comportamental' : `${total} pontos`;
-  if (elements['modal-preview-timer']) elements['modal-preview-timer'].textContent = `${duration}:00`;
+  const examDraft = collectExam();
+  const branding = collectBranding();
+  const duration = Number(elements['exam-duration']?.value) || 60;
 
-  const logoImg = elements['modal-preview-logo'];
-  if (logoImg) {
-    if (state.branding.logoData) {
-      logoImg.src = state.branding.logoData;
-      logoImg.style.filter = 'none';
-    } else {
-      logoImg.src = './assets/images/Logo_com_Slogan (sem fundo).png';
-      logoImg.style.filter = 'brightness(0) invert(1)';
-    }
+  // Monta o objeto de dados do exame que o player espera
+  const draftExamData = {
+    ...examDraft,
+    title: examDraft.title || 'Teste sem título',
+    duration,
+    questions: (state.questions || []).map(q => ({ ...q })),
+    branding,
+    documents: [],
+    companyName: state.company?.name || state.company?.razaoSocial || 'Online Teste',
+    logoData: branding?.logoData || '',
+    requireRecording: false,
+    requireIdentity: false,
+    allowResume: false
+  };
+
+  // Exibe o modal
+  if (elements['preview-modal']) elements['preview-modal'].removeAttribute('hidden');
+  document.body.style.overflow = 'hidden';
+
+  // Inicializa o player compartilhado via ponto de entrada seguro
+  if (typeof window.initCandidatePreview === 'function') {
+    window.initCandidatePreview(draftExamData);
+  } else {
+    console.error('[Preview] initCandidatePreview não encontrada — participant-application.js não carregado?');
   }
-
-  const feed = elements['modal-preview-questions-feed'];
-  if (feed) {
-    feed.replaceChildren();
-    if (!state.questions.length) {
-      const empty = document.createElement('p');
-      empty.className = 'preview-empty-questions';
-      empty.textContent = 'Nenhuma questão cadastrada até o momento.';
-      feed.appendChild(empty);
-    } else {
-      state.questions.forEach((q, index) => {
-        const card = document.createElement('div');
-        card.className = 'candidate-question-card';
-
-        const head = document.createElement('div');
-        head.className = 'question-card-head';
-        head.innerHTML = exam.gradingScale?.type === 'none'
-          ? `<span>Questão ${index + 1} de ${count}</span><b>Perfil RH</b>`
-          : `<span>Questão ${index + 1} de ${count}</span><b>${q.points || 0} pt${(q.points || 0) === 1 ? '' : 's'}</b>`;
-
-        const prompt = document.createElement('div');
-        prompt.className = 'question-card-prompt';
-        prompt.textContent = q.prompt || '(Sem enunciado)';
-
-        const optionsDiv = document.createElement('div');
-        optionsDiv.className = 'question-card-options';
-
-        if (q.type === 'essay') {
-          const area = document.createElement('textarea');
-          area.className = 'candidate-textarea-mock';
-          area.placeholder = 'O candidato digitará a resposta neste campo de texto livre...';
-          area.rows = 4;
-          area.readOnly = true;
-          optionsDiv.appendChild(area);
-        } else {
-          const isMulti = q.type === 'multiple_select';
-          const opts = Array.isArray(q.options) && q.options.length ? q.options : ['Opção A', 'Opção B'];
-          opts.forEach((optText) => {
-            const optLabel = document.createElement('label');
-            optLabel.className = 'candidate-option-label';
-            const input = document.createElement('input');
-            input.type = isMulti ? 'checkbox' : 'radio';
-            input.name = `preview-q-${index}`;
-            input.disabled = true;
-            const span = document.createElement('span');
-            span.textContent = optText;
-            optLabel.append(input, span);
-            optionsDiv.appendChild(optLabel);
-          });
-        }
-
-        card.append(head, prompt);
-        appendQuestionImage(card, q, 'candidate-question-image');
-        card.appendChild(optionsDiv);
-        feed.appendChild(card);
-      });
-    }
-  }
-
-  elements['preview-modal'].hidden = false;
 }
 
 function closeCandidatePreviewModal() {
-  elements['preview-modal'].hidden = true;
-}
-
-function openPublishModal() {
-  updatePreview();
-  elements['publish-modal'].hidden = false;
-  setActiveStep('publish');
-  document.getElementById('confirm-publish').focus();
-}
-
-function closePublishModal() {
-  elements['publish-modal'].hidden = true;
-  updateActiveStep();
+  // Limpa estado completo do player via destroyCandidatePreview
+  if (typeof window.destroyCandidatePreview === 'function') {
+    window.destroyCandidatePreview();
+  }
+  // Oculta o modal e restaura scroll
+  if (elements['preview-modal']) elements['preview-modal'].hidden = true;
+  document.body.style.overflow = '';
 }
 
 function bindEvents() {
@@ -1605,12 +1925,8 @@ function bindEvents() {
     document.getElementById(id).addEventListener('input', () => { updatePreview(); markDirty(); });
     document.getElementById(id).addEventListener('change', () => { updatePreview(); markDirty(); });
   });
-  // Evento para o campo de opção de envio de e-mail
   if (elements['email-send-option']) {
-    elements['email-send-option'].addEventListener('change', () => {
-      updateEmailScheduleVisibility();
-      markDirty();
-    });
+    elements['email-send-option'].addEventListener('change', () => { updateEmailScheduleVisibility(); markDirty(); });
   }
   if (elements['email-schedule-minutes']) {
     elements['email-schedule-minutes'].addEventListener('input', markDirty);
@@ -1622,16 +1938,10 @@ function bindEvents() {
     renderQuestions();
     markDirty();
   });
-  elements['concept-bands'].addEventListener('input', () => {
-    updateGradingPreview();
-    markDirty();
-  });
+  elements['concept-bands'].addEventListener('input', () => { updateGradingPreview(); markDirty(); });
   elements['questions-list'].addEventListener('input', event => syncQuestionFromTarget(event.target));
   elements['questions-list'].addEventListener('change', event => {
-    if (event.target.classList.contains('question-image-input')) {
-      handleQuestionImageUpload(event.target);
-      return;
-    }
+    if (event.target.classList.contains('question-image-input')) { handleQuestionImageUpload(event.target); return; }
     syncQuestionFromTarget(event.target);
   });
   elements['questions-list'].addEventListener('click', handleQuestionClick);
@@ -1640,8 +1950,6 @@ function bindEvents() {
   elements['questions-list'].addEventListener('drop', handleDrop);
   elements['questions-list'].addEventListener('dragend', handleDragEnd);
   document.getElementById('add-question').addEventListener('click', addQuestion);
-  
-  // Modal de Modelos de Importação
   const btnModels = document.getElementById('btn-show-models');
   const modelsModal = document.getElementById('models-modal');
   if (btnModels && modelsModal) {
@@ -1650,9 +1958,8 @@ function bindEvents() {
     const closeModelsBtnFooter = document.getElementById('close-models-modal-btn');
     if (closeModelsBtn) closeModelsBtn.addEventListener('click', () => { modelsModal.hidden = true; });
     if (closeModelsBtnFooter) closeModelsBtnFooter.addEventListener('click', () => { modelsModal.hidden = true; });
-    modelsModal.addEventListener('click', (e) => { if (e.target === modelsModal) modelsModal.hidden = true; });
+    modelsModal.addEventListener('click', (e) => { if (e.target === modelsModal) modalsModal.hidden = true; });
   }
-
   if (elements['open-question-bank']) elements['open-question-bank'].addEventListener('click', openQuestionBankModal);
   if (elements['close-question-bank-modal']) elements['close-question-bank-modal'].addEventListener('click', closeQuestionBankModal);
   if (elements['cancel-question-bank']) elements['cancel-question-bank'].addEventListener('click', closeQuestionBankModal);
@@ -1677,7 +1984,28 @@ function bindEvents() {
     elements[id].addEventListener('change', loadQuestionBank);
   });
 
-  document.getElementById('save-draft').addEventListener('click', () => saveExam('draft'));
+  // Abas de visualização (Meus Testes / Criar Editar Teste)
+  document.getElementById('tab-my-exams')?.addEventListener('click', () => switchExamView('my-exams'));
+  document.getElementById('tab-create-exam')?.addEventListener('click', () => { resetExam(); switchExamView('create'); });
+  document.getElementById('btn-new-exam-from-table')?.addEventListener('click', () => { resetExam(); switchExamView('create'); });
+  document.getElementById('btn-create-first-exam')?.addEventListener('click', () => { resetExam(); switchExamView('create'); });
+
+  document.getElementById('save-draft')?.addEventListener('click', () => saveExam(state.examId && state.status === 'published' ? 'published' : 'draft'));
+  document.getElementById('delete-exam')?.addEventListener('click', async () => {
+    if (!state.examId) return;
+    if (!confirm('Deseja realmente excluir este teste? Esta ação não poderá ser desfeita.')) return;
+    try {
+      const result = await api(`/api/company/exams/${state.examId}`, { method: 'DELETE' });
+      toast(result.message || (result.archived ? 'Teste arquivado.' : 'Teste excluído com sucesso.'), 'success');
+      state.exams = state.exams.filter(exam => String(exam.id) !== String(state.examId));
+      resetExam();
+      populateExamPicker();
+      renderMyExamsTable();
+      switchExamView(state.exams.length ? 'my-exams' : 'create');
+    } catch (error) {
+      toast(error.message || 'Falha ao excluir o teste.', 'error');
+    }
+  });
   if (elements['preview-exam-btn']) elements['preview-exam-btn'].addEventListener('click', openCandidatePreviewModal);
   if (elements['preview-button']) elements['preview-button'].addEventListener('click', openCandidatePreviewModal);
   document.querySelectorAll('[data-preview-exam]').forEach(button => button.addEventListener('click', openCandidatePreviewModal));
@@ -1748,22 +2076,42 @@ async function loadWorkspace() {
     const data = await api('/api/company/workspace');
     state.company = data.company;
     state.branding = { ...state.branding, ...data.branding };
+    state.license = data.license || null;
+    state.licenseFeatures = new Set(data.license?.features || []);
+    state.activeUnit = data.activeUnit || null;
     state.exams = data.exams || [];
-    elements['company-name'].textContent = data.company.name;
-    elements['company-initials'].textContent = initials(data.company.name);
-    elements['preview-company'].textContent = data.company.name.toUpperCase();
+    const displayCompanyName = data.activeUnit?.name || data.company.name;
+    if (elements['company-name']) elements['company-name'].textContent = displayCompanyName;
+    if (elements['company-initials']) elements['company-initials'].textContent = initials(displayCompanyName);
+    window.renderCompanyUnitSwitcher?.(data);
+    if (elements['preview-company']) elements['preview-company'].textContent = displayCompanyName.toUpperCase();
     applyBranding();
     populateExamPicker();
-    const temporaryDraft = sessionStorage.getItem(draftKey);
-    if (temporaryDraft) {
-      try {
-        fillExam({ ...JSON.parse(temporaryDraft), id: null });
-        setSaveStatus('Rascunho recuperado');
-      } catch (_) {
-        resetExam();
-      }
+    renderMyExamsTable();
+    const urlParams = new URLSearchParams(window.location.search);
+    const urlExamId = urlParams.get('examId');
+    if (urlExamId) {
+      await loadExam(urlExamId);
+      switchExamView('create');
     } else {
-      resetExam();
+      const temporaryDraft = sessionStorage.getItem(draftKey);
+      if (temporaryDraft) {
+        try {
+          fillExam({ ...JSON.parse(temporaryDraft), id: null });
+          setSaveStatus('Rascunho recuperado');
+          switchExamView('create');
+        } catch (_) {
+          resetExam();
+          switchExamView(state.exams && state.exams.length > 0 ? 'my-exams' : 'create');
+        }
+      } else {
+        resetExam();
+        if (window.location.hash === '#create' || window.location.hash === '#new') {
+          switchExamView('create');
+        } else {
+          switchExamView(state.exams && state.exams.length > 0 ? 'my-exams' : 'create');
+        }
+      }
     }
   } catch (error) {
     if (error.status === 401 || error.status === 403) {
@@ -2055,7 +2403,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   bindEvents();
   initDocumentManagerUI();
   updateEmailScheduleVisibility();
-  await loadState();
+  await loadWorkspace();
   observeScrollSpy();
 });
 

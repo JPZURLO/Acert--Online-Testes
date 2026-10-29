@@ -14,6 +14,8 @@ ALL_LICENSE_FEATURES = {
     "sso",
     "dedicated_support",
     "prepaid_credits",
+    "hr_screening",
+    "behavior_profile",
 }
 
 
@@ -46,7 +48,7 @@ def company_license_snapshot(connection, company_id):
         cursor.execute(
             "SELECT l.company_id, l.status, l.starts_at, l.ends_at, l.max_exams_override, "
             "l.max_participants_override, l.features_override_json, l.notes, "
-            "p.id AS plan_id, p.name AS plan_name, p.max_exams, p.max_participants_month, "
+            "p.id AS plan_id, p.name AS plan_name, p.status AS plan_status, p.max_exams, p.max_participants_month, "
             "p.max_admin_users, p.result_retention_months, p.features_json "
             "FROM company_licenses l LEFT JOIN license_plans p ON p.id = l.plan_id "
             "WHERE l.company_id = %s LIMIT 1",
@@ -76,6 +78,9 @@ def company_license_snapshot(connection, company_id):
     status = row.get("status") or "active"
     if ends_at and ends_at < date.today() and status in {"active", "trial"}:
         status = "expired"
+    plan_status = row.get("plan_status") or "active"
+    if status in {"active", "trial"} and row.get("plan_id") and plan_status != "active":
+        status = "blocked"
     override = row.get("features_override_json")
     features = parse_features(override if override not in (None, "") else row.get("features_json"))
     return {

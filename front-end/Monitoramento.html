@@ -19,29 +19,103 @@
         <a class="nav-item" href="./VisaoGeral.html"><span class="nav-icon">⌂</span><span>Visão geral</span></a>
         <a class="nav-item" href="./login_cliente.html"><span class="nav-icon">▤</span><span>Testes</span></a>
         <a class="nav-item" href="./Participante.html"><span class="nav-icon">♙</span><span>Participantes</span></a>
-        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
         <a class="nav-item active" href="./Monitoramento.html"><span class="nav-icon">◉</span><span>Monitoramento</span></a>
-        <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">?</span><span>Suporte</span></a>
+        <a class="nav-item" href="./Resultados.html"><span class="nav-icon">▥</span><span>Resultados</span></a>
+        <a class="nav-item" href="./BaseConhecimento.html"><span class="nav-icon">📖</span><span>Manual do Usuário</span></a>
+        <a class="nav-item" href="./SuporteEmpresa.html"><span class="nav-icon">💬</span><span>Suporte</span></a>
       </nav>
-      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher</span></button></div>
+      <div class="sidebar-footer"><button class="nav-item" id="collapse-sidebar" type="button"><span class="nav-icon">‹‹</span><span>Recolher menu</span></button></div>
     </aside>
     <main class="workspace">
       <header class="topbar"><button class="mobile-menu" id="mobile-menu" type="button" aria-label="Abrir menu">☰</button><div class="breadcrumb"><span>Operação</span><b>/</b><strong>Monitoramento</strong></div><div class="account-area"><div class="account-badge" id="company-initials">AC</div><span id="company-name">Empresa</span><button class="logout-button" id="logout-button" type="button">Sair</button></div></header>
       <section class="operations-page">
         <div class="operations-heading"><div><p class="eyebrow">CENTRAL DE APLICAÇÕES</p><h1>Monitoramento em tempo real</h1><p>Acompanhe cada participante, envie orientações e controle interrupções com segurança.</p></div><span class="live-indicator"><i></i> Atualização automática</span></div>
-        <section class="operation-stats"><article><span class="stat-symbol active">▶</span><div><small>Em andamento</small><strong id="operations-active">0</strong></div></article><article><span class="stat-symbol paused">Ⅱ</span><div><small>Aguardando retomada</small><strong id="operations-paused">0</strong></div></article><article><span class="stat-symbol message">✉</span><div><small>Mensagens não lidas</small><strong id="operations-unread">0</strong></div></article><article><span class="stat-symbol done">✓</span><div><small>Finalizadas</small><strong id="operations-finished">0</strong></div></article></section>
+        <section class="operation-stats"><article><span class="stat-symbol waiting" style="color: #d97706;">⌛</span><div><small>Aguardando liberação</small><strong id="operations-waiting">0</strong></div></article><article><span class="stat-symbol active">▶</span><div><small>Em andamento</small><strong id="operations-active">0</strong></div></article><article><span class="stat-symbol paused">Ⅱ</span><div><small>Aguardando retomada</small><strong id="operations-paused">0</strong></div></article><article><span class="stat-symbol message">✉</span><div><small>Mensagens não lidas</small><strong id="operations-unread">0</strong></div></article><article><span class="stat-symbol done">✓</span><div><small>Finalizadas</small><strong id="operations-finished">0</strong></div></article></section>
         <section class="operations-grid">
-          <article class="operations-list-card">
-            <header><div><h2>Aplicações</h2><p>Clique em uma data ou linha para abrir os controles.</p></div><div class="operation-filters"><input id="operation-search" type="search" placeholder="Buscar participante ou teste"><select id="operation-status"><option value="all">Todos os status</option><option value="in_progress">Em andamento</option><option value="paused">Pausados</option><option value="submitted">Enviados</option><option value="closed">Encerrados</option></select></div></header>
-            <div class="operations-table-wrap"><table><thead><tr><th>Data da aplicação</th><th>Participante</th><th>Teste</th><th>Tempo restante</th><th>Status</th><th></th></tr></thead><tbody id="operations-body"></tbody></table></div>
-            <div id="operations-empty" class="operation-empty" hidden><span>◎</span><strong>Nenhuma aplicação encontrada</strong><p>As tentativas aparecerão quando os participantes abrirem um teste.</p></div>
+          <article class="operations-list-card" style="grid-column: 1 / -1;">
+            <header style="flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h2>Aplicações &amp; Transmissão ao Vivo</h2>
+                <p>Acompanhe os candidatos em tempo real através da grade de transmissão.</p>
+              </div>
+              <div class="operation-filters" style="flex-wrap: wrap; align-items: center; gap: 8px;">
+                <input id="operation-search" type="search" placeholder="Buscar participante ou teste">
+                <select id="operation-status">
+                  <option value="all">Todos os status</option>
+                  <option value="waiting_proctor">Aguardando liberação</option>
+                  <option value="in_progress">Em andamento</option>
+                  <option value="paused">Pausados</option>
+                  <option value="submitted">Enviados</option>
+                  <option value="closed">Encerrados</option>
+                </select>
+                <select id="operation-filter-exam">
+                  <option value="all">Todos os exames</option>
+                </select>
+                <select id="operation-filter-unit">
+                  <option value="all">Todas as filiais</option>
+                </select>
+                <select id="operation-filter-live">
+                  <option value="all">Todas as conexões</option>
+                  <option value="live_only">🔴 Somente Ao Vivo</option>
+                </select>
+                <div class="view-toggle-wrap" style="display: flex; gap: 4px; background: #e2e8f0; padding: 2px; border-radius: 6px;">
+                  <button id="view-mode-grid" type="button" class="view-toggle-btn active" title="Visão em Grade" style="padding: 4px 10px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; background: #0f6f73; color: white;">田 Grade</button>
+                  <button id="view-mode-table" type="button" class="view-toggle-btn" title="Visão em Tabela" style="padding: 4px 10px; border: none; border-radius: 4px; font-weight: 600; cursor: pointer; background: transparent; color: #475569;">☰ Tabela</button>
+                </div>
+              </div>
+            </header>
+
+            <!-- Grade Responsiva de Cards de Candidatos -->
+            <div id="operations-cards-container" class="candidate-grid-container" style="padding: 16px;"></div>
+
+            <!-- Tabela Tradicional (Opcional/Alternativa) -->
+            <div class="operations-table-wrap" id="operations-table-wrapper" hidden>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Data da aplicação</th>
+                    <th>Participante</th>
+                    <th>Teste</th>
+                    <th>Tempo restante</th>
+                    <th>Status</th>
+                    <th></th>
+                  </tr>
+                </thead>
+                <tbody id="operations-body"></tbody>
+              </table>
+            </div>
+
+            <div id="operations-empty" class="operation-empty" hidden>
+              <span>◎</span>
+              <strong>Nenhuma aplicação encontrada</strong>
+              <p>As tentativas aparecerão quando os participantes abrirem um teste.</p>
+            </div>
           </article>
-          <aside class="operation-detail" id="operation-detail">
+
+          <!-- Painel Lateral de Detalhes (Mantido para Seleção na Tabela) -->
+          <aside class="operation-detail" id="operation-detail" hidden>
             <div id="operation-placeholder" class="detail-placeholder"><span>◉</span><h2>Selecione uma aplicação</h2><p>Os controles, dados e o chat aparecerão aqui.</p></div>
             <div id="operation-content" hidden>
               <header class="detail-header"><div><span class="detail-avatar" id="detail-avatar">PT</span><div><h2 id="detail-name">Participante</h2><p id="detail-email">email</p></div></div><span id="detail-status" class="operation-status">Status</span></header>
               <dl class="detail-facts"><div><dt>Teste</dt><dd id="detail-exam">—</dd></div><div><dt>Início</dt><dd id="detail-started">—</dd></div><div><dt>Tempo restante</dt><dd id="detail-remaining">—</dd></div><div><dt>Retomada</dt><dd id="detail-resume">—</dd></div></dl>
-              <section class="operation-actions"><h3>Controle da aplicação</h3><div><button id="pause-attempt" class="operation-button secondary" type="button">Pausar avaliação</button><button id="resume-attempt" class="operation-button primary" type="button">Enviar código de retomada</button><button id="close-attempt" class="operation-button danger" type="button">Fechar avaliação</button></div><p id="operation-feedback"></p></section>
+              <section class="operation-stream-section" style="margin-top: 15px; margin-bottom: 15px; background: #0f172a; border-radius: 8px; padding: 12px; color: white;">
+                <header style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <h3 style="margin: 0; font-size: 14px; color: #f8fafc;">Transmissão Ao Vivo (WebRTC)</h3>
+                  <span id="stream-status-badge" class="operation-status" style="background: #334155; color: #cbd5e1; font-weight: bold; font-size: 11px; padding: 2px 8px; border-radius: 12px;">Aguardando vídeo...</span>
+                </header>
+                <div style="position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 6px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+                  <video id="live-stream-player" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: contain;"></video>
+                  <div id="live-stream-placeholder" style="position: absolute; text-align: center; color: #94a3b8; font-size: 13px;">
+                    <span>🎥</span>
+                    <p style="margin: 4px 0 0 0;">Nenhuma transmissão ativa neste momento.</p>
+                  </div>
+                </div>
+                <div style="margin-top: 8px; display: flex; justify-content: flex-end; gap: 8px;">
+                  <button id="toggle-audio-button" type="button" class="operation-button secondary" style="font-size: 12px; padding: 4px 10px;">🔊 Ouvir candidato</button>
+                  <button id="proctor-talk-button" type="button" class="operation-button primary" style="font-size: 12px; padding: 4px 10px; background-color: #3b82f6; color: white; border: none; border-radius: 4px; font-weight: 600; cursor: pointer;">🎤 Falar com candidato</button>
+                </div>
+              </section>
+              <section class="operation-actions"><h3>Controle da aplicação</h3><div><button id="authorize-attempt" class="operation-button primary" type="button" style="background-color: #10b981; color: white;">Liberar prova</button><button id="pause-attempt" class="operation-button secondary" type="button">Pausar avaliação</button><button id="resume-attempt" class="operation-button primary" type="button">Enviar código de retomada</button><button id="close-attempt" class="operation-button danger" type="button">Fechar avaliação</button></div><p id="operation-feedback"></p></section>
               <section class="company-chat"><header><div><h3>Chat com o participante</h3><p>As mensagens ficam registradas nesta aplicação.</p></div><span id="chat-live"><i></i> Online</span></header><div id="company-chat-messages" class="company-chat-messages"><p class="chat-empty">Nenhuma mensagem ainda.</p></div><form id="company-chat-form"><input id="company-chat-input" type="text" maxlength="2000" autocomplete="off" placeholder="Digite uma orientação..."><button type="submit">Enviar</button></form></section>
             </div>
           </aside>
@@ -49,7 +123,72 @@
       </section>
     </main>
   </div>
+
+  <!-- Modal / Drawer de Visão Ampliada do Candidato -->
+  <div id="expanded-candidate-modal" class="candidate-modal-overlay" hidden style="position: fixed; inset: 0; background: rgba(15, 23, 42, 0.75); backdrop-filter: blur(4px); z-index: 100; display: flex; align-items: center; justify-content: center; padding: 20px;">
+    <div class="candidate-modal-container" style="background: #ffffff; border-radius: 16px; max-width: 1040px; width: 100%; max-height: 92vh; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.25);">
+      <header class="candidate-modal-header" style="padding: 16px 24px; background: #0f172a; color: white; display: flex; justify-content: space-between; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="modal-candidate-avatar" class="detail-avatar" style="background: #0f6f73; font-weight: bold;">PT</span>
+          <div>
+            <h2 id="modal-candidate-name" style="margin: 0; font-size: 18px; color: white;">Participante</h2>
+            <p id="modal-candidate-email" style="margin: 2px 0 0 0; font-size: 12px; color: #94a3b8;">email@exemplo.com</p>
+          </div>
+        </div>
+        <div style="display: flex; align-items: center; gap: 12px;">
+          <span id="modal-webrtc-badge" class="operation-status" style="background: #334155; color: #cbd5e1; font-weight: bold;">Conectando...</span>
+          <button id="modal-close-button" type="button" style="background: transparent; border: none; color: #94a3b8; font-size: 24px; cursor: pointer; padding: 0 8px; line-height: 1;">&times;</button>
+        </div>
+      </header>
+      <div class="candidate-modal-body" style="padding: 20px; overflow-y: auto; display: grid; grid-template-columns: 1.4fr 1fr; gap: 20px;">
+        <div class="modal-left-stream" style="display: flex; flex-direction: column; gap: 12px;">
+          <div style="position: relative; width: 100%; aspect-ratio: 16/9; background: #000; border-radius: 10px; overflow: hidden; display: flex; align-items: center; justify-content: center;">
+            <video id="modal-stream-player" autoplay playsinline muted style="width: 100%; height: 100%; object-fit: contain;"></video>
+            <div id="modal-stream-placeholder" style="position: absolute; text-align: center; color: #94a3b8;">
+              <span style="font-size: 32px;">🎥</span>
+              <p style="margin: 6px 0 0 0; font-size: 13px;">Aguardando vídeo ao vivo...</p>
+            </div>
+          </div>
+          <div style="display: flex; justify-content: space-between; align-items: center; background: #f8fafc; padding: 12px; border-radius: 8px; border: 1px solid #e2e8f0;">
+            <div>
+              <small style="color: #64748b; font-size: 11px; text-transform: uppercase;">Teste</small>
+              <strong id="modal-exam-title" style="display: block; color: #1e293b; font-size: 13px;">—</strong>
+            </div>
+            <div>
+              <small style="color: #64748b; font-size: 11px; text-transform: uppercase;">Tempo Restante</small>
+              <strong id="modal-remaining-time" style="display: block; color: #0f6f73; font-size: 14px;">00:00:00</strong>
+            </div>
+          </div>
+          <div style="display: flex; gap: 8px;">
+            <button id="modal-toggle-audio-btn" type="button" class="operation-button secondary" style="flex: 1; padding: 8px 12px;">🔊 Ouvir candidato</button>
+            <button id="modal-proctor-talk-btn" type="button" class="operation-button primary" style="flex: 1; padding: 8px 12px; background-color: #3b82f6; color: white; border: none;">🎤 Falar com candidato</button>
+          </div>
+          <div class="operation-actions" style="padding: 12px 0 0 0; border: none;">
+            <h3 style="margin-bottom: 8px; font-size: 12px;">Controles da Aplicação</h3>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 8px;">
+              <button id="modal-authorize-btn" class="operation-button primary" type="button" style="background-color: #10b981; color: white;">Liberar prova</button>
+              <button id="modal-pause-btn" class="operation-button secondary" type="button">Pausar avaliação</button>
+              <button id="modal-resume-btn" class="operation-button primary" type="button">Enviar código retomada</button>
+              <button id="modal-close-attempt-btn" class="operation-button danger" type="button">Fechar avaliação</button>
+            </div>
+          </div>
+        </div>
+        <div class="modal-right-chat" style="display: flex; flex-direction: column; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 14px;">
+          <h3 style="margin: 0 0 8px 0; font-size: 13px; color: #1e293b;">Chat em Tempo Real</h3>
+          <div id="modal-chat-messages" class="company-chat-messages" style="flex: 1; min-height: 220px; height: 100%;">
+            <p class="chat-empty">Nenhuma mensagem ainda.</p>
+          </div>
+          <form id="modal-chat-form" style="display: flex; gap: 8px; margin-top: 10px;">
+            <input id="modal-chat-input" type="text" maxlength="2000" autocomplete="off" placeholder="Digite uma mensagem..." style="flex: 1; height: 36px; padding: 0 10px; border: 1px solid #cbd5e1; border-radius: 6px;">
+            <button type="submit" style="padding: 0 16px; background: #0f6f73; color: white; border: none; border-radius: 6px; font-weight: 600; cursor: pointer;">Enviar</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+
   <div id="operations-toast-region" class="operations-toast-region" aria-live="polite"></div>
+  <script src="./js/company-units.js?v=2"></script>
   <script src="./js/company-operations.js?v=2"></script>
   <script src="./js/internal-i18n.js?v=1"></script>
   <script src="./js/public-i18n.js?v=1"></script>

@@ -44,7 +44,8 @@ class DashboardContractTests(unittest.TestCase):
         client = server.app.test_client()
         self.assertEqual(client.get("/api/company/workspace").status_code, 401)
         response = client.get("/login_cliente.html")
-        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response.status_code, 302)
+        self.assertIn("login_empresa.html", response.headers.get("Location", ""))
         response.close()
 
 

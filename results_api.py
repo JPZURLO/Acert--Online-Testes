@@ -7,6 +7,7 @@ from flask import Blueprint, jsonify, request, send_file
 from openpyxl import Workbook
 from openpyxl.styles import Font, PatternFill
 from grading import grade_for_score
+from company_units import active_unit_id, list_company_units, unit_filter_sql
 
 
 def clean_text(value, maximum):
@@ -182,6 +183,9 @@ def create_results_blueprint(open_database, token_payload):
         except (KeyError, TypeError, ValueError):
             return None, (jsonify({"success": False, "message": "Sessão inválida."}), 401)
 
+    def requested_unit_id():
+        return request.headers.get("X-Company-Unit-ID") or request.args.get("unitId")
+
     @blueprint.get("/api/company/results")
     def list_results():
         company_id, error = company_id_or_error()
@@ -211,6 +215,9 @@ def create_results_blueprint(open_database, token_payload):
         try:
             cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
             company = cursor.fetchone()
+            company_name = company["RazaoSocial"] if company else ""
+            unit_id = active_unit_id(cursor, company_id, company_name, requested_unit_id())
+            result_unit_sql, result_unit_params = unit_filter_sql(cursor, "r", "company_results", unit_id)
             sql = (
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
                 "e.title AS exam_title, e.passing_score, e.grading_scale_json, a.identity_status, "
@@ -218,18 +225,24 @@ def create_results_blueprint(open_database, token_payload):
                 "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
-                f"WHERE {' AND '.join(where)} ORDER BY r.completed_at DESC LIMIT 2000"
+                f"WHERE {' AND '.join(where)}{result_unit_sql} ORDER BY r.completed_at DESC LIMIT 2000"
             )
-            cursor.execute(sql, tuple(params))
+            cursor.execute(sql, tuple(params + result_unit_params))
             rows = cursor.fetchall()
             if status in {"approved", "review", "failed", "invalidated"}:
                 rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) == status]
             dashboard = compute_dashboard(rows)
-            cursor.execute("SELECT id, title FROM company_exams WHERE company_id = %s ORDER BY title", (company_id,))
+            exam_unit_sql, exam_unit_params = unit_filter_sql(cursor, "", "company_exams", unit_id)
+            cursor.execute(
+                "SELECT id, title FROM company_exams WHERE company_id = %s" + exam_unit_sql + " ORDER BY title",
+                tuple([company_id] + exam_unit_params),
+            )
             exams = cursor.fetchall()
             return jsonify(
                 {
                     "company": {"id": company_id, "name": company["RazaoSocial"] if company else "Empresa"},
+                    "units": units,
+                    "activeUnit": active_unit,
                     "results": [result_from_row(row) for row in rows],
                     "exams": exams,
                     **dashboard,
@@ -247,6 +260,11 @@ def create_results_blueprint(open_database, token_payload):
         connection = open_database()
         cursor = connection.cursor(dictionary=True)
         try:
+            cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
+            company = cursor.fetchone()
+            company_name = company["RazaoSocial"] if company else ""
+            unit_id = active_unit_id(cursor, company_id, company_name, requested_unit_id())
+            result_unit_sql, result_unit_params = unit_filter_sql(cursor, "r", "company_results", unit_id)
             cursor.execute(
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, "
                 "e.title AS exam_title, e.passing_score, e.grading_scale_json, a.identity_status, "
@@ -254,8 +272,8 @@ def create_results_blueprint(open_database, token_payload):
                 "(SELECT ar.status FROM attempt_recordings ar WHERE ar.attempt_id=a.id LIMIT 1) AS recording_status FROM company_results r "
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
-                "WHERE r.id = %s AND r.company_id = %s",
-                (result_id, company_id),
+                "WHERE r.id = %s AND r.company_id = %s" + result_unit_sql,
+                tuple([result_id, company_id] + result_unit_params),
             )
             row = cursor.fetchone()
             if not row:
@@ -339,6 +357,11 @@ def create_results_blueprint(open_database, token_payload):
         try:
             cursor.execute("SELECT RazaoSocial FROM empresas WHERE id = %s", (company_id,))
             company = cursor.fetchone()
+            company_name = company["RazaoSocial"] if company else ""
+            units = list_company_units(cursor, company_id, company_name)
+            unit_id = active_unit_id(cursor, company_id, company_name, requested_unit_id())
+            active_unit = next((unit for unit in units if unit["id"] == unit_id), None)
+            result_unit_sql, result_unit_params = unit_filter_sql(cursor, "r", "company_results", unit_id)
             sql = (
                 "SELECT r.*, p.full_name AS participant_name, p.email AS participant_email, p.phone AS participant_phone, p.city AS participant_city, "
                 "e.title AS exam_title, e.passing_score, e.grading_scale_json, e.questions_json, a.started_at AS attempt_started_at "
@@ -346,9 +369,9 @@ def create_results_blueprint(open_database, token_payload):
                 "LEFT JOIN exam_attempts a ON a.id = r.attempt_id "
                 "JOIN company_participants p ON p.id = r.participant_id AND p.company_id = r.company_id "
                 "JOIN company_exams e ON e.id = r.exam_id AND e.company_id = r.company_id "
-                f"WHERE {' AND '.join(where)} ORDER BY r.completed_at DESC LIMIT 3000"
+                f"WHERE {' AND '.join(where)}{result_unit_sql} ORDER BY r.completed_at DESC LIMIT 3000"
             )
-            cursor.execute(sql, tuple(params))
+            cursor.execute(sql, tuple(params + result_unit_params))
             rows = cursor.fetchall()
             if status in {"approved", "review", "failed", "invalidated"}:
                 rows = [row for row in rows if result_label(row.get("score"), row.get("passing_score"), row.get("result_status")) == status]

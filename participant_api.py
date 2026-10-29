@@ -16,7 +16,7 @@ RECORDING_CONTENT_TYPES = {"video/webm": ".webm", "video/mp4": ".mp4", "applicat
 AUDIT_EVENT_TYPES = {
     "recording_started", "recording_completed", "recording_error", "chunk_upload_failed",
     "focus_lost", "fullscreen_exit", "screen_share_stopped", "camera_stopped",
-    "microphone_stopped", "application_started", "application_submitted",
+    "microphone_stopped", "application_started", "application_submitted", "preflight_completed", "proctor_authorized",
 }
 
 
@@ -616,6 +616,11 @@ def create_participant_blueprint(open_database, token_payload):
             screen_checked = bool(data.get("screenChecked"))
             if row.get("require_recording") and not (consent and camera_checked and microphone_checked and screen_checked):
                 return jsonify({"success": False, "message": "Autorize e valide a câmera, o microfone e o compartilhamento da tela inteira."}), 409
+            if row.get("status") == "in_progress":
+                return jsonify({"success": True, "status": "in_progress", "attemptId": attempt_id})
+            if row.get("status") == "waiting_proctor":
+                return jsonify({"success": True, "status": "waiting_proctor", "attemptId": attempt_id})
+
             if is_resuming:
                 cursor.execute(
                     "UPDATE exam_attempts SET status='in_progress',resume_authorized=FALSE,resume_code_used_at=NOW(),resume_code_hash=NULL,"
@@ -623,17 +628,20 @@ def create_participant_blueprint(open_database, token_payload):
                     "expires_at=DATE_ADD(NOW(),INTERVAL %s SECOND),last_saved_at=NOW() WHERE id=%s AND user_id=%s",
                     (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("remaining_seconds") or 60), attempt_id, user_id),
                 )
+                store_audit_event(cursor, attempt_id, "application_started", "info", {"recordingRequired": bool(row.get("require_recording")), "resumed": True})
+                cursor.execute("UPDATE company_participants SET status='in_progress', progress=1, last_access=NOW() WHERE id=%s", (row["participant_id"],))
+                connection.commit()
+                return jsonify({"success": True, "status": "in_progress", "attemptId": attempt_id, "resumed": True})
             else:
                 cursor.execute(
-                    "UPDATE exam_attempts SET status='in_progress', consent_recording=%s, camera_checked=%s, microphone_checked=%s, screen_checked=%s, recording_status=%s, "
-                    "started_at=COALESCE(started_at,NOW()), expires_at=COALESCE(expires_at,DATE_ADD(NOW(), INTERVAL %s MINUTE)), last_saved_at=NOW() "
-                    "WHERE id=%s AND user_id=%s",
-                    (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", int(row.get("duration_minutes") or 60), attempt_id, user_id),
+                    "UPDATE exam_attempts SET status='waiting_proctor', consent_recording=%s, camera_checked=%s, microphone_checked=%s, screen_checked=%s, recording_status=%s, "
+                    "last_saved_at=NOW() WHERE id=%s AND user_id=%s",
+                    (consent, camera_checked, microphone_checked, screen_checked, "pending" if row.get("require_recording") else "not_required", attempt_id, user_id),
                 )
-            store_audit_event(cursor, attempt_id, "application_started", "info", {"recordingRequired": bool(row.get("require_recording")), "resumed": is_resuming})
-            cursor.execute("UPDATE company_participants SET status='in_progress', progress=1, last_access=NOW() WHERE id=%s", (row["participant_id"],))
-            connection.commit()
-            return jsonify({"success": True, "attemptId": attempt_id, "resumed": is_resuming})
+                store_audit_event(cursor, attempt_id, "preflight_completed", "info", {"recordingRequired": bool(row.get("require_recording")), "resumed": False})
+                cursor.execute("UPDATE company_participants SET status='pending', last_access=NOW() WHERE id=%s", (row["participant_id"],))
+                connection.commit()
+                return jsonify({"success": True, "status": "waiting_proctor", "attemptId": attempt_id, "resumed": False})
         finally:
             cursor.close()
             connection.close()
@@ -649,7 +657,10 @@ def create_participant_blueprint(open_database, token_payload):
             row = attempt_for_user(cursor, attempt_id, user_id)
             if not row:
                 return jsonify({"success": False, "message": "Aplicação não encontrada."}), 404
-            questions = safe_questions(parse_json(row.get("questions_json"), []))
+            if row.get("status") in {"not_started", "waiting_proctor"}:
+                questions = []
+            else:
+                questions = safe_questions(parse_json(row.get("questions_json"), []))
             saved = parse_json(row.get("answers_json"), {})
             remaining = None
             if row.get("status") == "paused":

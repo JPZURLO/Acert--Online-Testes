@@ -11,10 +11,12 @@
 .error-detail-empty{min-height:300px}
 
 .admin-view-as{position:relative;margin-left:auto}
-.admin-view-as+.admin-profile{margin-left:0}
-.admin-view-as-menu{position:absolute;right:0;top:calc(100% + 8px);width:210px;padding:7px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 45px rgba(22,48,51,.16);z-index:40}
-.admin-view-as-menu button{width:100%;height:38px;padding:0 10px;display:flex;align-items:center;gap:9px;border:0;border-radius:8px;background:transparent;color:var(--ink);font-size:11px;font-weight:750;text-align:left;cursor:pointer}
-.admin-view-as-menu button:hover{background:var(--soft);color:var(--primary)}
+.admin-view-as+.admin-profile,.admin-view-as+.admin-profile-container{margin-left:0}
+.admin-profile-container{position:relative}
+.admin-profile-trigger{background:transparent;border:0;cursor:pointer;padding:0;text-align:left}
+.admin-profile-menu,.admin-view-as-menu{position:absolute;right:0;top:calc(100% + 8px);width:210px;padding:7px;background:#fff;border:1px solid var(--line);border-radius:12px;box-shadow:0 18px 45px rgba(22,48,51,.16);z-index:40}
+.admin-profile-menu button,.admin-view-as-menu button{width:100%;height:38px;padding:0 10px;display:flex;align-items:center;gap:9px;border:0;border-radius:8px;background:transparent;color:var(--ink);font-size:11px;font-weight:750;text-align:left;cursor:pointer}
+.admin-profile-menu button:hover,.admin-view-as-menu button:hover{background:var(--soft);color:var(--primary)}
 .admin-simulation-intro{margin:0 0 15px;color:var(--muted);font-size:11px;line-height:1.5}
 
 @media(max-width:760px){
@@ -37,3 +39,6 @@
 .license-list .license-item.active{border-radius:10px;border-bottom-color:transparent;background:#eef7f6}
 @media(max-width:1180px){.license-list .license-editor .finance-license-fields,.license-list .license-editor .admin-form-grid{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-width:620px){.license-list .license-editor .finance-license-fields,.license-list .license-editor .admin-form-grid{grid-template-columns:1fr}.license-editor-actions .admin-primary,.license-editor-actions .admin-secondary{width:100%}}
+.license-rh-features{margin:10px 0 14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--soft)}
+.license-rh-features legend{padding:0 5px;color:var(--ink);font-size:10px;font-weight:850}
+.license-rh-features .admin-field-help{display:block;margin-top:8px;color:var(--muted);font-size:9px;line-height:1.45}

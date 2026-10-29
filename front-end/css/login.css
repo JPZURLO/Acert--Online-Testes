@@ -131,6 +131,35 @@ body {
     cursor: pointer;
   }
 
+  .reset-button {
+    background-color: #0f7f7a;
+    color: white;
+    padding: 12px 20px;
+    border: none;
+    border-radius: 5px;
+    cursor: pointer;
+  }
+
+  .reset-button:disabled {
+    opacity: 0.72;
+    cursor: progress;
+  }
+
+  .login-message {
+    min-height: 20px;
+    margin: 12px 0;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .login-message[data-type="success"] {
+    color: #064e3b;
+  }
+
+  .login-message[data-type="error"] {
+    color: #7f1d1d;
+  }
+
   .senha-container {
     position: relative; /* Permite posicionar o ícone dentro do input */
   }

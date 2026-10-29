@@ -6,3 +6,14 @@ front-end/js/node_modules/
 *.log
 *.crdownload
 private_uploads/
+
+# Pacotes de deploy e arquivos compactados
+*.zip
+
+# Arquivos temporários e testes soltos
+tmp/
+*.mp4
+/*.docx
+/*.xlsx
+/*.pdf
+

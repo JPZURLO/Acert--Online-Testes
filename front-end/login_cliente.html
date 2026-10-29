@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
   <meta charset="UTF-8">
@@ -6,6 +6,8 @@
   <meta name="description" content="Área da empresa para criação e personalização de testes ACERT.">
   <title>Online Teste | Estúdio de Testes</title>
   <link rel="shortcut icon" href="./assets/images/Logo.ico" type="image/x-icon">
+  <link rel="stylesheet" href="./css/participant-application.css?v=7">
+  <link rel="stylesheet" href="./css/candidate-branding.css?v=1">
   <link rel="stylesheet" href="./css/styleTelaCliente.css?v=9">
   <link rel="stylesheet" href="./css/dashboard-shell.css?v=2">
   <link rel="stylesheet" href="./css/public-i18n.css?v=1">
@@ -128,7 +130,7 @@
               </div>
               <div class="field full-field">
                 <label for="exam-description">Descrição</label>
-                <textarea id="exam-description" maxlength="3000" rows="3">Avaliação para identificar competências técnicas e comportamentais alinhadas à vaga.</textarea>
+                <textarea id="exam-description" maxlength="3000" rows="3" placeholder="Descreva aqui as orientações e informações que o candidato deverá ler antes de iniciar o exame."></textarea>
               </div>
             </section>
 
@@ -314,39 +316,82 @@
     <section class="preview-modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-preview-exam-title">
       <div class="preview-modal-banner">
         <div>
-          <span class="preview-banner-badge">👁 PRÉVIA DO CANDIDATO</span>
-          <span>Visão exata de como o participante responderá a este teste.</span>
+          <span class="preview-banner-badge">👁 MODO DE PRÉVIA</span>
+          <span>Nenhuma resposta ou dado será salvo no banco de dados.</span>
         </div>
         <button class="modal-close" id="close-preview-modal" type="button" aria-label="Fechar prévia">×</button>
       </div>
 
-      <div class="candidate-preview-container" id="candidate-preview-container">
-        <header class="candidate-header">
-          <div class="candidate-logo-area">
-            <img id="modal-preview-logo" src="./assets/images/Logo.png" alt="Logo">
-            <span id="modal-preview-company">SUA EMPRESA</span>
-          </div>
-          <div class="candidate-timer-mock">
-            <span class="timer-icon">◷</span>
-            <span>Tempo restante: <strong id="modal-preview-timer">60:00</strong></span>
-          </div>
+      <div class="candidate-preview-container" id="candidate-preview-container" style="position: relative; background: var(--candidate-background, #f3f7f7); min-height: 500px; border-radius: 8px; overflow: auto; max-height: 80vh;">
+        <!-- Topbar do Candidato -->
+        <header class="candidate-topbar" style="border-radius: 8px 8px 0 0;">
+          <a class="candidate-brand" href="javascript:void(0)" aria-label="Área do participante"><img id="candidate-logo" src="./assets/images/Logo_com_Slogan (sem fundo).png" alt="Online Teste"><span id="candidate-company">Online Teste</span></a>
+          <div class="candidate-account"><span class="account-avatar" id="candidate-initials">PT</span><div><strong id="candidate-name">Participante (Prévia)</strong><small>Ambiente de Prévia</small></div><button id="candidate-logout" type="button" style="display:none;">Sair</button></div>
         </header>
 
-        <main class="candidate-body">
-          <div class="candidate-exam-header">
-            <h1 id="modal-preview-exam-title">Avaliação de Competências</h1>
-            <p id="modal-preview-instructions">Leia as instruções com atenção antes de iniciar a avaliação.</p>
-            <div class="candidate-exam-tags">
-              <span>◷ <b id="modal-preview-duration-tag">60 min</b></span>
-              <span>▤ <b id="modal-preview-questions-tag">3 questões</b></span>
-              <span>♜ <b id="modal-preview-points-tag">100 pontos</b></span>
+        <main class="candidate-shell">
+          <!-- Visão de Instruções / Preflight -->
+          <section id="preflight-view" class="candidate-view" hidden>
+            <button class="back-link" id="back-to-assignments" type="button" style="display:none;"><i class="fa-solid fa-arrow-left"></i> Voltar aos testes</button>
+            <div class="candidate-heading compact"><div><p class="eyebrow">PREPARAÇÃO</p><h1 id="preflight-title">Prepare-se para o teste</h1><p id="preflight-company">Empresa</p></div><div class="exam-meta"><span><i class="fa-regular fa-clock"></i> <b id="preflight-duration">0</b> min</span><span><i class="fa-regular fa-rectangle-list"></i> <b id="preflight-questions">0</b> questões</span></div></div>
+            <ol class="preflight-steps"><li class="active"><span>1</span>Informações</li><li><span>2</span>Identificação</li><li><span>3</span>Equipamentos</li><li><span>4</span>Iniciar</li></ol>
+            <div class="preflight-grid">
+              <section class="candidate-panel instructions-card">
+                <h2>Antes de começar</h2>
+                <p id="preflight-description"></p>
+                <div id="preflight-instructions" class="instructions-copy"></div>
+                <div id="candidate-documents-wrap" style="margin-top: 1.5rem; border-top: 1px solid #E2E8F0; padding-top: 1rem;" hidden>
+                  <h3 style="margin: 0 0 0.5rem 0; font-size: 1.05rem; display: flex; align-items: center; gap: 0.5rem; color: #1E293B;">
+                    <span>📄</span> Documentos e Termos Obrigatórios
+                  </h3>
+                  <p style="font-size: 0.85rem; color: #64748B; margin-bottom: 0.8rem;">Conclua a leitura, aceite ou envio dos documentos necessários antes de iniciar.</p>
+                  <div id="candidate-documents-list" style="display: flex; flex-direction: column; gap: 0.8rem;"></div>
+                </div>
+                <ul>
+                  <li><strong>Documento oficial:</strong> Tenha em mãos um documento oficial com foto durante todo o exame.</li>
+                  <li><strong>Ambiente privado:</strong> Durante todo o exame você deverá permanecer sozinho no ambiente.</li>
+                  <li><strong>Câmera obrigatória:</strong> É obrigatório possuir uma câmera/webcam funcionando no computador durante a realização da prova.</li>
+                  <li><strong>Ambiente seguro:</strong> A prova funcionará em tela cheia. Trocar de guia ou janela encerrará a tentativa.</li>
+                  <li>Ao terminar o tempo, as respostas serão enviadas automaticamente.</li>
+                </ul>
+              </section>
+              <aside class="candidate-panel preparation-card">
+                <section id="resume-section" class="resume-section" hidden><div class="section-title"><span><i class="fa-solid fa-key"></i></span><div><h2>Código especial de retomada</h2><p>Informe o código enviado pela empresa para continuar de onde parou.</p></div></div><label class="resume-code-field" for="resume-code">Código de acesso<input id="resume-code" type="text" maxlength="12" autocomplete="one-time-code" placeholder="RET-XXXXXXXX"></label><p class="inline-status" id="resume-status">O código pode ser utilizado uma única vez e vence em 24 horas.</p></section>
+                <section id="identity-section"><div class="section-title"><span><i class="fa-regular fa-id-card"></i></span><div><h2>Confirme sua identidade (Simulação)</h2><p>As imagens ficam em uma área privada.</p></div></div><label class="upload-field">Documento com foto<input id="identity-document" type="file" accept="image/png,image/jpeg,image/webp"><span><i class="fa-solid fa-arrow-up-from-bracket"></i><b id="document-label">Selecionar documento</b></span></label><label class="upload-field">Foto do participante<input id="identity-selfie" type="file" accept="image/png,image/jpeg,image/webp"><span><i class="fa-solid fa-camera"></i><b id="selfie-label">Tirar ou selecionar foto</b></span></label><button class="candidate-button secondary full" id="submit-identity" type="button">Enviar identificação (Simulação)</button><p class="inline-status" id="identity-status"></p></section>
+                <section id="device-section"><div class="section-title"><span><i class="fa-solid fa-video"></i></span><div><h2>Câmera e microfone (Simulação)</h2><p>Faça o teste dos equipamentos antes de iniciar.</p></div></div><video id="device-preview" muted playsinline hidden></video><button class="candidate-button secondary full" id="check-devices" type="button">Testar equipamentos (Simulação)</button><p class="inline-status" id="device-status"></p></section>
+                <section id="screen-section"><div class="section-title"><span><i class="fa-solid fa-display"></i></span><div><h2>Compartilhamento da tela inteira (Simulação)</h2><p>Selecione a tela completa, não apenas uma guia.</p></div></div><button class="candidate-button secondary full" id="check-screen" type="button">Compartilhar tela (Simulação)</button><p class="inline-status" id="screen-status"></p></section>
+                <label class="consent-field" id="recording-consent-wrap"><input id="recording-consent" type="checkbox" checked><span><b>Autorização de áudio e imagem</b><small>Autorizo o uso da câmera e do microfone durante esta aplicação.</small></span></label>
+                <button class="candidate-button primary full" id="start-attempt" type="button">Iniciar teste em modo de prévia <i class="fa-solid fa-arrow-right"></i></button><p class="form-message" id="preflight-message"></p>
+              </aside>
             </div>
-          </div>
+          </section>
 
-          <div class="candidate-questions-feed" id="modal-preview-questions-feed">
-            <!-- Questões renderizadas em formato de prévia do candidato -->
-          </div>
+          <!-- Visão do Exame Real Compartilhada -->
+          <section id="exam-view" class="candidate-view exam-view" hidden>
+            <header class="exam-header"><div><p class="eyebrow">MODO DE PRÉVIA — TESTE SIMULADO</p><h1 id="candidate-exam-title">Teste</h1><span id="exam-progress-label">Questão 1 de 1</span></div><div class="exam-live-status"><span class="recording-badge" id="recording-badge"><i></i> Monitoramento simulado</span><div class="timer-card" id="timer-card"><small>Tempo restante</small><strong id="exam-timer">00:00:00</strong></div></div></header>
+            <div class="exam-layout"><aside class="question-navigation"><h2>Questões</h2><div id="question-navigation"></div><div class="navigation-legend"><span><i class="answered"></i>Respondida</span><span><i></i>Pendente</span></div></aside><section class="question-stage"><div class="autosave-status" id="autosave-status"><i></i> Respostas salvas em memória</div><article id="question-container" class="question-card"></article><footer class="question-actions"><button class="candidate-button secondary" id="previous-question" type="button"><i class="fa-solid fa-arrow-left"></i> Anterior</button><button class="candidate-button primary" id="next-question" type="button">Próxima <i class="fa-solid fa-arrow-right"></i></button><button class="candidate-button finish" id="finish-attempt" type="button" hidden>Finalizar teste <i class="fa-solid fa-check"></i></button></footer></section><aside class="monitoring-panel"><header><div><span class="live-dot"></span><div><h2>Monitoramento</h2><p>Simulação ativa</p></div></div></header><video id="monitor-camera" muted playsinline style="display:none;"></video><div class="monitoring-checks"><span id="monitor-camera-status"><i class="fa-solid fa-circle-check"></i> Câmera (Simulada)</span><span id="monitor-microphone-status"><i class="fa-solid fa-circle-check"></i> Microfone (Simulado)</span><span id="monitor-screen-status"><i class="fa-solid fa-circle-check"></i> Tela (Simulada)</span></div><div class="sync-card"><i class="fa-solid fa-cloud-arrow-up"></i><div><strong id="recording-sync-status">Simulação em andamento</strong><small id="recording-chunk-status">Nenhum dado real enviado</small></div></div><p class="monitoring-warning"><i class="fa-solid fa-shield-halved"></i> Nenhuma resposta será salva no banco de dados.</p></aside></div>
+          </section>
+
+          <!-- Visão da Conclusão Real Compartilhada -->
+          <section id="completion-view" class="candidate-view" hidden>
+            <div class="completion-card" id="completion-card"><span class="completion-icon" id="completion-icon"><i class="fa-solid fa-check"></i></span><p class="eyebrow" id="completion-eyebrow">MODO DE PRÉVIA CONCLUÍDO</p><h1 id="completion-title">Avaliação concluída em modo de prévia</h1><p id="completion-message">Esta foi uma simulação interativa. Nenhuma resposta ou resultado foi salvo no banco de dados.</p><div id="completion-result" class="completion-result" hidden><small>Seu resultado (Simulação)</small><strong id="completion-score">0</strong><span id="completion-status">Resultado</span></div><button class="candidate-button primary" id="completion-back" type="button">Refazer prévia</button></div>
+          </section>
         </main>
+
+        <!-- Elementos ocultos e auxiliares exigidos pelo player real -->
+        <div id="assignments-view" hidden>
+          <span id="candidate-first-name" hidden></span>
+          <span id="assignment-total" hidden></span>
+          <span id="assignment-progress" hidden></span>
+          <span id="assignment-completed" hidden></span>
+          <div id="assignment-list" hidden></div>
+          <div id="assignment-empty" hidden></div>
+        </div>
+        <div id="candidate-chat-alert" hidden></div>
+        <div id="candidate-chat-messages" hidden></div>
+        <form id="candidate-chat-form" hidden><input id="candidate-chat-input" type="text"></form>
+        <div class="confirm-backdrop" id="finish-confirmation" hidden><section role="dialog" aria-modal="true" aria-labelledby="finish-title"><span class="confirm-icon"><i class="fa-regular fa-paper-plane"></i></span><h2 id="finish-title">Finalizar e enviar o teste (Simulação)?</h2><p>As respostas simuladas serão finalizadas e a prévia será concluída.</p><div><button class="candidate-button secondary" id="cancel-finish" type="button">Continuar respondendo</button><button class="candidate-button primary" id="confirm-finish" type="button">Finalizar e enviar</button></div></section></div>
+        <div class="candidate-toast-region" id="candidate-toast-region" aria-live="polite"></div>
       </div>
 
       <div class="preview-modal-footer">
@@ -647,6 +692,7 @@ Questão 4: Caixa branca</pre>
   <div id="toast-region" class="toast-region" aria-live="polite" aria-atomic="true"></div>
 
   <script src="./js/license-ui.js?v=1"></script>
+  <script src="./js/participant-application.js?v=7"></script>
   <script src="./js/company-dashboard.js?v=19"></script>
   <script src="./js/question-import-prototype.js?v=4"></script>
   <script src="./js/knowledge-base.js?v=2"></script>
